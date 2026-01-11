@@ -150,5 +150,23 @@ router.post('/:id/deactivate', validate(deactivateAccountSchema), AccountControl
  */
 router.post('/:accountId/envelopes', validate(createEnvelopeSchema), EnvelopeController.create);
 
+/**
+ * @swagger
+ * /api/accounts:
+ *   get:
+ *     summary: Get all active accounts
+ *     tags: [Accounts]
+ *     responses:
+ *       200:
+ *         description: All active accounts successfully retrieved    
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Account'
+ */
+router.get('/', AccountController.getAllActive);
+
 export default router;
 

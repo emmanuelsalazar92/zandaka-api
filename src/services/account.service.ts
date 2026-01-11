@@ -51,5 +51,13 @@ export class AccountService {
     }
     return account;
   }
+
+  findAllActive(): Account[] {
+    const accounts = this.repo.findAllActive();
+    if (accounts.length === 0) {
+      throw { code: 'NOT_FOUND', message: 'No accounts found' };
+    }
+    return accounts;
+  }
 }
 
