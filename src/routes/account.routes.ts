@@ -164,7 +164,7 @@ router.post('/:accountId/envelopes', validate(createEnvelopeSchema), EnvelopeCon
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/Account'
+ *                 $ref: '#/components/schemas/AccountInfo'
  */
 router.get('/', AccountController.getAllActive);
 
