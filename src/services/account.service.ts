@@ -1,6 +1,6 @@
 import { AccountRepository } from '../repositories/account.repo';
 import { InstitutionRepository } from '../repositories/institution.repo';
-import { Account } from '../types';
+import { Account, AccountsInfo } from '../types';
 
 export class AccountService {
   private repo = new AccountRepository();
@@ -52,7 +52,7 @@ export class AccountService {
     return account;
   }
 
-  findAllActive(): Account[] {
+  findAllActive(): AccountsInfo[] {
     const accounts = this.repo.findAllActive();
     if (accounts.length === 0) {
       throw { code: 'NOT_FOUND', message: 'No accounts found' };

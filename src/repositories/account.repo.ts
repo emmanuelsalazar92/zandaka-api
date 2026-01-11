@@ -1,5 +1,5 @@
 import db from '../db/db';
-import { Account } from '../types';
+import { Account, AccountsInfo } from '../types';
 
 export class AccountRepository {
   create(
@@ -49,9 +49,9 @@ export class AccountRepository {
     return stmt.all() as Account[];
   }
 
-  findAllActive(): Account[] {
-    const stmt = db.prepare('SELECT * FROM account WHERE is_active = 1');
-    return stmt.all() as Account[];
+  findAllActive(): AccountsInfo[] {
+    const stmt = db.prepare('select AT.*, IT.name as institution, IT.type FROM account as AT INNER JOIN institution as IT 	ON AT.institution_id = IT.id WHERE AT.is_active = 1 ORDER BY IT.type, AT.institution_id ASC');
+    return stmt.all() as AccountsInfo[];
   }
 }
 

@@ -22,6 +22,18 @@ export interface Account {
   allow_overdraft: number;
 }
 
+export interface AccountsInfo {
+  id: number;
+  user_id: number;
+  institution_id: number;
+  name: string;
+  currency: string;
+  is_active: number;
+  allow_overdraft: number;
+  institution: string | null;
+  type: string | null;
+}
+
 export interface Category {
   id: number;
   user_id: number;
