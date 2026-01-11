@@ -48,5 +48,10 @@ export class AccountRepository {
     const stmt = db.prepare('SELECT * FROM account');
     return stmt.all() as Account[];
   }
+
+  findAllActive(): Account[] {
+    const stmt = db.prepare('SELECT * FROM account WHERE is_active = 1');
+    return stmt.all() as Account[];
+  }
 }
 

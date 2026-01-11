@@ -22,5 +22,10 @@ export class AccountController {
     service.deactivate(Number(id));
     res.status(204).send();
   }
+
+  static getAllActive(req: Request, res: Response) {
+    const accounts = service.findAllActive();
+    res.json(accounts);
+  }
 }
 
