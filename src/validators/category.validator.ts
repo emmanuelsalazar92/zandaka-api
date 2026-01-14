@@ -24,3 +24,9 @@ export const deactivateCategorySchema = z.object({
   }),
 });
 
+export const getActiveCategoriesSchema = z.object({
+  query: z.object({
+    activeOnly: z.literal('true'),
+  }),
+});
+

@@ -22,5 +22,10 @@ export class CategoryController {
     service.deactivate(Number(id));
     res.status(204).send();
   }
+
+  static getAllActive(req: Request, res: Response) {
+    const categories = service.findAllActive();
+    res.json(categories);
+  }
 }
 

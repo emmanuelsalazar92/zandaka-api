@@ -5,6 +5,7 @@ import {
   createCategorySchema,
   updateCategorySchema,
   deactivateCategorySchema,
+  getActiveCategoriesSchema,
 } from '../validators/category.validator';
 
 const router = Router();
@@ -50,6 +51,31 @@ const router = Router();
  *         description: Parent category is inactive
  */
 router.post('/', validate(createCategorySchema), CategoryController.create);
+
+/**
+ * @swagger
+ * /api/categories:
+ *   get:
+ *     summary: Get all active categories
+ *     tags: [Categories]
+ *     parameters:
+ *       - in: query
+ *         name: activeOnly
+ *         required: true
+ *         schema:
+ *           type: boolean
+ *           enum: [true]
+ *     responses:
+ *       200:
+ *         description: All active categories successfully retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Category'
+ */
+router.get('/', validate(getActiveCategoriesSchema), CategoryController.getAllActive);
 
 /**
  * @swagger

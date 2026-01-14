@@ -56,5 +56,13 @@ export class CategoryService {
     }
     return category;
   }
+
+  findAllActive(): Category[] {
+    const categories = this.repo.findAllActive();
+    if (categories.length === 0) {
+      throw { code: 'NOT_FOUND', message: 'No categories found' };
+    }
+    return categories;
+  }
 }
 

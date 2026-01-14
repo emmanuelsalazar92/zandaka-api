@@ -47,5 +47,10 @@ export class CategoryRepository {
     const category = this.findById(id);
     return category?.is_active === 1;
   }
+
+  findAllActive(): Category[] {
+    const stmt = db.prepare('SELECT * FROM category WHERE is_active = 1 ORDER BY id ASC');
+    return stmt.all() as Category[];
+  }
 }
 
