@@ -39,6 +39,10 @@ export class CategoryService {
   }
 
   deactivate(id: number): void {
+    if (this.repo.hasActiveChildren(id)) {
+      throw { code: 'CONFLICT', message: 'Category has active subcategories' };
+    }
+
     const success = this.repo.deactivate(id);
     if (!success) {
       throw { code: 'NOT_FOUND', message: 'Category not found' };

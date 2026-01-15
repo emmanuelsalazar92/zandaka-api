@@ -129,6 +129,12 @@ router.patch('/:id', validate(updateCategorySchema), CategoryController.update);
  *         description: Category deactivated successfully
  *       404:
  *         description: Category not found
+ *       409:
+ *         description: Category has active subcategories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/:id/deactivate', validate(deactivateCategorySchema), CategoryController.deactivate);
 
