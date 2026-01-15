@@ -48,6 +48,14 @@ export class CategoryRepository {
     return category?.is_active === 1;
   }
 
+  hasActiveChildren(parentId: number): boolean {
+    const stmt = db.prepare(
+      'SELECT 1 FROM category WHERE parent_id = ? AND is_active = 1 LIMIT 1'
+    );
+    const row = stmt.get(parentId);
+    return !!row;
+  }
+
   findAllActive(): Category[] {
     const stmt = db.prepare('SELECT * FROM category WHERE is_active = 1 ORDER BY id ASC');
     return stmt.all() as Category[];
