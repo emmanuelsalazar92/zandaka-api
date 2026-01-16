@@ -20,6 +20,23 @@ export class CategoryService {
   }
 
   update(id: number, name?: string, parentId?: number): Category {
+    const existing = this.repo.findById(id);
+    if (!existing) {
+      throw { code: 'NOT_FOUND', message: 'Category not found' };
+    }
+
+    if (
+      parentId !== undefined &&
+      parentId !== null &&
+      existing.parent_id === null &&
+      this.repo.hasActiveChildren(id)
+    ) {
+      throw {
+        code: 'CONFLICT',
+        message: 'Category has active subcategories',
+      };
+    }
+
     // Validate parent exists if provided
     if (parentId !== undefined && parentId !== null) {
       const parent = this.repo.findById(parentId);
@@ -31,11 +48,7 @@ export class CategoryService {
       }
     }
 
-    const category = this.repo.update(id, name, parentId);
-    if (!category) {
-      throw { code: 'NOT_FOUND', message: 'Category not found' };
-    }
-    return category;
+    return this.repo.update(id, name, parentId)!;
   }
 
   deactivate(id: number): void {
