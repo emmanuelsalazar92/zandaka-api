@@ -27,6 +27,12 @@ const router = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       409:
+ *         description: Envelope has a non-zero balance
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/:id/deactivate', validate(deactivateEnvelopeSchema), EnvelopeController.deactivate);
 
