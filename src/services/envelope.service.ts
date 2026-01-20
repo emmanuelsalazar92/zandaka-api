@@ -33,9 +33,11 @@ export class EnvelopeService {
       if (existing.is_active === 1) {
         throw { code: 'CONFLICT', message: 'Envelope already exists' };
       }
-      // Reactivate if it was deactivated
-      // For simplicity, we'll just create a new one, but in production you might want to reactivate
-      throw { code: 'CONFLICT', message: 'Envelope was previously deactivated' };
+      const reactivated = this.repo.reactivate(existing.id);
+      if (!reactivated) {
+        throw { code: 'INTERNAL_ERROR', message: 'Failed to reactivate envelope' };
+      }
+      return this.repo.findById(existing.id)!;
     }
 
     return this.repo.create(accountId, categoryId);

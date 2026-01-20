@@ -29,6 +29,12 @@ export class EnvelopeRepository {
     return result.changes > 0;
   }
 
+  reactivate(id: number): boolean {
+    const stmt = db.prepare('UPDATE account_envelope SET is_active = 1 WHERE id = ?');
+    const result = stmt.run(id);
+    return result.changes > 0;
+  }
+
   isActive(id: number): boolean {
     const envelope = this.findById(id);
     return envelope?.is_active === 1;
