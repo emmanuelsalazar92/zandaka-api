@@ -39,6 +39,14 @@ export class EnvelopeRepository {
     return stmt.all(accountId) as AccountEnvelope[];
   }
 
+  getBalance(id: number): number {
+    const stmt = db.prepare(
+      'SELECT COALESCE(SUM(amount), 0) as balance FROM transaction_line WHERE envelope_id = ?'
+    );
+    const result = stmt.get(id) as { balance: number } | undefined;
+    return result?.balance ?? 0;
+  }
+
   // Verify that envelope belongs to account
   belongsToAccount(envelopeId: number, accountId: number): boolean {
     const envelope = this.findById(envelopeId);

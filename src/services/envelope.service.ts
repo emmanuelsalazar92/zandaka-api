@@ -42,6 +42,16 @@ export class EnvelopeService {
   }
 
   deactivate(id: number): void {
+    const envelope = this.repo.findById(id);
+    if (!envelope) {
+      throw { code: 'NOT_FOUND', message: 'Envelope not found' };
+    }
+
+    const balance = this.repo.getBalance(id);
+    if (balance !== 0) {
+      throw { code: 'CONFLICT', message: 'Envelope has a non-zero balance' };
+    }
+
     const success = this.repo.deactivate(id);
     if (!success) {
       throw { code: 'NOT_FOUND', message: 'Envelope not found' };
