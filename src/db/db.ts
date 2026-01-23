@@ -112,6 +112,9 @@ export function initializeDatabase(): void {
     CREATE INDEX IF NOT EXISTS idx_transaction_line_envelope_id ON transaction_line(envelope_id);
     CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
     CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON transactions(user_id, date DESC);
+    CREATE INDEX IF NOT EXISTS idx_transaction_line_account_transaction ON transaction_line(account_id, transaction_id);
+    CREATE INDEX IF NOT EXISTS idx_account_envelope_category ON account_envelope(category_id);
   `);
 }
 

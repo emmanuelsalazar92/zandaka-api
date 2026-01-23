@@ -98,6 +98,12 @@ router.post('/', validate(createTransactionSchema), TransactionController.create
  *     tags: [Transactions]
  *     parameters:
  *       - in: query
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Filter by user ID
+ *       - in: query
  *         name: from
  *         schema:
  *           type: string
@@ -125,19 +131,77 @@ router.post('/', validate(createTransactionSchema), TransactionController.create
  *           type: string
  *         description: Search in description
  *       - in: query
- *         name: userId
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [INCOME, EXPENSE, TRANSFER, ADJUSTMENT, ALL]
+ *         description: Filter by transaction type (use ALL for no filter)
+ *       - in: query
+ *         name: amountMin
+ *         schema:
+ *           type: number
+ *           default: 0
+ *         description: Minimum transaction amount
+ *       - in: query
+ *         name: amountMax
+ *         schema:
+ *           type: number
+ *         description: Maximum transaction amount
+ *       - in: query
+ *         name: page
  *         schema:
  *           type: integer
- *         description: Filter by user ID
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           enum: [10, 25, 50, 100]
+ *           default: 10
+ *         description: Items per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [date, amount, createdAt]
+ *           default: date
+ *         description: Sort field
+ *       - in: query
+ *         name: sortDir
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort direction
  *     responses:
  *       200:
  *         description: List of transactions
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Transaction'
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Transaction'
+ *                 meta:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     pageSize:
+ *                       type: integer
+ *                     totalItems:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     hasNextPage:
+ *                       type: boolean
+ *                     hasPrevPage:
+ *                       type: boolean
  */
 router.get('/', validate(getTransactionsSchema), TransactionController.list);
 

@@ -119,14 +119,81 @@ export class TransactionService {
   }
 
   findWithFilters(params: {
+    userId: number;
     from?: string;
     to?: string;
+    type?: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT';
     accountId?: number;
     categoryId?: number;
     q?: string;
-    userId?: number;
-  }): Array<Transaction & { lines: TransactionLine[] }> {
-    return this.repo.findWithFilters(params);
+    amountMin?: number;
+    amountMax?: number;
+    page: number;
+    pageSize: number;
+    sortBy: 'date' | 'amount' | 'createdAt';
+    sortDir: 'asc' | 'desc';
+  }): {
+    data: Array<{
+      id: number;
+      userId: number;
+      date: string;
+      description: string;
+      type: Transaction['type'];
+      accountId: number | null;
+      accountName: string | null;
+      categoryId: number | null;
+      categoryName: string | null;
+      amount: number;
+      createdAt?: string;
+      lines: Array<{
+        id: number;
+        transactionId: number;
+        accountId: number;
+        accountName: string | null;
+        envelopeId: number;
+        categoryId: number | null;
+        categoryName: string | null;
+        amount: number;
+      }>;
+    }>;
+    meta: {
+      page: number;
+      pageSize: number;
+      totalItems: number;
+      totalPages: number;
+      hasNextPage: boolean;
+      hasPrevPage: boolean;
+    };
+  } {
+    const result = this.repo.findWithFilters(params);
+    const data = result.data.map((transaction) => {
+      const primaryLine = transaction.lines.length === 1 ? transaction.lines[0] : null;
+      return {
+        id: transaction.id,
+        userId: transaction.user_id,
+        date: transaction.date,
+        description: transaction.description,
+        type: transaction.type,
+        accountId: primaryLine?.account_id ?? null,
+        accountName: primaryLine?.account_name ?? null,
+        categoryId: primaryLine?.category_id ?? null,
+        categoryName: primaryLine?.category_name ?? null,
+        amount: transaction.amount,
+        createdAt: transaction.created_at,
+        lines: transaction.lines.map((line) => ({
+          id: line.id,
+          transactionId: line.transaction_id,
+          accountId: line.account_id,
+          accountName: line.account_name ?? null,
+          envelopeId: line.envelope_id,
+          categoryId: line.category_id ?? null,
+          categoryName: line.category_name ?? null,
+          amount: line.amount,
+        })),
+      };
+    });
+
+    return { data, meta: result.meta };
   }
 }
 
