@@ -58,27 +58,52 @@ export class TransactionRepository {
   }
 
   findWithFilters(params: {
+    userId: number;
     from?: string;
     to?: string;
+    type?: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT';
     accountId?: number;
     categoryId?: number;
     q?: string;
-    userId?: number;
-  }): Array<Transaction & { lines: TransactionLine[] }> {
-    let query = `
-      SELECT t.*, 
-             tl.id as line_id, tl.account_id, tl.envelope_id, tl.amount
-      FROM transactions t
-      LEFT JOIN transaction_line tl ON t.id = tl.transaction_id
-      WHERE 1=1
-    `;
-    const conditions: string[] = [];
-    const values: any[] = [];
+    amountMin?: number;
+    amountMax?: number;
+    page: number;
+    pageSize: number;
+    sortBy: 'date' | 'amount' | 'createdAt';
+    sortDir: 'asc' | 'desc';
+  }): {
+    data: Array<
+      Transaction & {
+        amount: number;
+        lines: Array<
+          TransactionLine & {
+            account_name?: string | null;
+            category_id?: number | null;
+            category_name?: string | null;
+          }
+        >;
+      }
+    >;
+    meta: {
+      page: number;
+      pageSize: number;
+      totalItems: number;
+      totalPages: number;
+      hasNextPage: boolean;
+      hasPrevPage: boolean;
+    };
+  } {
+    const conditions: string[] = [
+      't.user_id = ?',
+      `EXISTS (
+        SELECT 1
+        FROM transaction_line tl_active
+        JOIN account_envelope ae_active ON tl_active.envelope_id = ae_active.id
+        WHERE tl_active.transaction_id = t.id AND ae_active.is_active = 1
+      )`,
+    ];
+    const values: any[] = [params.userId];
 
-    if (params.userId) {
-      conditions.push('t.user_id = ?');
-      values.push(params.userId);
-    }
     if (params.from) {
       conditions.push('t.date >= ?');
       values.push(params.from);
@@ -87,35 +112,129 @@ export class TransactionRepository {
       conditions.push('t.date <= ?');
       values.push(params.to);
     }
-    if (params.accountId) {
-      conditions.push('tl.account_id = ?');
-      values.push(params.accountId);
+    if (params.type) {
+      conditions.push('t.type = ?');
+      values.push(params.type);
     }
     if (params.q) {
-      conditions.push('t.description LIKE ?');
-      values.push(`%${params.q}%`);
+      conditions.push('LOWER(t.description) LIKE ?');
+      values.push(`%${params.q.toLowerCase()}%`);
     }
-
-    if (conditions.length > 0) {
-      query += ' AND ' + conditions.join(' AND ');
+    if (params.accountId) {
+      conditions.push(
+        `EXISTS (
+          SELECT 1
+          FROM transaction_line tl_acc
+          JOIN account_envelope ae_acc ON tl_acc.envelope_id = ae_acc.id
+          WHERE tl_acc.transaction_id = t.id
+            AND tl_acc.account_id = ?
+            AND ae_acc.is_active = 1
+        )`
+      );
+      values.push(params.accountId);
     }
-
     if (params.categoryId) {
-      query += ` AND EXISTS (
-        SELECT 1 FROM transaction_line tl2
-        JOIN account_envelope ae ON tl2.envelope_id = ae.id
-        WHERE tl2.transaction_id = t.id AND ae.category_id = ?
-      )`;
+      conditions.push(
+        `EXISTS (
+          SELECT 1
+          FROM transaction_line tl_cat
+          JOIN account_envelope ae ON tl_cat.envelope_id = ae.id
+          WHERE tl_cat.transaction_id = t.id
+            AND ae.category_id = ?
+            AND ae.is_active = 1
+        )`
+      );
       values.push(params.categoryId);
     }
+    if (params.amountMin !== undefined) {
+      conditions.push('IFNULL(tt.total_amount, 0) >= ?');
+      values.push(params.amountMin);
+    }
+    if (params.amountMax !== undefined) {
+      conditions.push('IFNULL(tt.total_amount, 0) <= ?');
+      values.push(params.amountMax);
+    }
 
-    query += ' ORDER BY t.date DESC, t.id DESC';
+    const sortColumnMap: Record<typeof params.sortBy, string> = {
+      date: 't.date',
+      amount: 'tt.total_amount',
+      createdAt: 't.created_at',
+    };
+    const sortColumn = sortColumnMap[params.sortBy];
+    const sortDir = params.sortDir.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-    const stmt = db.prepare(query);
-    const rows = stmt.all(...values) as any[];
+    const baseWhere = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const countQuery = `
+      WITH totals AS (
+        SELECT tl.transaction_id, SUM(tl.amount) AS total_amount
+        FROM transaction_line tl
+        JOIN account_envelope ae ON tl.envelope_id = ae.id
+        WHERE ae.is_active = 1
+        GROUP BY tl.transaction_id
+      )
+      SELECT COUNT(DISTINCT t.id) AS total
+      FROM transactions t
+      LEFT JOIN totals tt ON tt.transaction_id = t.id
+      ${baseWhere}
+    `;
 
-    // Group lines by transaction
-    const transactionMap = new Map<number, Transaction & { lines: TransactionLine[] }>();
+    const totalItems = (db.prepare(countQuery).get(...values) as any)?.total ?? 0;
+    const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / params.pageSize);
+    const offset = (params.page - 1) * params.pageSize;
+
+    const dataQuery = `
+      WITH totals AS (
+        SELECT tl.transaction_id, SUM(tl.amount) AS total_amount
+        FROM transaction_line tl
+        JOIN account_envelope ae ON tl.envelope_id = ae.id
+        WHERE ae.is_active = 1
+        GROUP BY tl.transaction_id
+      ),
+      filtered AS (
+        SELECT t.id
+        FROM transactions t
+        LEFT JOIN totals tt ON tt.transaction_id = t.id
+        ${baseWhere}
+        ORDER BY ${sortColumn} ${sortDir}, t.id DESC
+        LIMIT ? OFFSET ?
+      )
+      SELECT t.*,
+             tt.total_amount,
+             tl.id as line_id,
+             tl.account_id,
+             a.name as account_name,
+             tl.envelope_id,
+             ae.category_id,
+             c.name as category_name,
+             tl.amount
+      FROM transactions t
+      JOIN filtered f ON t.id = f.id
+      LEFT JOIN totals tt ON tt.transaction_id = t.id
+      JOIN transaction_line tl ON t.id = tl.transaction_id
+      LEFT JOIN account a ON tl.account_id = a.id
+      JOIN account_envelope ae ON tl.envelope_id = ae.id AND ae.is_active = 1
+      LEFT JOIN category c ON ae.category_id = c.id
+      ORDER BY ${sortColumn} ${sortDir}, t.id DESC, tl.id ASC
+    `;
+
+    const rows = db
+      .prepare(dataQuery)
+      .all(...values, params.pageSize, offset) as any[];
+
+    const transactionMap = new Map<
+      number,
+      Transaction & {
+        amount: number;
+        lines: Array<
+          TransactionLine & {
+            account_name?: string | null;
+            category_id?: number | null;
+            category_name?: string | null;
+          }
+        >;
+      }
+    >();
+
     for (const row of rows) {
       if (!transactionMap.has(row.id)) {
         transactionMap.set(row.id, {
@@ -125,6 +244,7 @@ export class TransactionRepository {
           description: row.description,
           type: row.type,
           created_at: row.created_at,
+          amount: row.total_amount ?? 0,
           lines: [],
         });
       }
@@ -135,11 +255,24 @@ export class TransactionRepository {
           account_id: row.account_id,
           envelope_id: row.envelope_id,
           amount: row.amount,
+          account_name: row.account_name ?? null,
+          category_id: row.category_id ?? null,
+          category_name: row.category_name ?? null,
         });
       }
     }
 
-    return Array.from(transactionMap.values());
+    return {
+      data: Array.from(transactionMap.values()),
+      meta: {
+        page: params.page,
+        pageSize: params.pageSize,
+        totalItems,
+        totalPages,
+        hasNextPage: totalPages > 0 && params.page < totalPages,
+        hasPrevPage: totalPages > 0 && params.page > 1,
+      },
+    };
   }
 }
 

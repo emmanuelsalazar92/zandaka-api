@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { TransactionService } from '../services/transaction.service';
+import { getTransactionsSchema } from '../validators/transaction.validator';
 
 const service = new TransactionService();
 
@@ -11,15 +12,47 @@ export class TransactionController {
   }
 
   static list(req: Request, res: Response) {
-    const { from, to, accountId, categoryId, q, userId } = req.query;
+    const { query } = getTransactionsSchema.parse({ query: req.query });
+    const amountMinProvided = Object.prototype.hasOwnProperty.call(req.query, 'amountMin');
+    const amountMaxProvided = Object.prototype.hasOwnProperty.call(req.query, 'amountMax');
+    const applyAmountFilter = amountMinProvided || amountMaxProvided;
+
+    if (query.from && query.to && query.from > query.to) {
+      throw {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid date range',
+        details: [{ field: 'from', message: 'from must be <= to' }],
+      };
+    }
+
+    if (
+      applyAmountFilter &&
+      query.amountMax !== undefined &&
+      query.amountMin > query.amountMax
+    ) {
+      throw {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid amount range',
+        details: [{ field: 'amountMin', message: 'amountMin must be <= amountMax' }],
+      };
+    }
+
     const transactions = service.findWithFilters({
-      from: from as string,
-      to: to as string,
-      accountId: accountId ? Number(accountId) : undefined,
-      categoryId: categoryId ? Number(categoryId) : undefined,
-      q: q as string,
-      userId: userId ? Number(userId) : undefined,
+      userId: query.userId,
+      from: query.from,
+      to: query.to,
+      type: query.type === 'ALL' ? undefined : query.type,
+      accountId: query.accountId,
+      categoryId: query.categoryId,
+      q: query.q,
+      amountMin: applyAmountFilter ? query.amountMin : undefined,
+      amountMax: amountMaxProvided ? query.amountMax : undefined,
+      page: query.page,
+      pageSize: query.pageSize,
+      sortBy: query.sortBy,
+      sortDir: query.sortDir,
     });
+
     res.json(transactions);
   }
 }
