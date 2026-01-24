@@ -11,8 +11,8 @@ import {
 export class ReportService {
   private repo = new ReportRepository();
 
-  getAccountBalances(): AccountBalance[] {
-    return this.repo.getAccountBalances();
+  getAccountBalances(isActive?: boolean): AccountBalance[] {
+    return this.repo.getAccountBalances(isActive);
   }
 
   getEnvelopeBalances(accountId: number): EnvelopeBalance[] {

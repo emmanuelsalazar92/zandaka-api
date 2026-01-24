@@ -5,7 +5,10 @@ const service = new ReportService();
 
 export class ReportController {
   static getAccountBalances(req: Request, res: Response) {
-    const balances = service.getAccountBalances();
+    const { isActive } = req.query;
+    const activeFilter =
+      typeof isActive === 'string' ? isActive === 'true' || isActive === '1' : undefined;
+    const balances = service.getAccountBalances(activeFilter);
     res.json(balances);
   }
 
