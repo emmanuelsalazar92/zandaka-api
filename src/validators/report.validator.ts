@@ -6,6 +6,15 @@ export const getEnvelopeBalancesSchema = z.object({
   }),
 });
 
+export const getAccountBalancesSchema = z.object({
+  query: z.object({
+    isActive: z
+      .string()
+      .regex(/^(true|false|1|0)$/i)
+      .optional(),
+  }),
+});
+
 export const getMonthlyExpensesSchema = z.object({
   query: z.object({
     month: z.string().regex(/^\d{4}-\d{2}$/), // YYYY-MM

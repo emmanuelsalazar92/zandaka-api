@@ -1,9 +1,15 @@
 import db from '../db/db';
 
 export interface AccountBalance {
-  accountId: number;
-  accountName: string;
+  id: number;
+  user_id: number;
+  institution_id: number;
+  name: string;
   currency: string;
+  is_active: number;
+  allow_overdraft: number;
+  institution: string | null;
+  type: string | null;
   balance: number;
 }
 
@@ -45,19 +51,46 @@ export interface Inconsistency {
 }
 
 export class ReportRepository {
-  getAccountBalances(): AccountBalance[] {
-    const stmt = db.prepare(`
+  getAccountBalances(isActive?: boolean): AccountBalance[] {
+    let query = `
       SELECT 
-        a.id as accountId,
-        a.name as accountName,
+        a.id,
+        a.user_id,
+        a.institution_id,
+        a.name,
         a.currency,
+        a.is_active,
+        a.allow_overdraft,
+        i.name as institution,
+        i.type as type,
         COALESCE(SUM(tl.amount), 0) as balance
       FROM account a
+      LEFT JOIN institution i ON a.institution_id = i.id
       LEFT JOIN transaction_line tl ON a.id = tl.account_id
-      GROUP BY a.id, a.name, a.currency
+    `;
+    const params: any[] = [];
+
+    if (typeof isActive === 'boolean') {
+      query += ' WHERE a.is_active = ?';
+      params.push(isActive ? 1 : 0);
+    }
+
+    query += `
+      GROUP BY 
+        a.id, 
+        a.user_id, 
+        a.institution_id, 
+        a.name, 
+        a.currency, 
+        a.is_active, 
+        a.allow_overdraft,
+        i.name,
+        i.type
       ORDER BY a.name
-    `);
-    return stmt.all() as AccountBalance[];
+    `;
+
+    const stmt = db.prepare(query);
+    return stmt.all(...params) as AccountBalance[];
   }
 
   getEnvelopeBalances(accountId: number): EnvelopeBalance[] {

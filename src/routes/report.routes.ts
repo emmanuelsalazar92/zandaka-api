@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { ReportController } from '../controllers/report.controller';
 import { validate } from '../middlewares/validator.middleware';
 import {
+  getAccountBalancesSchema,
   getEnvelopeBalancesSchema,
   getMonthlyExpensesSchema,
   getInconsistenciesSchema,
@@ -15,6 +16,14 @@ const router = Router();
  *   get:
  *     summary: Get all account balances
  *     tags: [Reports]
+ *     parameters:
+ *       - in: query
+ *         name: isActive
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [true, false, 1, 0]
+ *         description: Optional filter for active (true/1) or inactive (false/0) accounts
  *     responses:
  *       200:
  *         description: List of account balances
@@ -25,16 +34,34 @@ const router = Router();
  *               items:
  *                 type: object
  *                 properties:
- *                   accountId:
+ *                   id:
  *                     type: integer
- *                   accountName:
+ *                   user_id:
+ *                     type: integer
+ *                   institution_id:
+ *                     type: integer
+ *                   name:
  *                     type: string
  *                   currency:
  *                     type: string
+ *                   is_active:
+ *                     type: integer
+ *                   allow_overdraft:
+ *                     type: integer
+ *                   institution:
+ *                     type: string
+ *                     nullable: true
+ *                   type:
+ *                     type: string
+ *                     nullable: true
  *                   balance:
  *                     type: number
  */
-router.get('/account-balances', ReportController.getAccountBalances);
+router.get(
+  '/account-balances',
+  validate(getAccountBalancesSchema),
+  ReportController.getAccountBalances
+);
 
 /**
  * @swagger
