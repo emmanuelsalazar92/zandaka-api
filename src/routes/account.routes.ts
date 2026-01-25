@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { AccountController } from '../controllers/account.controller';
 import { EnvelopeController } from '../controllers/envelope.controller';
+import { ReconciliationController } from '../controllers/reconciliation.controller';
 import { validate } from '../middlewares/validator.middleware';
 import {
   createAccountSchema,
@@ -8,6 +9,7 @@ import {
   deactivateAccountSchema,
 } from '../validators/account.validator';
 import { createEnvelopeSchema } from '../validators/envelope.validator';
+import { getActiveReconciliationSchema } from '../validators/reconciliation.validator';
 
 const router = Router();
 
@@ -149,6 +151,38 @@ router.post('/:id/deactivate', validate(deactivateAccountSchema), AccountControl
  *         description: Envelope already exists or resource is inactive
  */
 router.post('/:accountId/envelopes', validate(createEnvelopeSchema), EnvelopeController.create);
+
+/**
+ * @swagger
+ * /api/accounts/{accountId}/reconciliations/active:
+ *   get:
+ *     summary: Get active reconciliation for account
+ *     tags: [Reconciliations]
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Active reconciliation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Reconciliation'
+ *       404:
+ *         description: Active reconciliation not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get(
+  '/:accountId/reconciliations/active',
+  validate(getActiveReconciliationSchema),
+  ReconciliationController.getActiveByAccount
+);
 
 /**
  * @swagger

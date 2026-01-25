@@ -71,8 +71,13 @@ export interface Reconciliation {
   account_id: number;
   date: string;
   real_balance: number;
+  status: 'OPEN' | 'BALANCED';
+  calculated_balance: number;
+  difference: number;
+  is_active: number;
   note: string | null;
   created_at: string;
+  closed_at: string | null;
 }
 
 export interface ExchangeRate {
@@ -111,8 +116,17 @@ export interface ReconciliationResponse {
   realBalance: number;
   calculatedBalance: number;
   difference: number;
+  status: 'OPEN' | 'BALANCED';
+  isActive: number;
   note: string | null;
   createdAt: string;
+  closedAt: string | null;
+}
+
+export interface ReconciliationSummaryResponse extends ReconciliationResponse {
+  calculatedCurrent: number;
+  differenceCurrent: number;
+  statusCurrent: 'OPEN' | 'BALANCED';
 }
 
 export interface ErrorResponse {

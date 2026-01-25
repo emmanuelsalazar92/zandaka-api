@@ -3,6 +3,7 @@ import { EnvelopeRepository } from '../repositories/envelope.repo';
 import { AccountRepository } from '../repositories/account.repo';
 import { CategoryRepository } from '../repositories/category.repo';
 import { InstitutionRepository } from '../repositories/institution.repo';
+import { ReconciliationRepository } from '../repositories/reconciliation.repo';
 import { CreateTransactionRequest, Transaction, TransactionLine } from '../types';
 
 export class TransactionService {
@@ -11,6 +12,7 @@ export class TransactionService {
   private accountRepo = new AccountRepository();
   private categoryRepo = new CategoryRepository();
   private institutionRepo = new InstitutionRepository();
+  private reconciliationRepo = new ReconciliationRepository();
 
   create(data: CreateTransactionRequest): { transaction: Transaction; lines: TransactionLine[] } {
     // Validate lines
@@ -115,7 +117,32 @@ export class TransactionService {
     }
 
     // Create transaction with lines atomically
-    return this.repo.create(data.userId, data.date, data.description, data.type, data.lines);
+    const result = this.repo.create(
+      data.userId,
+      data.date,
+      data.description,
+      data.type,
+      data.lines
+    );
+
+    const accountIds = new Set(data.lines.map((line) => line.accountId));
+    for (const accountId of accountIds) {
+      const activeReconciliation = this.reconciliationRepo.getActiveReconciliation(accountId);
+      if (!activeReconciliation) {
+        continue;
+      }
+
+      const calculatedCurrent = this.reconciliationRepo.computeCalculatedBalance(
+        accountId,
+        activeReconciliation.date
+      );
+      const differenceCurrent = activeReconciliation.real_balance - calculatedCurrent;
+      if (Math.abs(differenceCurrent) <= 0.01) {
+        this.reconciliationRepo.closeReconciliation(activeReconciliation.id);
+      }
+    }
+
+    return result;
   }
 
   findWithFilters(params: {

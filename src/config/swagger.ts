@@ -129,9 +129,25 @@ const options: swaggerJsdoc.Options = {
             realBalance: { type: 'number' },
             calculatedBalance: { type: 'number' },
             difference: { type: 'number' },
+            status: { type: 'string', enum: ['OPEN', 'BALANCED'] },
+            isActive: { type: 'integer', enum: [0, 1] },
             note: { type: 'string', nullable: true },
             createdAt: { type: 'string', format: 'date-time' },
+            closedAt: { type: 'string', format: 'date-time', nullable: true },
           },
+        },
+        ReconciliationSummary: {
+          allOf: [
+            { $ref: '#/components/schemas/Reconciliation' },
+            {
+              type: 'object',
+              properties: {
+                calculatedCurrent: { type: 'number' },
+                differenceCurrent: { type: 'number' },
+                statusCurrent: { type: 'string', enum: ['OPEN', 'BALANCED'] },
+              },
+            },
+          ],
         },
       },
     },
