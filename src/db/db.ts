@@ -1,8 +1,8 @@
 import Database, { type Database as DatabaseType } from 'better-sqlite3';
 import fs from 'fs';
 
-// Use existing database at C:\sqlite\presupuesto.db
-const dbPath = 'C:\\sqlite\\presupuesto.db';
+// Use existing database at C:\sqlite\presupuesto.db or override for tests
+const dbPath = process.env.DB_PATH || 'C:\\sqlite\\presupuesto.db';
 
 // Verify database file exists
 if (!fs.existsSync(dbPath)) {
@@ -92,8 +92,13 @@ export function initializeDatabase(): void {
       account_id INTEGER NOT NULL,
       date TEXT NOT NULL,
       real_balance REAL NOT NULL,
+      status TEXT NOT NULL DEFAULT 'OPEN',
+      calculated_balance REAL NOT NULL DEFAULT 0,
+      difference REAL NOT NULL DEFAULT 0,
+      is_active INTEGER NOT NULL DEFAULT 1,
       note TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      closed_at TEXT,
       FOREIGN KEY (account_id) REFERENCES account(id)
     );
 

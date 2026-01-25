@@ -11,18 +11,47 @@ export class ReconciliationController {
   }
 
   static list(req: Request, res: Response) {
-    const { accountId } = req.query;
-    if (accountId) {
-      const reconciliations = service.findByAccountId(Number(accountId));
-      res.json(reconciliations);
-    } else {
-      res.status(400).json({
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'accountId query parameter is required',
-        },
-      });
-    }
+    const accountId =
+      req.query.account_id !== undefined
+        ? Number(req.query.account_id)
+        : req.query.accountId !== undefined
+          ? Number(req.query.accountId)
+          : undefined;
+    const status = req.query.status ? String(req.query.status) : undefined;
+    const limit = req.query.limit ? Number(req.query.limit) : 50;
+    const offset = req.query.offset ? Number(req.query.offset) : 0;
+    const reconciliations = service.list({
+      accountId,
+      status: status as 'OPEN' | 'BALANCED' | undefined,
+      limit,
+      offset,
+    });
+    res.json(reconciliations);
+  }
+
+  static getById(req: Request, res: Response) {
+    const { id } = req.params;
+    const reconciliation = service.findById(Number(id));
+    res.json(reconciliation);
+  }
+
+  static getActiveByAccount(req: Request, res: Response) {
+    const { accountId } = req.params;
+    const reconciliation = service.findActiveByAccountId(Number(accountId));
+    res.json(reconciliation);
+  }
+
+  static update(req: Request, res: Response) {
+    const { id } = req.params;
+    const { note } = req.body;
+    const reconciliation = service.updateNote(Number(id), note ?? null);
+    res.json(reconciliation);
+  }
+
+  static getSummary(req: Request, res: Response) {
+    const { id } = req.params;
+    const summary = service.getSummary(Number(id));
+    res.json(summary);
   }
 }
 
