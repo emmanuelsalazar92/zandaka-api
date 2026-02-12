@@ -45,6 +45,20 @@ export class EnvelopeRepository {
     return stmt.all(accountId) as AccountEnvelope[];
   }
 
+  hasActiveForAccount(accountId: number): boolean {
+    const stmt = db.prepare(
+      'SELECT 1 FROM account_envelope WHERE account_id = ? AND is_active = 1 LIMIT 1'
+    );
+    return !!stmt.get(accountId);
+  }
+
+  hasActiveForCategory(categoryId: number): boolean {
+    const stmt = db.prepare(
+      'SELECT 1 FROM account_envelope WHERE category_id = ? AND is_active = 1 LIMIT 1'
+    );
+    return !!stmt.get(categoryId);
+  }
+
   getBalance(id: number): number {
     const stmt = db.prepare(
       'SELECT COALESCE(SUM(amount), 0) as balance FROM transaction_line WHERE envelope_id = ?'

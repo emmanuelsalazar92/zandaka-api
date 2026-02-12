@@ -13,7 +13,7 @@ const router = Router();
  * /api/transactions:
  *   post:
  *     summary: Create a new transaction
- *     description: Creates a transaction with one or more lines. For TRANSFER type, must have exactly 2 lines that sum to zero.
+ *     description: Creates a transaction with one or more lines. For TRANSFER type, must have exactly 2 lines that sum to zero. For INCOME, all line amounts must be positive. For EXPENSE, all line amounts must be negative.
  *     tags: [Transactions]
  *     requestBody:
  *       required: true
@@ -81,12 +81,114 @@ const router = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *             examples:
+ *               expensePositive:
+ *                 summary: Expense must be negative
+ *                 value:
+ *                   error:
+ *                     code: VALIDATION_ERROR
+ *                     message: EXPENSE transaction lines must have negative amounts
+ *                     details:
+ *                       - field: lines
+ *                         accountId: 1
+ *                         envelopeId: 10
+ *                         amount: 100
+ *               incomeNegative:
+ *                 summary: Income must be positive
+ *                 value:
+ *                   error:
+ *                     code: VALIDATION_ERROR
+ *                     message: INCOME transaction lines must have positive amounts
+ *                     details:
+ *                       - field: lines
+ *                         accountId: 1
+ *                         envelopeId: 10
+ *                         amount: -100
+ *               transferLineCount:
+ *                 summary: Transfer requires exactly 2 lines
+ *                 value:
+ *                   error:
+ *                     code: VALIDATION_ERROR
+ *                     message: TRANSFER transactions must have exactly 2 lines
+ *                     details: []
+ *               transferNotBalanced:
+ *                 summary: Transfer lines must sum to zero
+ *                 value:
+ *                   error:
+ *                     code: VALIDATION_ERROR
+ *                     message: TRANSFER transaction lines must sum to zero
+ *                     details: []
+ *       404:
+ *         description: Resource not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             examples:
+ *               accountMissing:
+ *                 summary: Account not found
+ *                 value:
+ *                   error:
+ *                     code: NOT_FOUND
+ *                     message: Account 1 not found
+ *                     details:
+ *                       - field: lines
+ *                         accountId: 1
+ *               envelopeMissing:
+ *                 summary: Envelope not found
+ *                 value:
+ *                   error:
+ *                     code: NOT_FOUND
+ *                     message: Envelope 10 not found
+ *                     details:
+ *                       - field: lines
+ *                         envelopeId: 10
+ *               categoryMissing:
+ *                 summary: Category not found
+ *                 value:
+ *                   error:
+ *                     code: NOT_FOUND
+ *                     message: Category 5 not found
+ *                     details: []
  *       409:
  *         description: Inactive resource or conflict
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *             examples:
+ *               inactiveAccount:
+ *                 summary: Account inactive
+ *                 value:
+ *                   error:
+ *                     code: INACTIVE_RESOURCE
+ *                     message: Account 1 is inactive
+ *                     details:
+ *                       - field: lines
+ *                         accountId: 1
+ *               inactiveEnvelope:
+ *                 summary: Envelope inactive
+ *                 value:
+ *                   error:
+ *                     code: INACTIVE_RESOURCE
+ *                     message: Envelope 10 is inactive
+ *                     details:
+ *                       - field: lines
+ *                         envelopeId: 10
+ *               inactiveCategory:
+ *                 summary: Category inactive
+ *                 value:
+ *                   error:
+ *                     code: INACTIVE_RESOURCE
+ *                     message: Category 5 is inactive
+ *                     details: []
+ *               inactiveInstitution:
+ *                 summary: Institution inactive
+ *                 value:
+ *                   error:
+ *                     code: INACTIVE_RESOURCE
+ *                     message: Institution 2 is inactive
+ *                     details: []
  */
 router.post('/', validate(createTransactionSchema), TransactionController.create);
 

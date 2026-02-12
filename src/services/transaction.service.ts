@@ -45,6 +45,29 @@ export class TransactionService {
       }
     }
 
+    if (data.type === 'INCOME' || data.type === 'EXPENSE') {
+      const invalidLine = data.lines.find((line) =>
+        data.type === 'INCOME' ? line.amount <= 0 : line.amount >= 0
+      );
+      if (invalidLine) {
+        throw {
+          code: 'VALIDATION_ERROR',
+          message:
+            data.type === 'INCOME'
+              ? 'INCOME transaction lines must have positive amounts'
+              : 'EXPENSE transaction lines must have negative amounts',
+          details: [
+            {
+              field: 'lines',
+              accountId: invalidLine.accountId,
+              envelopeId: invalidLine.envelopeId,
+              amount: invalidLine.amount,
+            },
+          ],
+        };
+      }
+    }
+
     // Validate each line
     for (const line of data.lines) {
       // Verify envelope exists
