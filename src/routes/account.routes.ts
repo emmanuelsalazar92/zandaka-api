@@ -109,6 +109,19 @@ router.patch('/:id', validate(updateAccountSchema), AccountController.update);
  *     responses:
  *       204:
  *         description: Account deactivated successfully
+ *       409:
+ *         description: Account has active envelopes and non-zero balance
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error:
+ *                 code: CONFLICT
+ *                 message: Account has active envelopes and non-zero balance
+ *                 details:
+ *                   - field: envelopes
+ *                     accountId: 1
  *       404:
  *         description: Account not found
  */

@@ -53,5 +53,12 @@ export class AccountRepository {
     const stmt = db.prepare('select AT.*, IT.name as institution, IT.type FROM account as AT INNER JOIN institution as IT 	ON AT.institution_id = IT.id WHERE AT.is_active = 1 ORDER BY IT.type, AT.institution_id ASC');
     return stmt.all() as AccountsInfo[];
   }
+
+  hasActiveForInstitution(institutionId: number): boolean {
+    const stmt = db.prepare(
+      'SELECT 1 FROM account WHERE institution_id = ? AND is_active = 1 LIMIT 1'
+    );
+    return !!stmt.get(institutionId);
+  }
 }
 

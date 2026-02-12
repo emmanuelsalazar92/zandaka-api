@@ -1,8 +1,10 @@
+import { AccountRepository } from '../repositories/account.repo';
 import { InstitutionRepository } from '../repositories/institution.repo';
 import { Institution } from '../types';
 
 export class InstitutionService {
   private repo = new InstitutionRepository();
+  private accountRepo = new AccountRepository();
 
   create(userId: number, name: string, type: string): Institution {
     return this.repo.create(userId, name, type);
@@ -17,6 +19,18 @@ export class InstitutionService {
   }
 
   deactivate(id: number): void {
+    const institution = this.repo.findById(id);
+    if (!institution) {
+      throw { code: 'NOT_FOUND', message: 'Institution not found' };
+    }
+
+    if (this.accountRepo.hasActiveForInstitution(id)) {
+      throw {
+        code: 'CONFLICT',
+        message: 'Institution has active accounts',
+      };
+    }
+
     const success = this.repo.deactivate(id);
     if (!success) {
       throw { code: 'NOT_FOUND', message: 'Institution not found' };

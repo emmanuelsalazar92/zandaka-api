@@ -130,11 +130,18 @@ router.patch('/:id', validate(updateCategorySchema), CategoryController.update);
  *       404:
  *         description: Category not found
  *       409:
- *         description: Category has active subcategories
+ *         description: Category has active subcategories or active envelopes
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error:
+ *                 code: CONFLICT
+ *                 message: Category has active envelopes
+ *                 details:
+ *                   - field: envelopes
+ *                     categoryId: 5
  */
 router.post('/:id/deactivate', validate(deactivateCategorySchema), CategoryController.deactivate);
 

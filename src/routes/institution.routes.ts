@@ -138,6 +138,19 @@ router.patch('/:id', validate(updateInstitutionSchema), InstitutionController.up
  *     responses:
  *       204:
  *         description: Institution deactivated successfully
+ *       409:
+ *         description: Institution has active accounts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error:
+ *                 code: CONFLICT
+ *                 message: Institution has active accounts
+ *                 details:
+ *                   - field: accounts
+ *                     institutionId: 1
  *       404:
  *         description: Institution not found
  *         content:

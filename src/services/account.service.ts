@@ -1,10 +1,14 @@
 import { AccountRepository } from '../repositories/account.repo';
+import { EnvelopeRepository } from '../repositories/envelope.repo';
 import { InstitutionRepository } from '../repositories/institution.repo';
+import { ReportRepository } from '../repositories/report.repo';
 import { Account, AccountsInfo } from '../types';
 
 export class AccountService {
   private repo = new AccountRepository();
   private institutionRepo = new InstitutionRepository();
+  private envelopeRepo = new EnvelopeRepository();
+  private reportRepo = new ReportRepository();
 
   create(
     userId: number,
@@ -34,6 +38,22 @@ export class AccountService {
   }
 
   deactivate(id: number): void {
+    const account = this.repo.findById(id);
+    if (!account) {
+      throw { code: 'NOT_FOUND', message: 'Account not found' };
+    }
+
+    const hasActiveEnvelope = this.envelopeRepo.hasActiveForAccount(id);
+    if (hasActiveEnvelope) {
+      const balance = this.reportRepo.getAccountCalculatedBalance(id);
+      if (Math.abs(balance) > 0.000001) {
+        throw {
+          code: 'CONFLICT',
+          message: 'Account has active envelopes and non-zero balance',
+        };
+      }
+    }
+
     const success = this.repo.deactivate(id);
     if (!success) {
       throw { code: 'NOT_FOUND', message: 'Account not found' };

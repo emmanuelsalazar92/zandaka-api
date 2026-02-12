@@ -1,8 +1,10 @@
 import { CategoryRepository } from '../repositories/category.repo';
+import { EnvelopeRepository } from '../repositories/envelope.repo';
 import { Category } from '../types';
 
 export class CategoryService {
   private repo = new CategoryRepository();
+  private envelopeRepo = new EnvelopeRepository();
 
   create(userId: number, name: string, parentId?: number): Category {
     // Validate parent exists if provided
@@ -54,6 +56,9 @@ export class CategoryService {
   deactivate(id: number): void {
     if (this.repo.hasActiveChildren(id)) {
       throw { code: 'CONFLICT', message: 'Category has active subcategories' };
+    }
+    if (this.envelopeRepo.hasActiveForCategory(id)) {
+      throw { code: 'CONFLICT', message: 'Category has active envelopes' };
     }
 
     const success = this.repo.deactivate(id);
