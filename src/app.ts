@@ -16,11 +16,15 @@ import exchangeRateRoutes from './routes/exchange-rate.routes';
 
 export function createApp(): Express {
   const app = express();
+  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3001')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
   // Middleware
   app.use(
     cors({
-      origin: 'http://localhost:3001',
+      origin: allowedOrigins,
       credentials: true, // permite cookies/cabeceras auth entre frontend y backend
     }),
   );
