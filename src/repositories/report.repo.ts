@@ -1,4 +1,4 @@
-import db from '../db/db';
+import db from "../db/db";
 
 export interface AccountBalance {
   id: number;
@@ -70,8 +70,8 @@ export class ReportRepository {
     `;
     const params: any[] = [];
 
-    if (typeof isActive === 'boolean') {
-      query += ' WHERE a.is_active = ?';
+    if (typeof isActive === "boolean") {
+      query += " WHERE a.is_active = ?";
       params.push(isActive ? 1 : 0);
     }
 
@@ -177,7 +177,7 @@ export class ReportRepository {
     const params: any[] = [accountId];
 
     if (asOfDate) {
-      query += ' AND t.date <= ?';
+      query += " AND t.date <= ?";
       params.push(asOfDate);
     }
 
@@ -188,7 +188,12 @@ export class ReportRepository {
 
   getInconsistencies(accountId?: number): Inconsistency[] {
     const reconciliations = accountId
-      ? [{ accountId, reconciliation: this.findLatestReconciliation(accountId) }]
+      ? [
+          {
+            accountId,
+            reconciliation: this.findLatestReconciliation(accountId),
+          },
+        ]
       : this.findAllLatestReconciliations();
 
     const inconsistencies: Inconsistency[] = [];
@@ -199,7 +204,10 @@ export class ReportRepository {
       const account = this.getAccount(accId);
       if (!account) continue;
 
-      const calculatedBalance = this.getAccountCalculatedBalance(accId, reconciliation.date);
+      const calculatedBalance = this.getAccountCalculatedBalance(
+        accId,
+        reconciliation.date,
+      );
       const difference = reconciliation.real_balance - calculatedBalance;
 
       if (Math.abs(difference) > 0.01) {
@@ -229,7 +237,7 @@ export class ReportRepository {
   }
 
   private findAllLatestReconciliations() {
-    const accountsStmt = db.prepare('SELECT DISTINCT account_id FROM account');
+    const accountsStmt = db.prepare("SELECT DISTINCT account_id FROM account");
     const accounts = accountsStmt.all() as Array<{ account_id: number }>;
 
     return accounts.map((acc) => ({
@@ -239,8 +247,7 @@ export class ReportRepository {
   }
 
   private getAccount(accountId: number) {
-    const stmt = db.prepare('SELECT * FROM account WHERE id = ?');
+    const stmt = db.prepare("SELECT * FROM account WHERE id = ?");
     return stmt.get(accountId) as any;
   }
 }
-

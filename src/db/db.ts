@@ -1,12 +1,14 @@
-import Database, { type Database as DatabaseType } from 'better-sqlite3';
-import fs from 'fs';
+import Database, { type Database as DatabaseType } from "better-sqlite3";
+import fs from "fs";
 
 // Use existing database at C:\sqlite\presupuesto.db or override for tests
-const dbPath = process.env.DB_PATH || 'C:\\sqlite\\presupuesto.db';
+const dbPath = process.env.DB_PATH || "C:\\sqlite\\presupuesto.db";
 
 // Verify database file exists
 if (!fs.existsSync(dbPath)) {
-  throw new Error(`Database file not found at ${dbPath}. Please ensure the database exists.`);
+  throw new Error(
+    `Database file not found at ${dbPath}. Please ensure the database exists.`,
+  );
 }
 
 const db: DatabaseType = new Database(dbPath);
@@ -14,7 +16,7 @@ export { db };
 export default db;
 
 // Enable foreign keys
-db.pragma('foreign_keys = ON');
+db.pragma("foreign_keys = ON");
 
 // Initialize schema if tables don't exist
 export function initializeDatabase(): void {
@@ -125,4 +127,3 @@ export function initializeDatabase(): void {
 
 // Initialize on import
 initializeDatabase();
-
