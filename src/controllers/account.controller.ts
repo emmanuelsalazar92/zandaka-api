@@ -28,4 +28,3 @@ export class AccountController {
     res.json(accounts);
   }
 }
-

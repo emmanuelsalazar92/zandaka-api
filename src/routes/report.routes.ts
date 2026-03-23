@@ -60,7 +60,7 @@ const router = Router();
 router.get(
   '/account-balances',
   validate(getAccountBalancesSchema),
-  ReportController.getAccountBalances
+  ReportController.getAccountBalances,
 );
 
 /**
@@ -95,7 +95,11 @@ router.get(
  *                   balance:
  *                     type: number
  */
-router.get('/envelope-balances', validate(getEnvelopeBalancesSchema), ReportController.getEnvelopeBalances);
+router.get(
+  '/envelope-balances',
+  validate(getEnvelopeBalancesSchema),
+  ReportController.getEnvelopeBalances,
+);
 
 /**
  * @swagger
@@ -160,7 +164,11 @@ router.get('/negative-envelopes', ReportController.getNegativeEnvelopes);
  *                   total:
  *                     type: number
  */
-router.get('/monthly-expenses', validate(getMonthlyExpensesSchema), ReportController.getMonthlyExpenses);
+router.get(
+  '/monthly-expenses',
+  validate(getMonthlyExpensesSchema),
+  ReportController.getMonthlyExpenses,
+);
 
 /**
  * @swagger
@@ -224,7 +232,10 @@ router.get('/category-totals', ReportController.getCategoryTotals);
  *                   difference:
  *                     type: number
  */
-router.get('/inconsistencies', validate(getInconsistenciesSchema), ReportController.getInconsistencies);
+router.get(
+  '/inconsistencies',
+  validate(getInconsistenciesSchema),
+  ReportController.getInconsistencies,
+);
 
 export default router;
-

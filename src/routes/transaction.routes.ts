@@ -308,4 +308,3 @@ router.post('/', validate(createTransactionSchema), TransactionController.create
 router.get('/', validate(getTransactionsSchema), TransactionController.list);
 
 export default router;
-

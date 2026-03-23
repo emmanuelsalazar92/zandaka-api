@@ -26,4 +26,3 @@ export const getInconsistenciesSchema = z.object({
     accountId: z.string().regex(/^\d+$/).transform(Number).optional(),
   }),
 });
-

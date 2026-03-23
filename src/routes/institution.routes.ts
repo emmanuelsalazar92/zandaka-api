@@ -158,7 +158,11 @@ router.patch('/:id', validate(updateInstitutionSchema), InstitutionController.up
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/:id/deactivate', validate(deactivateInstitutionSchema), InstitutionController.deactivate);
+router.post(
+  '/:id/deactivate',
+  validate(deactivateInstitutionSchema),
+  InstitutionController.deactivate,
+);
 
 /**
  * @swagger

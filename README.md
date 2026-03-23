@@ -75,16 +75,31 @@ src/
 ## Setup
 
 1. **Install dependencies:**
+
    ```bash
    npm install
    ```
 
 2. **Run the development server:**
+
    ```bash
-   npm run dev
+   CORS_ORIGIN=http://localhost:3001 npm run dev
+   ```
+
+   On Windows PowerShell:
+
+   ```powershell
+   $env:CORS_ORIGIN='http://localhost:3001'; npm run dev
+   ```
+
+   If you need multiple allowed frontend origins, separate them with commas:
+
+   ```bash
+   CORS_ORIGIN=http://localhost:3001,https://app.example.com npm run dev
    ```
 
 3. **Build for production:**
+
    ```bash
    npm run build
    npm start
@@ -97,33 +112,40 @@ The database file will be created automatically at `./data/presupuesto.db` when 
 ### Base URL: `http://localhost:3000/api`
 
 ### Institutions
+
 - `POST /api/institutions` - Create institution
 - `PATCH /api/institutions/:id` - Update institution
 - `POST /api/institutions/:id/deactivate` - Deactivate institution
 
 ### Accounts
+
 - `POST /api/accounts` - Create account
 - `PATCH /api/accounts/:id` - Update account
 - `POST /api/accounts/:id/deactivate` - Deactivate account
 - `POST /api/accounts/:accountId/envelopes` - Create envelope (link category to account)
 
 ### Categories
+
 - `POST /api/categories` - Create category
 - `PATCH /api/categories/:id` - Update category
 - `POST /api/categories/:id/deactivate` - Deactivate category
 
 ### Envelopes
+
 - `POST /api/envelopes/:id/deactivate` - Deactivate envelope
 
 ### Transactions
+
 - `POST /api/transactions` - Create transaction
 - `GET /api/transactions` - List transactions (with filters: from, to, accountId, categoryId, q, userId)
 
 ### Reconciliations
+
 - `POST /api/reconciliations` - Create reconciliation
 - `GET /api/reconciliations?accountId=1` - List reconciliations for account
 
 ### Reports
+
 - `GET /api/reports/account-balances` - Get all account balances
 - `GET /api/reports/envelope-balances?accountId=1` - Get envelope balances for account
 - `GET /api/reports/negative-envelopes` - Get all envelopes with negative balances
@@ -169,7 +191,7 @@ Response includes `calculatedBalance` and `difference`:
   "accountId": 1,
   "date": "2024-01-31",
   "realBalance": 123456.78,
-  "calculatedBalance": 123400.00,
+  "calculatedBalance": 123400.0,
   "difference": 56.78,
   "note": "End of month reconciliation",
   "createdAt": "2024-01-31T12:00:00.000Z"
@@ -203,6 +225,7 @@ Response includes `calculatedBalance` and `difference`:
 ## Database Schema
 
 The database schema is automatically created on first run. Tables include:
+
 - `user` - Users
 - `institution` - Financial institutions
 - `account` - Bank accounts
@@ -224,4 +247,3 @@ The database schema is automatically created on first run. Tables include:
 - Dates are stored as TEXT in YYYY-MM-DD format
 - Boolean values are stored as INTEGER (0/1)
 - Foreign keys are enforced by SQLite
-

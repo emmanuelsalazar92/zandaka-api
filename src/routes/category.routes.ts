@@ -146,4 +146,3 @@ router.patch('/:id', validate(updateCategorySchema), CategoryController.update);
 router.post('/:id/deactivate', validate(deactivateCategorySchema), CategoryController.deactivate);
 
 export default router;
-

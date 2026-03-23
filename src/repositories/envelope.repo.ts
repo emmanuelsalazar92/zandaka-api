@@ -18,7 +18,7 @@ export class EnvelopeRepository {
 
   findByAccountAndCategory(accountId: number, categoryId: number): AccountEnvelope | null {
     const stmt = db.prepare(
-      'SELECT * FROM account_envelope WHERE account_id = ? AND category_id = ?'
+      'SELECT * FROM account_envelope WHERE account_id = ? AND category_id = ?',
     );
     return stmt.get(accountId, categoryId) as AccountEnvelope | null;
   }
@@ -47,21 +47,21 @@ export class EnvelopeRepository {
 
   hasActiveForAccount(accountId: number): boolean {
     const stmt = db.prepare(
-      'SELECT 1 FROM account_envelope WHERE account_id = ? AND is_active = 1 LIMIT 1'
+      'SELECT 1 FROM account_envelope WHERE account_id = ? AND is_active = 1 LIMIT 1',
     );
     return !!stmt.get(accountId);
   }
 
   hasActiveForCategory(categoryId: number): boolean {
     const stmt = db.prepare(
-      'SELECT 1 FROM account_envelope WHERE category_id = ? AND is_active = 1 LIMIT 1'
+      'SELECT 1 FROM account_envelope WHERE category_id = ? AND is_active = 1 LIMIT 1',
     );
     return !!stmt.get(categoryId);
   }
 
   getBalance(id: number): number {
     const stmt = db.prepare(
-      'SELECT COALESCE(SUM(amount), 0) as balance FROM transaction_line WHERE envelope_id = ?'
+      'SELECT COALESCE(SUM(amount), 0) as balance FROM transaction_line WHERE envelope_id = ?',
     );
     const result = stmt.get(id) as { balance: number } | undefined;
     return result?.balance ?? 0;
@@ -73,4 +73,3 @@ export class EnvelopeRepository {
     return envelope?.account_id === accountId;
   }
 }
-

@@ -29,4 +29,3 @@ export const getActiveCategoriesSchema = z.object({
     activeOnly: z.literal('true'),
   }),
 });
-

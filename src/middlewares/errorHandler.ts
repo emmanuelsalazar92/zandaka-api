@@ -1,12 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ErrorResponse } from '../types';
 
-export function errorHandler(
-  err: any,
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+export function errorHandler(err: any, req: Request, res: Response, next: NextFunction) {
   // If response already sent, delegate to default handler
   if (res.headersSent) {
     return next(err);
@@ -46,4 +41,3 @@ export function errorHandler(
 
   return res.status(500).json(response);
 }
-

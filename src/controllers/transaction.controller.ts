@@ -25,11 +25,7 @@ export class TransactionController {
       };
     }
 
-    if (
-      applyAmountFilter &&
-      query.amountMax !== undefined &&
-      query.amountMin > query.amountMax
-    ) {
+    if (applyAmountFilter && query.amountMax !== undefined && query.amountMin > query.amountMax) {
       throw {
         code: 'VALIDATION_ERROR',
         message: 'Invalid amount range',
@@ -56,4 +52,3 @@ export class TransactionController {
     res.json(transactions);
   }
 }
-

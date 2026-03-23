@@ -29,4 +29,3 @@ export function validate(schema: ZodSchema) {
     }
   };
 }
-

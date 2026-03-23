@@ -38,7 +38,7 @@ function seedBaseData(options?: { accountActive?: number }) {
     .run(userId, 'Test Bank', 'BANK').lastInsertRowid as number;
   const accountId = db
     .prepare(
-      'INSERT INTO account (user_id, institution_id, name, currency, is_active, allow_overdraft) VALUES (?, ?, ?, ?, ?, 0)'
+      'INSERT INTO account (user_id, institution_id, name, currency, is_active, allow_overdraft) VALUES (?, ?, ?, ?, ?, 0)',
     )
     .run(userId, institutionId, 'Checking', 'USD', accountActive).lastInsertRowid as number;
   const categoryId = db
@@ -64,6 +64,9 @@ before(async () => {
 after(async () => {
   if (server) {
     await new Promise((resolve) => server.close(resolve));
+  }
+  if (db?.close) {
+    db.close();
   }
   if (fs.existsSync(testDbPath)) {
     fs.unlinkSync(testDbPath);
@@ -136,10 +139,7 @@ test('adjustment closes reconciliation when difference reaches 0', async () => {
   });
   assert.equal(transactionRes.res.status, 201);
 
-  const activeRes = await requestJson(
-    'GET',
-    `/api/accounts/${accountId}/reconciliations/active`
-  );
+  const activeRes = await requestJson('GET', `/api/accounts/${accountId}/reconciliations/active`);
   assert.equal(activeRes.res.status, 404);
 
   const reconciliationGet = await requestJson('GET', `/api/reconciliations/${reconciliationId}`);

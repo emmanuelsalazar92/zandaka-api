@@ -52,10 +52,7 @@ export class ReportController {
 
   static getInconsistencies(req: Request, res: Response) {
     const { accountId } = req.query;
-    const inconsistencies = service.getInconsistencies(
-      accountId ? Number(accountId) : undefined
-    );
+    const inconsistencies = service.getInconsistencies(accountId ? Number(accountId) : undefined);
     res.json(inconsistencies);
   }
 }
-

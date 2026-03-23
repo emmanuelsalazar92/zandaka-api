@@ -27,7 +27,13 @@ const options: swaggerJsdoc.Options = {
               properties: {
                 code: {
                   type: 'string',
-                  enum: ['VALIDATION_ERROR', 'NOT_FOUND', 'CONFLICT', 'INACTIVE_RESOURCE', 'INTERNAL_ERROR'],
+                  enum: [
+                    'VALIDATION_ERROR',
+                    'NOT_FOUND',
+                    'CONFLICT',
+                    'INACTIVE_RESOURCE',
+                    'INTERNAL_ERROR',
+                  ],
                 },
                 message: { type: 'string' },
                 details: {
@@ -165,4 +171,3 @@ const options: swaggerJsdoc.Options = {
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
-

@@ -28,4 +28,3 @@ export class CategoryController {
     res.json(categories);
   }
 }
-

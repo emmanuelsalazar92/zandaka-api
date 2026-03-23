@@ -37,4 +37,3 @@ const router = Router();
 router.post('/:id/deactivate', validate(deactivateEnvelopeSchema), EnvelopeController.deactivate);
 
 export default router;
-
