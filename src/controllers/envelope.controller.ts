@@ -17,4 +17,3 @@ export class EnvelopeController {
     res.status(204).send();
   }
 }
-

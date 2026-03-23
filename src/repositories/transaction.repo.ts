@@ -7,7 +7,7 @@ export class TransactionRepository {
     date: string,
     description: string,
     type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT',
-    lines: Array<{ accountId: number; envelopeId: number; amount: number }>
+    lines: Array<{ accountId: number; envelopeId: number; amount: number }>,
   ): { transaction: Transaction; lines: TransactionLine[] } {
     const insertTransaction = db.prepare(`
       INSERT INTO transactions (user_id, date, description, type)
@@ -29,7 +29,7 @@ export class TransactionRepository {
           transactionId,
           line.accountId,
           line.envelopeId,
-          line.amount
+          line.amount,
         );
         createdLines.push({
           id: lineResult.lastInsertRowid as number,
@@ -129,7 +129,7 @@ export class TransactionRepository {
           WHERE tl_acc.transaction_id = t.id
             AND tl_acc.account_id = ?
             AND ae_acc.is_active = 1
-        )`
+        )`,
       );
       values.push(params.accountId);
     }
@@ -142,7 +142,7 @@ export class TransactionRepository {
           WHERE tl_cat.transaction_id = t.id
             AND ae.category_id = ?
             AND ae.is_active = 1
-        )`
+        )`,
       );
       values.push(params.categoryId);
     }
@@ -217,9 +217,7 @@ export class TransactionRepository {
       ORDER BY ${sortColumn} ${sortDir}, t.id DESC, tl.id ASC
     `;
 
-    const rows = db
-      .prepare(dataQuery)
-      .all(...values, params.pageSize, offset) as any[];
+    const rows = db.prepare(dataQuery).all(...values, params.pageSize, offset) as any[];
 
     const transactionMap = new Map<
       number,
@@ -275,4 +273,3 @@ export class TransactionRepository {
     };
   }
 }
-

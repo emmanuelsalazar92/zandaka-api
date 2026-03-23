@@ -53,4 +53,3 @@ export class InstitutionRepository {
     return institution?.is_active === 1;
   }
 }
-

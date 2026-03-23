@@ -47,7 +47,7 @@ export class TransactionService {
 
     if (data.type === 'INCOME' || data.type === 'EXPENSE') {
       const invalidLine = data.lines.find((line) =>
-        data.type === 'INCOME' ? line.amount <= 0 : line.amount >= 0
+        data.type === 'INCOME' ? line.amount <= 0 : line.amount >= 0,
       );
       if (invalidLine) {
         throw {
@@ -145,7 +145,7 @@ export class TransactionService {
       data.date,
       data.description,
       data.type,
-      data.lines
+      data.lines,
     );
 
     const accountIds = new Set(data.lines.map((line) => line.accountId));
@@ -157,7 +157,7 @@ export class TransactionService {
 
       const calculatedCurrent = this.reconciliationRepo.computeCalculatedBalance(
         accountId,
-        activeReconciliation.date
+        activeReconciliation.date,
       );
       const differenceCurrent = activeReconciliation.real_balance - calculatedCurrent;
       if (Math.abs(differenceCurrent) <= 0.01) {
@@ -246,4 +246,3 @@ export class TransactionService {
     return { data, meta: result.meta };
   }
 }
-

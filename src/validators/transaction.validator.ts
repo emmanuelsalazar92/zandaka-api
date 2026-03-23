@@ -29,7 +29,7 @@ export const createTransactionSchema = z.object({
           accountId: z.number().int().positive(),
           envelopeId: z.number().int().positive(),
           amount: z.number(),
-        })
+        }),
       )
       .min(1),
   }),
@@ -55,4 +55,3 @@ export const getTransactionsSchema = z.object({
     sortDir: z.enum(['asc', 'desc']).default('desc'),
   }),
 });
-

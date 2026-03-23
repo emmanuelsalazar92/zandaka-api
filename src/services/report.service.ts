@@ -39,4 +39,3 @@ export class ReportService {
     return this.repo.getInconsistencies(accountId);
   }
 }
-

@@ -194,7 +194,7 @@ router.post('/:accountId/envelopes', validate(createEnvelopeSchema), EnvelopeCon
 router.get(
   '/:accountId/reconciliations/active',
   validate(getActiveReconciliationSchema),
-  ReconciliationController.getActiveByAccount
+  ReconciliationController.getActiveByAccount,
 );
 
 /**
@@ -205,7 +205,7 @@ router.get(
  *     tags: [Accounts]
  *     responses:
  *       200:
- *         description: All active accounts successfully retrieved    
+ *         description: All active accounts successfully retrieved
  *         content:
  *           application/json:
  *             schema:
@@ -216,4 +216,3 @@ router.get(
 router.get('/', AccountController.getAllActive);
 
 export default router;
-

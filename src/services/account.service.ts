@@ -15,7 +15,7 @@ export class AccountService {
     institutionId: number,
     name: string,
     currency: string,
-    allowOverdraft: boolean = false
+    allowOverdraft: boolean = false,
   ): Account {
     // Verify institution exists and is active
     const institution = this.institutionRepo.findById(institutionId);
@@ -80,4 +80,3 @@ export class AccountService {
     return accounts;
   }
 }
-

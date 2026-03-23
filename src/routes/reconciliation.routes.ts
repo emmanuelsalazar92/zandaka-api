@@ -137,7 +137,7 @@ router.get('/', validate(getReconciliationsSchema), ReconciliationController.lis
 router.get(
   '/:id/summary',
   validate(getReconciliationSummarySchema),
-  ReconciliationController.getSummary
+  ReconciliationController.getSummary,
 );
 
 /**
@@ -210,5 +210,25 @@ router.get('/:id', validate(getReconciliationByIdSchema), ReconciliationControll
  */
 router.patch('/:id', validate(updateReconciliationSchema), ReconciliationController.update);
 
-export default router;
+/**
+ * @swagger
+ * /api/reconciliations/{id}:
+ *   delete:
+ *     summary: Delete reconciliation
+ *     description: Deletion is intentionally blocked to preserve reconciliation history
+ *     tags: [Reconciliations]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       409:
+ *         description: Reconciliations cannot be deleted
+ *       404:
+ *         description: Reconciliation not found
+ */
+router.delete('/:id', validate(getReconciliationByIdSchema), ReconciliationController.remove);
 
+export default router;

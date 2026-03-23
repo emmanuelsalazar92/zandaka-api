@@ -24,4 +24,3 @@ export const deactivateAccountSchema = z.object({
     id: z.string().regex(/^\d+$/).transform(Number),
   }),
 });
-

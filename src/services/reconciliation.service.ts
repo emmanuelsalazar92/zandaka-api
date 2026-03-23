@@ -1,5 +1,9 @@
 import { ReconciliationRepository } from '../repositories/reconciliation.repo';
-import { CreateReconciliationRequest, ReconciliationResponse, ReconciliationSummaryResponse } from '../types';
+import {
+  CreateReconciliationRequest,
+  ReconciliationResponse,
+  ReconciliationSummaryResponse,
+} from '../types';
 
 export class ReconciliationService {
   private repo = new ReconciliationRepository();
@@ -86,7 +90,7 @@ export class ReconciliationService {
     }
     const calculatedCurrent = this.repo.computeCalculatedBalance(
       reconciliation.account_id,
-      reconciliation.date
+      reconciliation.date,
     );
     const differenceCurrent = reconciliation.real_balance - calculatedCurrent;
     const statusCurrent = Math.abs(differenceCurrent) <= 0.01 ? 'BALANCED' : 'OPEN';
@@ -95,6 +99,18 @@ export class ReconciliationService {
       calculatedCurrent,
       differenceCurrent,
       statusCurrent,
+    };
+  }
+
+  blockDeletion(id: number): never {
+    const reconciliation = this.repo.findById(id);
+    if (!reconciliation) {
+      throw { code: 'NOT_FOUND', message: 'Reconciliation not found' };
+    }
+
+    throw {
+      code: 'CONFLICT',
+      message: 'Reconciliations cannot be deleted',
     };
   }
 
@@ -126,4 +142,3 @@ export class ReconciliationService {
     };
   }
 }
-

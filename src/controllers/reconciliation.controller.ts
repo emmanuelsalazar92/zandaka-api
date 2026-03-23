@@ -53,5 +53,10 @@ export class ReconciliationController {
     const summary = service.getSummary(Number(id));
     res.json(summary);
   }
-}
 
+  static remove(req: Request, res: Response) {
+    const { id } = req.params;
+    service.blockDeletion(Number(id));
+    res.status(204).send();
+  }
+}

@@ -28,7 +28,7 @@ export class ReconciliationRepository {
       params.difference,
       params.isActive,
       params.closedAt,
-      params.note || null
+      params.note || null,
     );
     return this.findById(result.lastInsertRowid as number)!;
   }
@@ -40,7 +40,7 @@ export class ReconciliationRepository {
 
   findByAccountId(accountId: number): Reconciliation[] {
     const stmt = db.prepare(
-      'SELECT * FROM reconciliation WHERE account_id = ? ORDER BY date DESC, created_at DESC'
+      'SELECT * FROM reconciliation WHERE account_id = ? ORDER BY date DESC, created_at DESC',
     );
     return stmt.all(accountId) as Reconciliation[];
   }
@@ -149,4 +149,3 @@ export class ReconciliationRepository {
     return this.findById(reconciliationId);
   }
 }
-

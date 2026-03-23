@@ -12,23 +12,30 @@ import envelopeRoutes from './routes/envelope.routes';
 import transactionRoutes from './routes/transaction.routes';
 import reconciliationRoutes from './routes/reconciliation.routes';
 import reportRoutes from './routes/report.routes';
+import exchangeRateRoutes from './routes/exchange-rate.routes';
 
 export function createApp(): Express {
   const app = express();
 
   // Middleware
-  app.use(cors({
-    origin: 'http://localhost:3001',
-    credentials: true // permite cookies/cabeceras auth entre frontend y backend
-  }));
+  app.use(
+    cors({
+      origin: 'http://localhost:3001',
+      credentials: true, // permite cookies/cabeceras auth entre frontend y backend
+    }),
+  );
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
   // Swagger Documentation
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'Budget API Documentation',
-  }));
+  app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'Budget API Documentation',
+    }),
+  );
 
   // Health check
   /**
@@ -64,10 +71,10 @@ export function createApp(): Express {
   app.use('/api/transactions', transactionRoutes);
   app.use('/api/reconciliations', reconciliationRoutes);
   app.use('/api/reports', reportRoutes);
+  app.use('/api/exchange-rate', exchangeRateRoutes);
 
   // Error handler (must be last)
   app.use(errorHandler);
 
   return app;
 }
-

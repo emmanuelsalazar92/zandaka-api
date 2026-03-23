@@ -23,4 +23,3 @@ export const deactivateInstitutionSchema = z.object({
     id: z.string().regex(/^\d+$/).transform(Number),
   }),
 });
-

@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "nodemon",
     "build": "tsc",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --ext .ts,.js --max-warnings=0",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
     "test": "node --test -r ts-node/register tests/reconciliation.test.ts"
@@ -33,7 +36,12 @@
     "@types/node": "^20.10.6",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
+    "@typescript-eslint/eslint-plugin": "^8.53.0",
+    "@typescript-eslint/parser": "^8.53.0",
+    "eslint": "^9.36.0",
+    "eslint-config-prettier": "^10.1.8",
     "nodemon": "^3.0.2",
+    "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
