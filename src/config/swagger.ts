@@ -80,6 +80,23 @@ const options: swaggerJsdoc.Options = {
             type: { type: 'string' },
           },
         },
+        AccountBalance: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            user_id: { type: 'integer' },
+            institution_id: { type: 'integer' },
+            name: { type: 'string' },
+            currency: { type: 'string' },
+            is_active: { type: 'integer' },
+            allow_overdraft: { type: 'integer' },
+            institution: { type: 'string', nullable: true },
+            type: { type: 'string', nullable: true },
+            balance: { type: 'number' },
+            has_active_envelopes: { type: 'boolean' },
+            active_envelopes_count: { type: 'integer' },
+          },
+        },
         Category: {
           type: 'object',
           properties: {

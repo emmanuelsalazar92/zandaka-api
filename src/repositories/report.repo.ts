@@ -11,6 +11,12 @@ export interface AccountBalance {
   institution: string | null;
   type: string | null;
   balance: number;
+  has_active_envelopes: boolean;
+  active_envelopes_count: number;
+}
+
+interface RawAccountBalance extends Omit<AccountBalance, 'has_active_envelopes'> {
+  has_active_envelopes: number;
 }
 
 export interface EnvelopeBalance {
@@ -63,10 +69,25 @@ export class ReportRepository {
         a.allow_overdraft,
         i.name as institution,
         i.type as type,
-        COALESCE(SUM(tl.amount), 0) as balance
+        COALESCE(ab.balance, 0) as balance,
+        CASE
+          WHEN COALESCE(ae.active_envelopes_count, 0) > 0 THEN 1
+          ELSE 0
+        END as has_active_envelopes,
+        COALESCE(ae.active_envelopes_count, 0) as active_envelopes_count
       FROM account a
       LEFT JOIN institution i ON a.institution_id = i.id
-      LEFT JOIN transaction_line tl ON a.id = tl.account_id
+      LEFT JOIN (
+        SELECT account_id, COALESCE(SUM(amount), 0) as balance
+        FROM transaction_line
+        GROUP BY account_id
+      ) ab ON a.id = ab.account_id
+      LEFT JOIN (
+        SELECT account_id, COUNT(*) as active_envelopes_count
+        FROM account_envelope
+        WHERE is_active = 1
+        GROUP BY account_id
+      ) ae ON a.id = ae.account_id
     `;
     const params: any[] = [];
 
@@ -75,22 +96,15 @@ export class ReportRepository {
       params.push(isActive ? 1 : 0);
     }
 
-    query += `
-      GROUP BY 
-        a.id, 
-        a.user_id, 
-        a.institution_id, 
-        a.name, 
-        a.currency, 
-        a.is_active, 
-        a.allow_overdraft,
-        i.name,
-        i.type
-      ORDER BY a.name
-    `;
+    query += ' ORDER BY a.name';
 
     const stmt = db.prepare(query);
-    return stmt.all(...params) as AccountBalance[];
+    const rows = stmt.all(...params) as RawAccountBalance[];
+
+    return rows.map((row) => ({
+      ...row,
+      has_active_envelopes: Boolean(row.has_active_envelopes),
+    }));
   }
 
   getEnvelopeBalances(accountId: number): EnvelopeBalance[] {
