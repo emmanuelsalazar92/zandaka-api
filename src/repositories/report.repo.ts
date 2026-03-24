@@ -24,6 +24,7 @@ export interface EnvelopeBalance {
   categoryId: number;
   categoryName: string;
   balance: number;
+  currency: string;
 }
 
 export interface NegativeEnvelope {
@@ -113,12 +114,14 @@ export class ReportRepository {
         ae.id as envelopeId,
         ae.category_id as categoryId,
         c.name as categoryName,
-        COALESCE(SUM(tl.amount), 0) as balance
+        COALESCE(SUM(tl.amount), 0) as balance,
+        a.currency as currency
       FROM account_envelope ae
+      JOIN account a ON ae.account_id = a.id
       JOIN category c ON ae.category_id = c.id
       LEFT JOIN transaction_line tl ON ae.id = tl.envelope_id
       WHERE ae.account_id = ? AND ae.is_active = 1
-      GROUP BY ae.id, ae.category_id, c.name
+      GROUP BY ae.id, ae.category_id, c.name, a.currency
       ORDER BY c.name
     `);
     return stmt.all(accountId) as EnvelopeBalance[];
