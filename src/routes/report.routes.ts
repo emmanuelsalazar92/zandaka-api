@@ -71,6 +71,8 @@ router.get(
  *                     type: string
  *                   balance:
  *                     type: number
+ *                   currency:
+ *                     type: string
  */
 router.get(
   '/envelope-balances',
