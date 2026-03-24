@@ -238,10 +238,9 @@ test('account balances report includes active envelope flags and counts', async 
   const secondCategoryId = db
     .prepare('INSERT INTO category (user_id, name, parent_id, is_active) VALUES (?, ?, NULL, 1)')
     .run(userId, 'Groceries').lastInsertRowid as number;
-  db.prepare('INSERT INTO account_envelope (account_id, category_id, is_active) VALUES (?, ?, 1)').run(
-    accountId,
-    secondCategoryId,
-  );
+  db.prepare(
+    'INSERT INTO account_envelope (account_id, category_id, is_active) VALUES (?, ?, 1)',
+  ).run(accountId, secondCategoryId);
 
   const thirdCategoryId = db
     .prepare('INSERT INTO category (user_id, name, parent_id, is_active) VALUES (?, ?, NULL, 1)')
