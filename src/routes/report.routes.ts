@@ -32,30 +32,7 @@ const router = Router();
  *             schema:
  *               type: array
  *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                   user_id:
- *                     type: integer
- *                   institution_id:
- *                     type: integer
- *                   name:
- *                     type: string
- *                   currency:
- *                     type: string
- *                   is_active:
- *                     type: integer
- *                   allow_overdraft:
- *                     type: integer
- *                   institution:
- *                     type: string
- *                     nullable: true
- *                   type:
- *                     type: string
- *                     nullable: true
- *                   balance:
- *                     type: number
+ *                 $ref: '#/components/schemas/AccountBalance'
  */
 router.get(
   '/account-balances',

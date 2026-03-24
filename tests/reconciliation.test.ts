@@ -187,3 +187,101 @@ test('delete is blocked', async () => {
   const deleteRes = await requestJson('DELETE', `/api/reconciliations/${reconciliationId}`);
   assert.equal(deleteRes.res.status, 409);
 });
+
+test('cannot deactivate account when it has active envelopes even with zero balance', async () => {
+  const { accountId } = seedBaseData();
+
+  const deactivateRes = await requestJson('POST', `/api/accounts/${accountId}/deactivate`);
+  assert.equal(deactivateRes.res.status, 409);
+  assert.equal(deactivateRes.json.error.code, 'CONFLICT');
+  assert.equal(deactivateRes.json.error.message, 'Account has active envelopes');
+  assert.deepEqual(deactivateRes.json.error.details, [{ field: 'envelopes', accountId }]);
+
+  const account = db.prepare('SELECT is_active FROM account WHERE id = ?').get(accountId) as {
+    is_active: number;
+  };
+  assert.equal(account.is_active, 1);
+});
+
+test('can deactivate account when it has no active envelopes even if it has historical balance', async () => {
+  const { accountId, envelopeId, userId } = seedBaseData();
+
+  const transactionRes = await requestJson('POST', '/api/transactions', {
+    userId,
+    date: '2024-01-31',
+    type: 'ADJUSTMENT',
+    description: 'Seed balance',
+    lines: [
+      {
+        accountId,
+        envelopeId,
+        amount: 250,
+      },
+    ],
+  });
+  assert.equal(transactionRes.res.status, 201);
+
+  db.prepare('UPDATE account_envelope SET is_active = 0 WHERE id = ?').run(envelopeId);
+
+  const deactivateRes = await requestJson('POST', `/api/accounts/${accountId}/deactivate`);
+  assert.equal(deactivateRes.res.status, 204);
+
+  const account = db.prepare('SELECT is_active FROM account WHERE id = ?').get(accountId) as {
+    is_active: number;
+  };
+  assert.equal(account.is_active, 0);
+});
+
+test('account balances report includes active envelope flags and counts', async () => {
+  const { userId, institutionId, accountId, categoryId } = seedBaseData();
+
+  const secondCategoryId = db
+    .prepare('INSERT INTO category (user_id, name, parent_id, is_active) VALUES (?, ?, NULL, 1)')
+    .run(userId, 'Groceries').lastInsertRowid as number;
+  db.prepare('INSERT INTO account_envelope (account_id, category_id, is_active) VALUES (?, ?, 1)').run(
+    accountId,
+    secondCategoryId,
+  );
+
+  const thirdCategoryId = db
+    .prepare('INSERT INTO category (user_id, name, parent_id, is_active) VALUES (?, ?, NULL, 1)')
+    .run(userId, 'Travel').lastInsertRowid as number;
+  const inactiveEnvelopeId = db
+    .prepare('INSERT INTO account_envelope (account_id, category_id, is_active) VALUES (?, ?, 1)')
+    .run(accountId, thirdCategoryId).lastInsertRowid as number;
+  db.prepare('UPDATE account_envelope SET is_active = 0 WHERE id = ?').run(inactiveEnvelopeId);
+
+  const secondAccountId = db
+    .prepare(
+      'INSERT INTO account (user_id, institution_id, name, currency, is_active, allow_overdraft) VALUES (?, ?, ?, ?, 1, 0)',
+    )
+    .run(userId, institutionId, 'Savings', 'USD').lastInsertRowid as number;
+  const fourthCategoryId = db
+    .prepare('INSERT INTO category (user_id, name, parent_id, is_active) VALUES (?, ?, NULL, 1)')
+    .run(userId, 'Emergency').lastInsertRowid as number;
+  const secondAccountEnvelopeId = db
+    .prepare('INSERT INTO account_envelope (account_id, category_id, is_active) VALUES (?, ?, 1)')
+    .run(secondAccountId, fourthCategoryId).lastInsertRowid as number;
+  db.prepare('UPDATE account_envelope SET is_active = 0 WHERE id = ?').run(secondAccountEnvelopeId);
+
+  const reportRes = await requestJson('GET', '/api/reports/account-balances?isActive=true');
+  assert.equal(reportRes.res.status, 200);
+
+  const checking = reportRes.json.find((account: any) => account.id === accountId);
+  assert.ok(checking);
+  assert.equal(checking.user_id, userId);
+  assert.equal(checking.has_active_envelopes, true);
+  assert.equal(typeof checking.has_active_envelopes, 'boolean');
+  assert.equal(checking.active_envelopes_count, 2);
+  assert.equal(typeof checking.active_envelopes_count, 'number');
+
+  const savings = reportRes.json.find((account: any) => account.id === secondAccountId);
+  assert.ok(savings);
+  assert.equal(savings.has_active_envelopes, false);
+  assert.equal(savings.active_envelopes_count, 0);
+
+  const originalEnvelope = db
+    .prepare('SELECT is_active FROM account_envelope WHERE account_id = ? AND category_id = ?')
+    .get(accountId, categoryId) as { is_active: number };
+  assert.equal(originalEnvelope.is_active, 1);
+});

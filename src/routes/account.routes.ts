@@ -110,7 +110,7 @@ router.patch('/:id', validate(updateAccountSchema), AccountController.update);
  *       204:
  *         description: Account deactivated successfully
  *       409:
- *         description: Account has active envelopes and non-zero balance
+ *         description: Account has active envelopes
  *         content:
  *           application/json:
  *             schema:
@@ -118,7 +118,7 @@ router.patch('/:id', validate(updateAccountSchema), AccountController.update);
  *             example:
  *               error:
  *                 code: CONFLICT
- *                 message: Account has active envelopes and non-zero balance
+ *                 message: Account has active envelopes
  *                 details:
  *                   - field: envelopes
  *                     accountId: 1
