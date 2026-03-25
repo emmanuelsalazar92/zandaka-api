@@ -47,4 +47,8 @@ export class ReportService {
   getInconsistencies(accountId?: number): Inconsistency[] {
     return this.repo.getInconsistencies(accountId);
   }
+
+  getActiveAccountInconsistencies(): Inconsistency[] {
+    return this.repo.getActiveAccountInconsistencies();
+  }
 }
