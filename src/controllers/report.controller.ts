@@ -50,6 +50,21 @@ export class ReportController {
     res.json(totals);
   }
 
+  static getEnvelopeTotalByCurrency(req: Request, res: Response) {
+    const { currency } = req.query;
+    if (!currency || typeof currency !== 'string') {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'currency query parameter is required',
+        },
+      });
+    }
+
+    const total = service.getEnvelopeTotalByCurrency(currency);
+    res.json(total);
+  }
+
   static getInconsistencies(req: Request, res: Response) {
     const { accountId } = req.query;
     const inconsistencies = service.getInconsistencies(accountId ? Number(accountId) : undefined);
