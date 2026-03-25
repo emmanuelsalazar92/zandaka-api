@@ -71,7 +71,7 @@ export interface Reconciliation {
   account_id: number;
   date: string;
   real_balance: number;
-  status: 'OPEN' | 'BALANCED';
+  status: 'OPEN' | 'BALANCED' | 'IGNORED';
   calculated_balance: number;
   difference: number;
   is_active: number;
@@ -116,7 +116,7 @@ export interface ReconciliationResponse {
   realBalance: number;
   calculatedBalance: number;
   difference: number;
-  status: 'OPEN' | 'BALANCED';
+  status: 'OPEN' | 'BALANCED' | 'IGNORED';
   isActive: number;
   note: string | null;
   createdAt: string;

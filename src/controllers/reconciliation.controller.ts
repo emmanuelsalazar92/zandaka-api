@@ -22,7 +22,7 @@ export class ReconciliationController {
     const offset = req.query.offset ? Number(req.query.offset) : 0;
     const reconciliations = service.list({
       accountId,
-      status: status as 'OPEN' | 'BALANCED' | undefined,
+      status: status as 'OPEN' | 'BALANCED' | 'IGNORED' | undefined,
       limit,
       offset,
     });
@@ -58,5 +58,11 @@ export class ReconciliationController {
     const { id } = req.params;
     service.blockDeletion(Number(id));
     res.status(204).send();
+  }
+
+  static ignore(req: Request, res: Response) {
+    const { id } = req.params;
+    const reconciliation = service.ignore(Number(id));
+    res.json(reconciliation);
   }
 }

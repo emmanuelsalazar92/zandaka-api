@@ -266,7 +266,7 @@ export class ReportRepository {
   }
 
   getActiveAccountInconsistencies(): Inconsistency[] {
-    const reconciliations = this.findAllLatestReconciliations(true);
+    const reconciliations = this.findAllLatestActiveReconciliationsForActiveAccounts();
     const inconsistencies: Inconsistency[] = [];
 
     for (const { accountId, reconciliation } of reconciliations) {
@@ -303,6 +303,17 @@ export class ReportRepository {
     return stmt.get(accountId) as any;
   }
 
+  private findLatestActiveReconciliation(accountId: number) {
+    const stmt = db.prepare(`
+      SELECT * FROM reconciliation
+      WHERE account_id = ?
+        AND is_active = 1
+      ORDER BY date DESC, created_at DESC
+      LIMIT 1
+    `);
+    return stmt.get(accountId) as any;
+  }
+
   private findAllLatestReconciliations(activeOnly = false) {
     const accountsStmt = db.prepare(`
       SELECT id as account_id
@@ -314,6 +325,20 @@ export class ReportRepository {
     return accounts.map((acc) => ({
       accountId: acc.account_id,
       reconciliation: this.findLatestReconciliation(acc.account_id),
+    }));
+  }
+
+  private findAllLatestActiveReconciliationsForActiveAccounts() {
+    const accountsStmt = db.prepare(`
+      SELECT id as account_id
+      FROM account
+      WHERE is_active = 1
+    `);
+    const accounts = accountsStmt.all() as Array<{ account_id: number }>;
+
+    return accounts.map((acc) => ({
+      accountId: acc.account_id,
+      reconciliation: this.findLatestActiveReconciliation(acc.account_id),
     }));
   }
 

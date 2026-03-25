@@ -71,7 +71,7 @@ export class ReconciliationRepository {
 
   findWithFilters(params: {
     accountId?: number;
-    status?: 'OPEN' | 'BALANCED';
+    status?: 'OPEN' | 'BALANCED' | 'IGNORED';
     limit: number;
     offset: number;
   }): Reconciliation[] {
@@ -140,6 +140,19 @@ export class ReconciliationRepository {
     const stmt = db.prepare(`
       UPDATE reconciliation
       SET status = 'BALANCED', is_active = 0, closed_at = datetime('now')
+      WHERE id = ? AND is_active = 1
+    `);
+    const result = stmt.run(reconciliationId);
+    if (result.changes === 0) {
+      return null;
+    }
+    return this.findById(reconciliationId);
+  }
+
+  ignoreReconciliation(reconciliationId: number): Reconciliation | null {
+    const stmt = db.prepare(`
+      UPDATE reconciliation
+      SET status = 'IGNORED', is_active = 0, closed_at = datetime('now')
       WHERE id = ? AND is_active = 1
     `);
     const result = stmt.run(reconciliationId);

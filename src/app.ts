@@ -13,6 +13,7 @@ import transactionRoutes from './routes/transaction.routes';
 import reconciliationRoutes from './routes/reconciliation.routes';
 import reportRoutes from './routes/report.routes';
 import exchangeRateRoutes from './routes/exchange-rate.routes';
+import userRoutes from './routes/user.routes';
 
 export function createApp(): Express {
   const app = express();
@@ -76,6 +77,7 @@ export function createApp(): Express {
   app.use('/api/reconciliations', reconciliationRoutes);
   app.use('/api/reports', reportRoutes);
   app.use('/api/exchange-rate', exchangeRateRoutes);
+  app.use('/api/users', userRoutes);
 
   // Error handler (must be last)
   app.use(errorHandler);

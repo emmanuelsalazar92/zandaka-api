@@ -191,6 +191,7 @@ export class TransactionService {
       type: Transaction['type'];
       accountId: number | null;
       accountName: string | null;
+      accountCurrency: string | null;
       categoryId: number | null;
       categoryName: string | null;
       amount: number;
@@ -200,6 +201,7 @@ export class TransactionService {
         transactionId: number;
         accountId: number;
         accountName: string | null;
+        accountCurrency: string | null;
         envelopeId: number;
         categoryId: number | null;
         categoryName: string | null;
@@ -226,6 +228,7 @@ export class TransactionService {
         type: transaction.type,
         accountId: primaryLine?.account_id ?? null,
         accountName: primaryLine?.account_name ?? null,
+        accountCurrency: primaryLine?.account_currency ?? null,
         categoryId: primaryLine?.category_id ?? null,
         categoryName: primaryLine?.category_name ?? null,
         amount: transaction.amount,
@@ -235,6 +238,7 @@ export class TransactionService {
           transactionId: line.transaction_id,
           accountId: line.account_id,
           accountName: line.account_name ?? null,
+          accountCurrency: line.account_currency ?? null,
           envelopeId: line.envelope_id,
           categoryId: line.category_id ?? null,
           categoryName: line.category_name ?? null,

@@ -13,7 +13,7 @@ export const getReconciliationsSchema = z.object({
   query: z.object({
     account_id: z.string().regex(/^\d+$/).transform(Number).optional(),
     accountId: z.string().regex(/^\d+$/).transform(Number).optional(),
-    status: z.enum(['OPEN', 'BALANCED']).optional(),
+    status: z.enum(['OPEN', 'BALANCED', 'IGNORED']).optional(),
     limit: z.string().regex(/^\d+$/).transform(Number).optional(),
     offset: z.string().regex(/^\d+$/).transform(Number).optional(),
   }),
@@ -43,6 +43,12 @@ export const updateReconciliationSchema = z.object({
 });
 
 export const getReconciliationSummarySchema = z.object({
+  params: z.object({
+    id: z.string().regex(/^\d+$/).transform(Number),
+  }),
+});
+
+export const ignoreReconciliationSchema = z.object({
   params: z.object({
     id: z.string().regex(/^\d+$/).transform(Number),
   }),

@@ -149,6 +149,34 @@ test('adjustment closes reconciliation when difference reaches 0', async () => {
   assert.ok(reconciliationGet.json.closedAt);
 });
 
+test('transactions list includes account currency in the response', async () => {
+  const { accountId, envelopeId, userId } = seedBaseData();
+
+  const transactionRes = await requestJson('POST', '/api/transactions', {
+    userId,
+    date: '2024-01-31',
+    type: 'INCOME',
+    description: 'Salary',
+    lines: [
+      {
+        accountId,
+        envelopeId,
+        amount: 100,
+      },
+    ],
+  });
+  assert.equal(transactionRes.res.status, 201);
+
+  const listRes = await requestJson(
+    'GET',
+    `/api/transactions?userId=${userId}&amountMin=0&page=1&pageSize=10&sortBy=date&sortDir=desc`,
+  );
+  assert.equal(listRes.res.status, 200);
+  assert.equal(listRes.json.data.length, 1);
+  assert.equal(listRes.json.data[0].accountCurrency, 'USD');
+  assert.equal(listRes.json.data[0].lines[0].accountCurrency, 'USD');
+});
+
 test('cannot edit real_balance fields, only note', async () => {
   const { accountId } = seedBaseData();
   const reconciliationRes = await requestJson('POST', '/api/reconciliations', {
@@ -172,6 +200,48 @@ test('cannot edit real_balance fields, only note', async () => {
 
   const reconciliationGet = await requestJson('GET', `/api/reconciliations/${reconciliationId}`);
   assert.equal(reconciliationGet.json.realBalance, 100);
+});
+
+test('can ignore an active reconciliation and create a new one afterwards', async () => {
+  const { accountId } = seedBaseData();
+  const reconciliationRes = await requestJson('POST', '/api/reconciliations', {
+    accountId,
+    date: '2024-01-31',
+    realBalance: 100,
+  });
+  assert.equal(reconciliationRes.res.status, 201);
+  const reconciliationId = reconciliationRes.json.id as number;
+
+  const ignoreRes = await requestJson('POST', `/api/reconciliations/${reconciliationId}/ignore`);
+  assert.equal(ignoreRes.res.status, 200);
+  assert.equal(ignoreRes.json.status, 'IGNORED');
+  assert.equal(ignoreRes.json.isActive, 0);
+  assert.ok(ignoreRes.json.closedAt);
+
+  const activeRes = await requestJson('GET', `/api/accounts/${accountId}/reconciliations/active`);
+  assert.equal(activeRes.res.status, 404);
+
+  const secondRes = await requestJson('POST', '/api/reconciliations', {
+    accountId,
+    date: '2024-02-29',
+    realBalance: 120,
+  });
+  assert.equal(secondRes.res.status, 201);
+});
+
+test('cannot ignore an already inactive reconciliation', async () => {
+  const { accountId } = seedBaseData();
+  const reconciliationRes = await requestJson('POST', '/api/reconciliations', {
+    accountId,
+    date: '2024-01-31',
+    realBalance: 0,
+  });
+  assert.equal(reconciliationRes.res.status, 201);
+  const reconciliationId = reconciliationRes.json.id as number;
+
+  const ignoreRes = await requestJson('POST', `/api/reconciliations/${reconciliationId}/ignore`);
+  assert.equal(ignoreRes.res.status, 409);
+  assert.equal(ignoreRes.json.error.message, 'Only active reconciliations can be ignored');
 });
 
 test('delete is blocked', async () => {
@@ -392,4 +462,28 @@ test('active inconsistencies report returns only active accounts', async () => {
   assert.equal(res.json.length, 1);
   assert.equal(res.json[0].accountId, accountId);
   assert.equal(res.json[0].accountName, 'Checking');
+});
+
+test('preferred currency endpoint returns the hardcoded user base currency', async () => {
+  db.prepare('INSERT INTO user (id, name, base_currency) VALUES (?, ?, ?)').run(1, 'Tester', 'USD');
+
+  const res = await requestJson('GET', '/api/users/preferred-currency');
+  assert.equal(res.res.status, 200);
+  assert.equal(res.json.userId, 1);
+  assert.equal(res.json.baseCurrency, 'USD');
+});
+
+test('active inconsistencies ignore inactive reconciliations on active accounts', async () => {
+  const { accountId } = seedBaseData();
+
+  db.prepare(
+    `INSERT INTO reconciliation
+      (account_id, date, real_balance, status, calculated_balance, difference, is_active, note, closed_at)
+     VALUES (?, ?, ?, 'BALANCED', 0, 0, 0, NULL, ?)`,
+  ).run(accountId, '2024-03-25', 100, '2024-03-25T12:00:00Z');
+
+  const res = await requestJson('GET', '/api/reports/active-inconsistencies');
+  assert.equal(res.res.status, 200);
+  assert.equal(Array.isArray(res.json), true);
+  assert.equal(res.json.length, 0);
 });

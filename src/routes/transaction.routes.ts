@@ -288,7 +288,67 @@ router.post('/', validate(createTransactionSchema), TransactionController.create
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Transaction'
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       userId:
+ *                         type: integer
+ *                       date:
+ *                         type: string
+ *                         format: date
+ *                       description:
+ *                         type: string
+ *                       type:
+ *                         type: string
+ *                         enum: [INCOME, EXPENSE, TRANSFER, ADJUSTMENT]
+ *                       accountId:
+ *                         type: integer
+ *                         nullable: true
+ *                       accountName:
+ *                         type: string
+ *                         nullable: true
+ *                       accountCurrency:
+ *                         type: string
+ *                         nullable: true
+ *                       categoryId:
+ *                         type: integer
+ *                         nullable: true
+ *                       categoryName:
+ *                         type: string
+ *                         nullable: true
+ *                       amount:
+ *                         type: number
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       lines:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: integer
+ *                             transactionId:
+ *                               type: integer
+ *                             accountId:
+ *                               type: integer
+ *                             accountName:
+ *                               type: string
+ *                               nullable: true
+ *                             accountCurrency:
+ *                               type: string
+ *                               nullable: true
+ *                             envelopeId:
+ *                               type: integer
+ *                             categoryId:
+ *                               type: integer
+ *                               nullable: true
+ *                             categoryName:
+ *                               type: string
+ *                               nullable: true
+ *                             amount:
+ *                               type: number
  *                 meta:
  *                   type: object
  *                   properties:

@@ -46,7 +46,7 @@ export class ReconciliationService {
 
   list(params: {
     accountId?: number;
-    status?: 'OPEN' | 'BALANCED';
+    status?: 'OPEN' | 'BALANCED' | 'IGNORED';
     limit: number;
     offset: number;
   }): ReconciliationResponse[] {
@@ -114,6 +114,24 @@ export class ReconciliationService {
     };
   }
 
+  ignore(id: number): ReconciliationResponse {
+    const reconciliation = this.repo.findById(id);
+    if (!reconciliation) {
+      throw { code: 'NOT_FOUND', message: 'Reconciliation not found' };
+    }
+
+    if (reconciliation.is_active !== 1) {
+      throw { code: 'CONFLICT', message: 'Only active reconciliations can be ignored' };
+    }
+
+    const ignored = this.repo.ignoreReconciliation(id);
+    if (!ignored) {
+      throw { code: 'CONFLICT', message: 'Only active reconciliations can be ignored' };
+    }
+
+    return this.toResponse(ignored);
+  }
+
   private toResponse(reconciliation: {
     id: number;
     account_id: number;
@@ -121,7 +139,7 @@ export class ReconciliationService {
     real_balance: number;
     calculated_balance: number;
     difference: number;
-    status: 'OPEN' | 'BALANCED';
+    status: 'OPEN' | 'BALANCED' | 'IGNORED';
     is_active: number;
     note: string | null;
     created_at: string;

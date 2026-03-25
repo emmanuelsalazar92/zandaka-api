@@ -152,7 +152,7 @@ const options: swaggerJsdoc.Options = {
             realBalance: { type: 'number' },
             calculatedBalance: { type: 'number' },
             difference: { type: 'number' },
-            status: { type: 'string', enum: ['OPEN', 'BALANCED'] },
+            status: { type: 'string', enum: ['OPEN', 'BALANCED', 'IGNORED'] },
             isActive: { type: 'integer', enum: [0, 1] },
             note: { type: 'string', nullable: true },
             createdAt: { type: 'string', format: 'date-time' },
@@ -172,9 +172,17 @@ const options: swaggerJsdoc.Options = {
             },
           ],
         },
+        PreferredCurrency: {
+          type: 'object',
+          properties: {
+            userId: { type: 'integer' },
+            baseCurrency: { type: 'string' },
+          },
+        },
       },
     },
     tags: [
+      { name: 'Users', description: 'User preferences and profile data' },
       { name: 'Institutions', description: 'Financial institutions management' },
       { name: 'Accounts', description: 'Bank accounts management' },
       { name: 'Categories', description: 'Budget categories management' },

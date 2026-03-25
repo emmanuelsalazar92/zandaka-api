@@ -75,9 +75,11 @@ export class TransactionRepository {
     data: Array<
       Transaction & {
         amount: number;
+        account_currency?: string | null;
         lines: Array<
           TransactionLine & {
             account_name?: string | null;
+            account_currency?: string | null;
             category_id?: number | null;
             category_name?: string | null;
           }
@@ -203,6 +205,7 @@ export class TransactionRepository {
              tl.id as line_id,
              tl.account_id,
              a.name as account_name,
+             a.currency as account_currency,
              tl.envelope_id,
              ae.category_id,
              c.name as category_name,
@@ -223,9 +226,11 @@ export class TransactionRepository {
       number,
       Transaction & {
         amount: number;
+        account_currency?: string | null;
         lines: Array<
           TransactionLine & {
             account_name?: string | null;
+            account_currency?: string | null;
             category_id?: number | null;
             category_name?: string | null;
           }
@@ -243,6 +248,7 @@ export class TransactionRepository {
           type: row.type,
           created_at: row.created_at,
           amount: row.total_amount ?? 0,
+          account_currency: row.account_currency ?? null,
           lines: [],
         });
       }
@@ -254,6 +260,7 @@ export class TransactionRepository {
           envelope_id: row.envelope_id,
           amount: row.amount,
           account_name: row.account_name ?? null,
+          account_currency: row.account_currency ?? null,
           category_id: row.category_id ?? null,
           category_name: row.category_name ?? null,
         });

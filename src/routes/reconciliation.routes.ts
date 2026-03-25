@@ -7,6 +7,7 @@ import {
   getReconciliationByIdSchema,
   updateReconciliationSchema,
   getReconciliationSummarySchema,
+  ignoreReconciliationSchema,
 } from '../validators/reconciliation.validator';
 
 const router = Router();
@@ -82,7 +83,7 @@ router.post('/', validate(createReconciliationSchema), ReconciliationController.
  *         required: false
  *         schema:
  *           type: string
- *           enum: [OPEN, BALANCED]
+ *           enum: [OPEN, BALANCED, IGNORED]
  *         description: Filter by status
  *       - in: query
  *         name: limit
@@ -209,6 +210,45 @@ router.get('/:id', validate(getReconciliationByIdSchema), ReconciliationControll
  *               $ref: '#/components/schemas/Error'
  */
 router.patch('/:id', validate(updateReconciliationSchema), ReconciliationController.update);
+
+/**
+ * @swagger
+ * /api/reconciliations/{id}/ignore:
+ *   post:
+ *     summary: Ignore an active reconciliation
+ *     description: Marks an active reconciliation as ignored, deactivates it, and sets closed_at.
+ *     tags: [Reconciliations]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Reconciliation ignored successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Reconciliation'
+ *       404:
+ *         description: Reconciliation not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       409:
+ *         description: Reconciliation is not active
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post(
+  '/:id/ignore',
+  validate(ignoreReconciliationSchema),
+  ReconciliationController.ignore,
+);
 
 /**
  * @swagger
