@@ -250,4 +250,37 @@ router.get(
   ReportController.getInconsistencies,
 );
 
+/**
+ * @swagger
+ * /api/reports/active-inconsistencies:
+ *   get:
+ *     summary: Get reconciliation inconsistencies for all active accounts
+ *     description: Returns inconsistencies only for accounts where account.is_active = 1
+ *     tags: [Reports]
+ *     responses:
+ *       200:
+ *         description: List of inconsistencies for active accounts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   accountId:
+ *                     type: integer
+ *                   accountName:
+ *                     type: string
+ *                   reconciliationDate:
+ *                     type: string
+ *                     format: date
+ *                   realBalance:
+ *                     type: number
+ *                   calculatedBalance:
+ *                     type: number
+ *                   difference:
+ *                     type: number
+ */
+router.get('/active-inconsistencies', ReportController.getActiveAccountInconsistencies);
+
 export default router;

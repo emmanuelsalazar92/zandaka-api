@@ -265,6 +265,34 @@ export class ReportRepository {
     return inconsistencies;
   }
 
+  getActiveAccountInconsistencies(): Inconsistency[] {
+    const reconciliations = this.findAllLatestReconciliations(true);
+    const inconsistencies: Inconsistency[] = [];
+
+    for (const { accountId, reconciliation } of reconciliations) {
+      if (!reconciliation) continue;
+
+      const account = this.getAccount(accountId);
+      if (!account) continue;
+
+      const calculatedBalance = this.getAccountCalculatedBalance(accountId, reconciliation.date);
+      const difference = reconciliation.real_balance - calculatedBalance;
+
+      if (Math.abs(difference) > 0.01) {
+        inconsistencies.push({
+          accountId,
+          accountName: account.name,
+          reconciliationDate: reconciliation.date,
+          realBalance: reconciliation.real_balance,
+          calculatedBalance,
+          difference,
+        });
+      }
+    }
+
+    return inconsistencies;
+  }
+
   private findLatestReconciliation(accountId: number) {
     const stmt = db.prepare(`
       SELECT * FROM reconciliation 
@@ -275,8 +303,12 @@ export class ReportRepository {
     return stmt.get(accountId) as any;
   }
 
-  private findAllLatestReconciliations() {
-    const accountsStmt = db.prepare('SELECT DISTINCT account_id FROM account');
+  private findAllLatestReconciliations(activeOnly = false) {
+    const accountsStmt = db.prepare(`
+      SELECT id as account_id
+      FROM account
+      ${activeOnly ? 'WHERE is_active = 1' : ''}
+    `);
     const accounts = accountsStmt.all() as Array<{ account_id: number }>;
 
     return accounts.map((acc) => ({

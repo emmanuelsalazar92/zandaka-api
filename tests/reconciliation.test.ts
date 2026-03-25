@@ -358,3 +358,38 @@ test('envelope total report sums active envelopes by requested currency', async 
   assert.equal(eurRes.json.currency, 'EUR');
   assert.equal(eurRes.json.total, 0);
 });
+
+test('active inconsistencies report returns only active accounts', async () => {
+  const { accountId } = seedBaseData();
+
+  const inactiveUserId = db
+    .prepare('INSERT INTO user (name, base_currency) VALUES (?, ?)')
+    .run('Inactive User', 'CRC').lastInsertRowid as number;
+  const inactiveInstitutionId = db
+    .prepare('INSERT INTO institution (user_id, name, type, is_active) VALUES (?, ?, ?, 1)')
+    .run(inactiveUserId, 'Inactive Bank', 'BANK').lastInsertRowid as number;
+  const inactiveAccountId = db
+    .prepare(
+      'INSERT INTO account (user_id, institution_id, name, currency, is_active, allow_overdraft) VALUES (?, ?, ?, ?, 0, 0)',
+    )
+    .run(inactiveUserId, inactiveInstitutionId, 'Old Checking', 'CRC').lastInsertRowid as number;
+
+  db.prepare(
+    `INSERT INTO reconciliation
+      (account_id, date, real_balance, status, calculated_balance, difference, is_active, note)
+     VALUES (?, ?, ?, 'OPEN', 0, 0, 1, NULL)`,
+  ).run(accountId, '2024-03-10', 100);
+
+  db.prepare(
+    `INSERT INTO reconciliation
+      (account_id, date, real_balance, status, calculated_balance, difference, is_active, note)
+     VALUES (?, ?, ?, 'OPEN', 0, 0, 1, NULL)`,
+  ).run(inactiveAccountId, '2024-03-11', 250);
+
+  const res = await requestJson('GET', '/api/reports/active-inconsistencies');
+  assert.equal(res.res.status, 200);
+  assert.equal(Array.isArray(res.json), true);
+  assert.equal(res.json.length, 1);
+  assert.equal(res.json[0].accountId, accountId);
+  assert.equal(res.json[0].accountName, 'Checking');
+});
