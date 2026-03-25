@@ -26,3 +26,13 @@ export const getInconsistenciesSchema = z.object({
     accountId: z.string().regex(/^\d+$/).transform(Number).optional(),
   }),
 });
+
+export const getEnvelopeTotalByCurrencySchema = z.object({
+  query: z.object({
+    currency: z
+      .string()
+      .trim()
+      .min(1)
+      .transform((value) => value.toUpperCase()),
+  }),
+});

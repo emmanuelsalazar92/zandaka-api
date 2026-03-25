@@ -284,3 +284,77 @@ test('account balances report includes active envelope flags and counts', async 
     .get(accountId, categoryId) as { is_active: number };
   assert.equal(originalEnvelope.is_active, 1);
 });
+
+test('envelope total report sums active envelopes by requested currency', async () => {
+  const { userId, institutionId, accountId, envelopeId } = seedBaseData();
+
+  const crcAccountId = db
+    .prepare(
+      'INSERT INTO account (user_id, institution_id, name, currency, is_active, allow_overdraft) VALUES (?, ?, ?, ?, 1, 0)',
+    )
+    .run(userId, institutionId, 'Cash Wallet', 'CRC').lastInsertRowid as number;
+  const crcCategoryId = db
+    .prepare('INSERT INTO category (user_id, name, parent_id, is_active) VALUES (?, ?, NULL, 1)')
+    .run(userId, 'Cash').lastInsertRowid as number;
+  const crcEnvelopeId = db
+    .prepare('INSERT INTO account_envelope (account_id, category_id, is_active) VALUES (?, ?, 1)')
+    .run(crcAccountId, crcCategoryId).lastInsertRowid as number;
+  const inactiveCategoryId = db
+    .prepare('INSERT INTO category (user_id, name, parent_id, is_active) VALUES (?, ?, NULL, 1)')
+    .run(userId, 'Archived').lastInsertRowid as number;
+  const inactiveEnvelopeId = db
+    .prepare('INSERT INTO account_envelope (account_id, category_id, is_active) VALUES (?, ?, 1)')
+    .run(accountId, inactiveCategoryId).lastInsertRowid as number;
+
+  const usdTransaction = await requestJson('POST', '/api/transactions', {
+    userId,
+    date: '2024-02-01',
+    type: 'ADJUSTMENT',
+    description: 'USD seed',
+    lines: [
+      {
+        accountId,
+        envelopeId,
+        amount: 1500,
+      },
+      {
+        accountId,
+        envelopeId: inactiveEnvelopeId,
+        amount: 800,
+      },
+    ],
+  });
+  assert.equal(usdTransaction.res.status, 201);
+
+  db.prepare('UPDATE account_envelope SET is_active = 0 WHERE id = ?').run(inactiveEnvelopeId);
+
+  const crcTransaction = await requestJson('POST', '/api/transactions', {
+    userId,
+    date: '2024-02-02',
+    type: 'ADJUSTMENT',
+    description: 'CRC seed',
+    lines: [
+      {
+        accountId: crcAccountId,
+        envelopeId: crcEnvelopeId,
+        amount: 75,
+      },
+    ],
+  });
+  assert.equal(crcTransaction.res.status, 201);
+
+  const usdRes = await requestJson('GET', '/api/reports/envelope-total?currency=usd');
+  assert.equal(usdRes.res.status, 200);
+  assert.equal(usdRes.json.currency, 'USD');
+  assert.equal(usdRes.json.total, 1500);
+
+  const crcRes = await requestJson('GET', '/api/reports/envelope-total?currency=CRC');
+  assert.equal(crcRes.res.status, 200);
+  assert.equal(crcRes.json.currency, 'CRC');
+  assert.equal(crcRes.json.total, 75);
+
+  const eurRes = await requestJson('GET', '/api/reports/envelope-total?currency=EUR');
+  assert.equal(eurRes.res.status, 200);
+  assert.equal(eurRes.json.currency, 'EUR');
+  assert.equal(eurRes.json.total, 0);
+});

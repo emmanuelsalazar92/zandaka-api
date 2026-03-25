@@ -2,6 +2,7 @@ import { ReportRepository } from '../repositories/report.repo';
 import {
   AccountBalance,
   EnvelopeBalance,
+  EnvelopeCurrencyTotal,
   NegativeEnvelope,
   MonthlyExpense,
   CategoryTotal,
@@ -33,6 +34,14 @@ export class ReportService {
 
   getCategoryTotals(): CategoryTotal[] {
     return this.repo.getCategoryTotals();
+  }
+
+  getEnvelopeTotalByCurrency(currency: string): EnvelopeCurrencyTotal {
+    if (!currency.trim()) {
+      throw { code: 'VALIDATION_ERROR', message: 'currency query parameter is required' };
+    }
+
+    return this.repo.getEnvelopeTotalByCurrency(currency);
   }
 
   getInconsistencies(accountId?: number): Inconsistency[] {

@@ -57,6 +57,11 @@ export interface Inconsistency {
   difference: number;
 }
 
+export interface EnvelopeCurrencyTotal {
+  currency: string;
+  total: number;
+}
+
 export class ReportRepository {
   getAccountBalances(isActive?: boolean): AccountBalance[] {
     let query = `
@@ -182,6 +187,26 @@ export class ReportRepository {
       ORDER BY total ASC
     `);
     return stmt.all() as CategoryTotal[];
+  }
+
+  getEnvelopeTotalByCurrency(currency: string): EnvelopeCurrencyTotal {
+    const stmt = db.prepare(`
+      SELECT
+        UPPER(a.currency) as currency,
+        COALESCE(SUM(tl.amount), 0) as total
+      FROM account_envelope ae
+      JOIN account a ON ae.account_id = a.id
+      LEFT JOIN transaction_line tl ON ae.id = tl.envelope_id
+      WHERE ae.is_active = 1
+        AND UPPER(a.currency) = UPPER(?)
+    `);
+
+    const result = stmt.get(currency) as EnvelopeCurrencyTotal | undefined;
+
+    return {
+      currency: currency.toUpperCase(),
+      total: result?.total ?? 0,
+    };
   }
 
   getAccountCalculatedBalance(accountId: number, asOfDate?: string): number {

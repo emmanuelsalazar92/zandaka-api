@@ -4,6 +4,7 @@ import { validate } from '../middlewares/validator.middleware';
 import {
   getAccountBalancesSchema,
   getEnvelopeBalancesSchema,
+  getEnvelopeTotalByCurrencySchema,
   getMonthlyExpensesSchema,
   getInconsistenciesSchema,
 } from '../validators/report.validator';
@@ -173,6 +174,38 @@ router.get(
  *                     type: number
  */
 router.get('/category-totals', ReportController.getCategoryTotals);
+
+/**
+ * @swagger
+ * /api/reports/envelope-total:
+ *   get:
+ *     summary: Get total balance across active envelopes for a currency
+ *     tags: [Reports]
+ *     parameters:
+ *       - in: query
+ *         name: currency
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Account currency to aggregate envelopes by, for example CRC or USD
+ *     responses:
+ *       200:
+ *         description: Total envelope balance for the requested currency
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 currency:
+ *                   type: string
+ *                 total:
+ *                   type: number
+ */
+router.get(
+  '/envelope-total',
+  validate(getEnvelopeTotalByCurrencySchema),
+  ReportController.getEnvelopeTotalByCurrency,
+);
 
 /**
  * @swagger
