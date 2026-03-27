@@ -14,6 +14,7 @@ import reconciliationRoutes from './routes/reconciliation.routes';
 import reportRoutes from './routes/report.routes';
 import exchangeRateRoutes from './routes/exchange-rate.routes';
 import userRoutes from './routes/user.routes';
+import budgetRoutes from './routes/budget.routes';
 
 export function createApp(): Express {
   const app = express();
@@ -85,6 +86,7 @@ export function createApp(): Express {
   app.use('/api/reports', reportRoutes);
   app.use('/api/exchange-rate', exchangeRateRoutes);
   app.use('/api/users', userRoutes);
+  app.use('/api/budgets', budgetRoutes);
 
   // Error handler (must be last)
   app.use(errorHandler);

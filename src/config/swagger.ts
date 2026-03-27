@@ -22,6 +22,17 @@ const options: swaggerJsdoc.Options = {
         Error: {
           type: 'object',
           properties: {
+            message: { type: 'string' },
+            errors: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  field: { type: 'string' },
+                  detail: { type: 'string' },
+                },
+              },
+            },
             error: {
               type: 'object',
               properties: {
@@ -30,6 +41,7 @@ const options: swaggerJsdoc.Options = {
                   enum: [
                     'VALIDATION_ERROR',
                     'NOT_FOUND',
+                    'FORBIDDEN',
                     'CONFLICT',
                     'INACTIVE_RESOURCE',
                     'INTERNAL_ERROR',
@@ -179,9 +191,224 @@ const options: swaggerJsdoc.Options = {
             baseCurrency: { type: 'string' },
           },
         },
+        CreateBudgetRequest: {
+          type: 'object',
+          required: ['userId', 'month', 'currency', 'totalIncome'],
+          properties: {
+            userId: { type: 'integer', example: 1 },
+            month: { type: 'string', example: '2026-03' },
+            currency: { type: 'string', example: 'USD' },
+            totalIncome: { type: 'number', example: 2450.75 },
+          },
+        },
+        ReplaceBudgetLinesRequest: {
+          type: 'object',
+          required: ['userId', 'lines'],
+          properties: {
+            userId: { type: 'integer', example: 1 },
+            lines: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['categoryId', 'amount', 'percentage', 'sortOrder'],
+                properties: {
+                  categoryId: { type: 'integer', example: 12 },
+                  amount: { type: 'number', example: 800 },
+                  percentage: { type: 'number', example: 32.65 },
+                  notes: { type: 'string', nullable: true, example: 'Rent and HOA' },
+                  sortOrder: { type: 'integer', example: 1 },
+                },
+              },
+            },
+          },
+        },
+        BudgetFinalizeRequest: {
+          type: 'object',
+          required: ['userId'],
+          properties: {
+            userId: { type: 'integer', example: 1 },
+          },
+        },
+        BudgetCopyRequest: {
+          type: 'object',
+          required: ['userId'],
+          properties: {
+            userId: { type: 'integer', example: 1 },
+            sourceBudgetId: { type: 'integer', nullable: true, example: 14 },
+          },
+        },
+        BudgetFundingPlanRequest: {
+          type: 'object',
+          required: ['userId', 'sourceAccountId', 'lines'],
+          properties: {
+            userId: { type: 'integer', example: 1 },
+            sourceAccountId: { type: 'integer', example: 5 },
+            lines: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['budgetLineId', 'accountEnvelopeId'],
+                properties: {
+                  budgetLineId: { type: 'integer', example: 101 },
+                  accountEnvelopeId: { type: 'integer', example: 55 },
+                },
+              },
+            },
+          },
+        },
+        BudgetFundRequest: {
+          type: 'object',
+          required: ['userId'],
+          properties: {
+            userId: { type: 'integer', example: 1 },
+            description: {
+              type: 'string',
+              nullable: true,
+              example: 'Fund March budget after payroll deposit',
+            },
+          },
+        },
+        BudgetSummary: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            userId: { type: 'integer' },
+            month: { type: 'string', example: '2026-03' },
+            currency: { type: 'string', example: 'USD' },
+            totalIncome: { type: 'number', example: 2450.75 },
+            status: { type: 'string', enum: ['draft', 'finalized', 'funded'] },
+            sourceAccountId: { type: 'integer', nullable: true },
+            sourceAccountName: { type: 'string', nullable: true },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+            linesCount: { type: 'integer', example: 5 },
+            distributedAmount: { type: 'number', example: 2450.75 },
+            distributedPercentage: { type: 'number', example: 100 },
+            remainingAmount: { type: 'number', example: 0 },
+            remainingPercentage: { type: 'number', example: 0 },
+          },
+        },
+        BudgetLine: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            budgetId: { type: 'integer' },
+            categoryId: { type: 'integer' },
+            categoryName: { type: 'string' },
+            amount: { type: 'number' },
+            percentage: { type: 'number' },
+            notes: { type: 'string', nullable: true },
+            sortOrder: { type: 'integer' },
+            accountEnvelopeId: { type: 'integer', nullable: true },
+            accountId: { type: 'integer', nullable: true },
+            accountName: { type: 'string', nullable: true },
+            accountCurrency: { type: 'string', nullable: true },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        BudgetValidation: {
+          type: 'object',
+          properties: {
+            isValid: { type: 'boolean' },
+            distributedAmount: { type: 'number' },
+            distributedPercentage: { type: 'number' },
+            remainingAmount: { type: 'number' },
+            remainingPercentage: { type: 'number' },
+            errors: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  field: { type: 'string' },
+                  detail: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        BudgetFundingAccount: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            name: { type: 'string' },
+            currency: { type: 'string' },
+            institutionId: { type: 'integer' },
+            institutionName: { type: 'string' },
+          },
+        },
+        BudgetFundingEnvelopeOption: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            accountId: { type: 'integer' },
+            accountName: { type: 'string' },
+            accountCurrency: { type: 'string' },
+            institutionName: { type: 'string' },
+            categoryId: { type: 'integer' },
+            categoryName: { type: 'string' },
+          },
+        },
+        BudgetFundingPlanLine: {
+          type: 'object',
+          properties: {
+            budgetLineId: { type: 'integer' },
+            categoryId: { type: 'integer' },
+            categoryName: { type: 'string' },
+            amount: { type: 'number' },
+            percentage: { type: 'number' },
+            accountEnvelopeId: { type: 'integer', nullable: true },
+            accountId: { type: 'integer', nullable: true },
+            accountName: { type: 'string', nullable: true },
+            accountCurrency: { type: 'string', nullable: true },
+            isAssigned: { type: 'boolean' },
+          },
+        },
+        BudgetFundingPlan: {
+          type: 'object',
+          properties: {
+            budget: { $ref: '#/components/schemas/BudgetSummary' },
+            sourceAccountId: { type: 'integer', nullable: true },
+            sourceAccountName: { type: 'string', nullable: true },
+            lines: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/BudgetFundingPlanLine' },
+            },
+            isComplete: { type: 'boolean' },
+          },
+        },
+        BudgetFundingOptionLine: {
+          allOf: [
+            { $ref: '#/components/schemas/BudgetLine' },
+            {
+              type: 'object',
+              properties: {
+                availableEnvelopes: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/BudgetFundingEnvelopeOption' },
+                },
+              },
+            },
+          ],
+        },
+        BudgetFundingOptions: {
+          type: 'object',
+          properties: {
+            budget: { $ref: '#/components/schemas/BudgetSummary' },
+            accounts: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/BudgetFundingAccount' },
+            },
+            lines: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/BudgetFundingOptionLine' },
+            },
+          },
+        },
       },
     },
     tags: [
+      { name: 'Budgets', description: 'Monthly budget planning and funding workflows' },
       { name: 'Users', description: 'User preferences and profile data' },
       { name: 'Institutions', description: 'Financial institutions management' },
       { name: 'Accounts', description: 'Bank accounts management' },

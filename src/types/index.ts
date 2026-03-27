@@ -89,6 +89,33 @@ export interface ExchangeRate {
   created_at: string;
 }
 
+export type BudgetStatus = 'draft' | 'finalized' | 'funded';
+
+export interface Budget {
+  id: number;
+  user_id: number;
+  month: string;
+  currency: string;
+  total_income: number;
+  status: BudgetStatus;
+  funding_source_account_id: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BudgetLine {
+  id: number;
+  budget_id: number;
+  category_id: number;
+  account_envelope_id: number | null;
+  amount: number;
+  percentage: number;
+  notes: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // Request/Response DTOs
 export interface CreateTransactionRequest {
   userId: number;
@@ -130,8 +157,19 @@ export interface ReconciliationSummaryResponse extends ReconciliationResponse {
 }
 
 export interface ErrorResponse {
+  message?: string;
+  errors?: Array<{
+    field: string;
+    detail: string;
+  }>;
   error: {
-    code: 'VALIDATION_ERROR' | 'NOT_FOUND' | 'CONFLICT' | 'INACTIVE_RESOURCE' | 'INTERNAL_ERROR';
+    code:
+      | 'VALIDATION_ERROR'
+      | 'NOT_FOUND'
+      | 'FORBIDDEN'
+      | 'CONFLICT'
+      | 'INACTIVE_RESOURCE'
+      | 'INTERNAL_ERROR';
     message: string;
     details?: any[];
   };

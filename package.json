@@ -11,7 +11,7 @@
     "lint": "eslint . --ext .ts,.js --max-warnings=0",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
-    "test": "node --test -r ts-node/register tests/reconciliation.test.ts"
+    "test": "node -r ts-node/register tests/reconciliation.test.ts && node -r ts-node/register tests/budget.test.ts"
   },
   "keywords": [
     "budget",

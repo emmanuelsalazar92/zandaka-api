@@ -112,6 +112,38 @@ export function initializeDatabase(): void {
       FOREIGN KEY (user_id) REFERENCES user(id)
     );
 
+    CREATE TABLE IF NOT EXISTS budget (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      month TEXT NOT NULL,
+      currency TEXT NOT NULL,
+      total_income REAL NOT NULL,
+      status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft', 'finalized', 'funded')),
+      funding_source_account_id INTEGER,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES user(id),
+      FOREIGN KEY (funding_source_account_id) REFERENCES account(id),
+      UNIQUE(user_id, month, currency)
+    );
+
+    CREATE TABLE IF NOT EXISTS budget_line (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      budget_id INTEGER NOT NULL,
+      category_id INTEGER NOT NULL,
+      account_envelope_id INTEGER,
+      amount REAL NOT NULL,
+      percentage REAL NOT NULL,
+      notes TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (budget_id) REFERENCES budget(id) ON DELETE CASCADE,
+      FOREIGN KEY (category_id) REFERENCES category(id),
+      FOREIGN KEY (account_envelope_id) REFERENCES account_envelope(id),
+      UNIQUE(budget_id, category_id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_transaction_line_transaction_id ON transaction_line(transaction_id);
     CREATE INDEX IF NOT EXISTS idx_transaction_line_account_id ON transaction_line(account_id);
     CREATE INDEX IF NOT EXISTS idx_transaction_line_envelope_id ON transaction_line(envelope_id);
@@ -120,6 +152,9 @@ export function initializeDatabase(): void {
     CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON transactions(user_id, date DESC);
     CREATE INDEX IF NOT EXISTS idx_transaction_line_account_transaction ON transaction_line(account_id, transaction_id);
     CREATE INDEX IF NOT EXISTS idx_account_envelope_category ON account_envelope(category_id);
+    CREATE INDEX IF NOT EXISTS idx_budget_user_month ON budget(user_id, month DESC);
+    CREATE INDEX IF NOT EXISTS idx_budget_status ON budget(status);
+    CREATE INDEX IF NOT EXISTS idx_budget_line_budget_sort ON budget_line(budget_id, sort_order ASC, id ASC);
   `);
 }
 
