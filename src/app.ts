@@ -17,7 +17,7 @@ import userRoutes from './routes/user.routes';
 
 export function createApp(): Express {
   const app = express();
-  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3001')
+  const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:3001')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
@@ -25,7 +25,14 @@ export function createApp(): Express {
   // Middleware
   app.use(
     cors({
-      origin: allowedOrigins,
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      },
       credentials: true, // permite cookies/cabeceras auth entre frontend y backend
     }),
   );

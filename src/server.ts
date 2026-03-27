@@ -1,5 +1,10 @@
-import { createApp } from './app';
-import './db/db'; // Initialize database
+import { loadEnv } from './config/load-env';
+
+loadEnv();
+
+require('./db/db'); // Initialize database after loading .env
+
+const { createApp } = require('./app') as typeof import('./app');
 
 const PORT = process.env.PORT || 3000;
 
