@@ -1,6 +1,7 @@
 Place the preferred Zandaka logo asset here for PDF exports.
 
 Supported filenames:
+
 - `zandaka-logo.png`
 - `zandaka-logo.jpg`
 - `zandaka-logo.jpeg`

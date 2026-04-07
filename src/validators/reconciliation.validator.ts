@@ -51,7 +51,8 @@ export const createReconciliationSchema = z.object({
     })
     .superRefine((value, ctx) => {
       const countMethod =
-        value.countMethod ?? (Array.isArray(value.lines) && value.lines.length > 0
+        value.countMethod ??
+        (Array.isArray(value.lines) && value.lines.length > 0
           ? 'DENOMINATION_COUNT'
           : 'MANUAL_TOTAL');
 

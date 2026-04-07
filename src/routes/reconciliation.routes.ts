@@ -354,11 +354,7 @@ router.patch('/:id', validate(updateReconciliationSchema), ReconciliationControl
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post(
-  '/:id/ignore',
-  validate(ignoreReconciliationSchema),
-  ReconciliationController.ignore,
-);
+router.post('/:id/ignore', validate(ignoreReconciliationSchema), ReconciliationController.ignore);
 
 /**
  * @swagger

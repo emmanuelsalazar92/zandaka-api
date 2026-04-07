@@ -458,10 +458,7 @@ const options: swaggerJsdoc.Options = {
             description: { type: 'string' },
             matched: { type: 'boolean' },
             matchedRule: {
-              anyOf: [
-                { $ref: '#/components/schemas/AutoAssignmentRule' },
-                { type: 'null' },
-              ],
+              anyOf: [{ $ref: '#/components/schemas/AutoAssignmentRule' }, { type: 'null' }],
             },
             matches: {
               type: 'array',
@@ -509,10 +506,7 @@ const options: swaggerJsdoc.Options = {
             created_at: { type: 'string', format: 'date-time' },
             updated_at: { type: 'string', format: 'date-time' },
             ccss_detail: {
-              anyOf: [
-                { $ref: '#/components/schemas/PayrollCcssDetail' },
-                { type: 'null' },
-              ],
+              anyOf: [{ $ref: '#/components/schemas/PayrollCcssDetail' }, { type: 'null' }],
             },
             income_tax_brackets: {
               type: 'array',
@@ -928,7 +922,10 @@ const options: swaggerJsdoc.Options = {
       { name: 'Payroll', description: 'Net salary calculations based on historical payroll rules' },
       { name: 'Reports', description: 'Financial reports and analytics' },
       { name: 'Exchange Rates', description: 'Exchange rate lookup and stored rate management' },
-      { name: 'Auto Assignment Rules', description: 'Rules for automatic account and envelope suggestions' },
+      {
+        name: 'Auto Assignment Rules',
+        description: 'Rules for automatic account and envelope suggestions',
+      },
     ],
   },
   apis: ['./src/routes/*.ts', './src/app.ts'],

@@ -129,19 +129,15 @@ test('cash denominations CRUD and duplicate protection work end-to-end', async (
   assert.equal(listRes.res.status, 200);
   assert.equal(listRes.json.items.length, 1);
 
-  const updateRes = await requestJson(
-    'PUT',
-    `/api/settings/cash-denominations/${denominationId}`,
-    {
-      userId,
-      currency: 'CRC',
-      value: 1000,
-      type: 'BILL',
-      label: '₡1000',
-      sortOrder: 2,
-      isActive: true,
-    },
-  );
+  const updateRes = await requestJson('PUT', `/api/settings/cash-denominations/${denominationId}`, {
+    userId,
+    currency: 'CRC',
+    value: 1000,
+    type: 'BILL',
+    label: '₡1000',
+    sortOrder: 2,
+    isActive: true,
+  });
   assert.equal(updateRes.res.status, 200);
   assert.equal(updateRes.json.value, 1000);
   assert.equal(updateRes.json.type, 'BILL');
@@ -154,9 +150,9 @@ test('cash denominations CRUD and duplicate protection work end-to-end', async (
   assert.equal(deactivateRes.res.status, 200);
   assert.equal(deactivateRes.json.isActive, false);
 
-  const stored = db.prepare('SELECT is_active FROM cash_denomination WHERE id = ?').get(
-    denominationId,
-  ) as {
+  const stored = db
+    .prepare('SELECT is_active FROM cash_denomination WHERE id = ?')
+    .get(denominationId) as {
     is_active: number;
   };
   assert.equal(stored.is_active, 0);
@@ -204,7 +200,10 @@ test('user settings and stored exchange rates CRUD work end-to-end', async () =>
   assert.equal(updateRateRes.json.effective_date, '2026-03-29');
   assert.ok(updateRateRes.json.updated_at);
 
-  const deleteRateRes = await requestJson('DELETE', `/api/exchange-rate/${rateId}?userId=${userId}`);
+  const deleteRateRes = await requestJson(
+    'DELETE',
+    `/api/exchange-rate/${rateId}?userId=${userId}`,
+  );
   assert.equal(deleteRateRes.res.status, 204);
   const remainingRates = db.prepare('SELECT COUNT(*) as total FROM exchange_rate').get() as {
     total: number;
@@ -257,7 +256,9 @@ test('auto assignment rules CRUD and matcher work end-to-end', async () => {
     `/api/auto-assignment-rules/${ruleId}?userId=${userId}`,
   );
   assert.equal(archiveRuleRes.res.status, 204);
-  const storedRule = db.prepare('SELECT is_active FROM auto_assignment_rule WHERE id = ?').get(ruleId) as {
+  const storedRule = db
+    .prepare('SELECT is_active FROM auto_assignment_rule WHERE id = ?')
+    .get(ruleId) as {
     is_active: number;
   };
   assert.equal(storedRule.is_active, 0);

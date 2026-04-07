@@ -51,9 +51,7 @@ export class ReconciliationService {
     if (countMethod === 'DENOMINATION_COUNT') {
       this.assertCashAccount(account);
       lines = this.normalizeDenominationLines(account, data.lines ?? []);
-      countedTotal = this.roundMoney(
-        lines.reduce((sum, line) => sum + line.lineTotal, 0),
-      );
+      countedTotal = this.roundMoney(lines.reduce((sum, line) => sum + line.lineTotal, 0));
     } else {
       countedTotal = this.resolveManualTotal(data);
     }
@@ -174,10 +172,7 @@ export class ReconciliationService {
     };
   }
 
-  getExpectedTotalForAccount(
-    accountId: number,
-    date: string,
-  ): ReconciliationExpectedTotalResponse {
+  getExpectedTotalForAccount(accountId: number, date: string): ReconciliationExpectedTotalResponse {
     const account = this.assertAccountAvailable(accountId);
 
     return {
@@ -430,7 +425,9 @@ export class ReconciliationService {
     const countMethod = reconciliation.count_method ?? 'MANUAL_TOTAL';
     const lines =
       options?.includeLines && countMethod === 'DENOMINATION_COUNT'
-        ? this.detailRepo.findByReconciliationId(reconciliation.id).map((line) => this.toLineResponse(line))
+        ? this.detailRepo
+            .findByReconciliationId(reconciliation.id)
+            .map((line) => this.toLineResponse(line))
         : undefined;
 
     return {

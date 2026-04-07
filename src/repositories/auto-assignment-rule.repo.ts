@@ -53,8 +53,8 @@ export class AutoAssignmentRuleRepository {
 
   create(params: {
     userId: number;
-      pattern: string;
-      matchType: AutoAssignmentMatchType;
+    pattern: string;
+    matchType: AutoAssignmentMatchType;
     accountId: number | null;
     accountEnvelopeId: number | null;
     priority: number;

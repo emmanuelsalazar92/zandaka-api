@@ -1,9 +1,5 @@
 import { DEFAULT_COSTA_RICA_PAYROLL_RULES_2026 } from '../config/payroll-default-rules';
-import {
-  PayrollCcssWorkerRate,
-  PayrollRuleSetResponse,
-  PayrollRuleType,
-} from '../types';
+import { PayrollCcssWorkerRate, PayrollRuleSetResponse, PayrollRuleType } from '../types';
 import {
   PayrollCcssDetailInput,
   PayrollIncomeTaxBracketInput,
@@ -30,11 +26,17 @@ export class PayrollRuleService {
     return {
       user_id: params.user_id,
       type: params.type ?? null,
-      items: this.repo.listDocuments(params.user_id, params.type).map((item) => this.mapDocument(item)),
+      items: this.repo
+        .listDocuments(params.user_id, params.type)
+        .map((item) => this.mapDocument(item)),
     };
   }
 
-  getActiveRuleSetByDate(userId: number, ruleType: PayrollRuleType, periodDate: string): PayrollRuleSetDocument {
+  getActiveRuleSetByDate(
+    userId: number,
+    ruleType: PayrollRuleType,
+    periodDate: string,
+  ): PayrollRuleSetDocument {
     this.ensureUserExists(userId);
     this.ensureDefaultRulesForUser(userId);
 
@@ -170,7 +172,9 @@ export class PayrollRuleService {
       throw {
         code: 'NOT_FOUND',
         message: `Payroll rule set ${id} not found.`,
-        details: [{ field: 'id', detail: `Rule set ${id} does not belong to user ${input.user_id}.` }],
+        details: [
+          { field: 'id', detail: `Rule set ${id} does not belong to user ${input.user_id}.` },
+        ],
       };
     }
 
@@ -194,7 +198,9 @@ export class PayrollRuleService {
         throw {
           code: 'VALIDATION_ERROR',
           message: 'CCSS rule sets cannot accept income-tax brackets.',
-          details: [{ field: 'brackets', detail: 'Remove brackets when updating a CCSS_WORKER rule.' }],
+          details: [
+            { field: 'brackets', detail: 'Remove brackets when updating a CCSS_WORKER rule.' },
+          ],
         };
       }
 
@@ -430,8 +436,7 @@ export class PayrollRuleService {
       .map((bracket) => ({
         range_order: bracket.range_order,
         amount_from: roundPayrollMoney(bracket.amount_from),
-        amount_to:
-          bracket.amount_to === null ? null : roundPayrollMoney(bracket.amount_to),
+        amount_to: bracket.amount_to === null ? null : roundPayrollMoney(bracket.amount_to),
         tax_rate: roundPayrollRate(bracket.tax_rate),
         is_exempt: bracket.is_exempt ? 1 : 0,
       }))

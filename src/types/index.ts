@@ -142,12 +142,7 @@ export interface ExchangeRate extends AuditedEntity {
   effective_date: string;
 }
 
-export type AutoAssignmentMatchType =
-  | 'CONTAINS'
-  | 'STARTS_WITH'
-  | 'ENDS_WITH'
-  | 'EXACT'
-  | 'REGEX';
+export type AutoAssignmentMatchType = 'CONTAINS' | 'STARTS_WITH' | 'ENDS_WITH' | 'EXACT' | 'REGEX';
 
 export interface AutoAssignmentRule extends AuditedEntity {
   id: number;

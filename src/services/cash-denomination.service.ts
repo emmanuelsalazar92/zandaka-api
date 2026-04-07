@@ -1,9 +1,6 @@
 import { CashDenominationRepository } from '../repositories/cash-denomination.repo';
 import { UserRepository } from '../repositories/user.repo';
-import {
-  CashDenominationResponse,
-  CashDenominationListResponse,
-} from '../types';
+import { CashDenominationResponse, CashDenominationListResponse } from '../types';
 
 export class CashDenominationService {
   private repo = new CashDenominationRepository();

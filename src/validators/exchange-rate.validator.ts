@@ -10,7 +10,11 @@ const numberFromQuery = (value: unknown) => {
 };
 
 const idFromPath = z.string().regex(/^\d+$/).transform(Number);
-const currencyCode = z.string().trim().length(3).transform((value) => value.toUpperCase());
+const currencyCode = z
+  .string()
+  .trim()
+  .length(3)
+  .transform((value) => value.toUpperCase());
 
 const dateString = z
   .string()

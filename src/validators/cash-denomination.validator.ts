@@ -2,18 +2,20 @@ import { z } from 'zod';
 
 const cashDenominationTypeSchema = z.enum(['BILL', 'COIN']);
 
-const userIdQuerySchema = z.preprocess(
-  (value) => {
-    if (value === undefined || value === null || value === '') return '1';
-    return value;
-  },
-  z.string().regex(/^\d+$/).transform(Number),
-);
+const userIdQuerySchema = z.preprocess((value) => {
+  if (value === undefined || value === null || value === '') return '1';
+  return value;
+}, z.string().regex(/^\d+$/).transform(Number));
 
 const cashDenominationBodySchema = z
   .object({
     userId: z.number().int().positive(),
-    currency: z.string().trim().min(1).max(10).transform((value) => value.toUpperCase()),
+    currency: z
+      .string()
+      .trim()
+      .min(1)
+      .max(10)
+      .transform((value) => value.toUpperCase()),
     value: z.number().positive(),
     type: cashDenominationTypeSchema,
     label: z.string().trim().max(50).nullable().optional(),

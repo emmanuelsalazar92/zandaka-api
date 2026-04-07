@@ -213,7 +213,11 @@ export class BudgetService {
 
   copyFromPrevious(id: number, userId: number, sourceBudgetId?: number) {
     const budget = this.getOwnedBudget(id, userId);
-    this.ensureBudgetStatus(budget, 'draft', 'Only draft budgets can copy lines from another budget.');
+    this.ensureBudgetStatus(
+      budget,
+      'draft',
+      'Only draft budgets can copy lines from another budget.',
+    );
 
     const sourceBudget = sourceBudgetId
       ? this.getOwnedBudget(sourceBudgetId, userId)
@@ -259,7 +263,10 @@ export class BudgetService {
     return {
       message: 'Budget lines copied successfully from the selected source budget.',
       data: {
-        budget: this.mapBudgetWithSummary(this.getOwnedBudget(id, userId), this.repo.getDistributionSummary(id)),
+        budget: this.mapBudgetWithSummary(
+          this.getOwnedBudget(id, userId),
+          this.repo.getDistributionSummary(id),
+        ),
         sourceBudgetId: sourceBudget.id,
         lines: copiedLines.map((line) => this.mapBudgetLine(line)),
       },
@@ -283,11 +290,9 @@ export class BudgetService {
 
     const lines = this.repo.getLines(id);
     const accounts = this.repo.findFundingAccounts(userId, budget.currency);
-    const envelopes = this.repo.findFundingEnvelopes(
-      userId,
-      budget.currency,
-      [...new Set(lines.map((line) => line.category_id))],
-    );
+    const envelopes = this.repo.findFundingEnvelopes(userId, budget.currency, [
+      ...new Set(lines.map((line) => line.category_id)),
+    ]);
 
     const envelopesByCategory = new Map<number, typeof envelopes>();
     for (const envelope of envelopes) {
@@ -348,14 +353,18 @@ export class BudgetService {
       throw {
         code: 'NOT_FOUND',
         message: 'Source account not found for this user.',
-        details: [{ field: 'sourceAccountId', detail: 'Use an active account owned by the same user.' }],
+        details: [
+          { field: 'sourceAccountId', detail: 'Use an active account owned by the same user.' },
+        ],
       };
     }
     if (sourceAccount.is_active !== 1) {
       throw {
         code: 'INACTIVE_RESOURCE',
         message: 'Source account is inactive.',
-        details: [{ field: 'sourceAccountId', detail: 'Funding requires an active source account.' }],
+        details: [
+          { field: 'sourceAccountId', detail: 'Funding requires an active source account.' },
+        ],
       };
     }
     if (sourceAccount.currency !== budget.currency) {
@@ -378,7 +387,13 @@ export class BudgetService {
       };
     }
 
-    this.validateFundingAssignments(userId, budget, budgetLines, input.sourceAccountId, input.lines);
+    this.validateFundingAssignments(
+      userId,
+      budget,
+      budgetLines,
+      input.sourceAccountId,
+      input.lines,
+    );
     this.repo.replaceFundingPlan(id, input.lines);
 
     return {
@@ -412,7 +427,9 @@ export class BudgetService {
       throw {
         code: 'CONFLICT',
         message: 'Funding plan is incomplete because the source account has not been selected.',
-        details: [{ field: 'sourceAccountId', detail: 'Save the funding plan before executing funding.' }],
+        details: [
+          { field: 'sourceAccountId', detail: 'Save the funding plan before executing funding.' },
+        ],
       };
     }
 
@@ -461,7 +478,10 @@ export class BudgetService {
       message:
         'Budget funding executed successfully. The ledger records one ADJUSTMENT transaction because the current model does not maintain a separate unassigned-cash bucket.',
       data: {
-        budget: this.mapBudgetWithSummary(this.getOwnedBudget(id, userId), this.repo.getDistributionSummary(id)),
+        budget: this.mapBudgetWithSummary(
+          this.getOwnedBudget(id, userId),
+          this.repo.getDistributionSummary(id),
+        ),
         fundingTransactionId: result.transactionId,
         transactionType: 'ADJUSTMENT',
         postedDate,
@@ -475,7 +495,9 @@ export class BudgetService {
       throw {
         code: 'NOT_FOUND',
         message: `User ${userId} not found.`,
-        details: [{ field: 'userId', detail: 'Create or select a valid user before using budgets.' }],
+        details: [
+          { field: 'userId', detail: 'Create or select a valid user before using budgets.' },
+        ],
       };
     }
   }
@@ -519,7 +541,9 @@ export class BudgetService {
       throw {
         code: 'CONFLICT',
         message: 'Funding is only available after the budget is finalized.',
-        details: [{ field: 'status', detail: 'Finalize the budget before saving or executing funding.' }],
+        details: [
+          { field: 'status', detail: 'Finalize the budget before saving or executing funding.' },
+        ],
       };
     }
     if (budget.status === 'funded') {
@@ -652,7 +676,8 @@ export class BudgetService {
       if (requireAssigned && assignment.accountEnvelopeId <= 0) {
         throw {
           code: 'CONFLICT',
-          message: 'Funding cannot run because one or more budget lines are missing an assigned envelope.',
+          message:
+            'Funding cannot run because one or more budget lines are missing an assigned envelope.',
           details: [
             {
               field: `lines[${index}].accountEnvelopeId`,

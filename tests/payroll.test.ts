@@ -191,11 +191,11 @@ test('POST /api/payroll-rules/income-tax creates a valid income tax rule set', a
       'SELECT range_order, amount_from, amount_to, tax_rate FROM payroll_income_tax_bracket WHERE rule_set_id = ? ORDER BY range_order ASC',
     )
     .all(response.json.id) as Array<{
-      range_order: number;
-      amount_from: number;
-      amount_to: number | null;
-      tax_rate: number;
-    }>;
+    range_order: number;
+    amount_from: number;
+    amount_to: number | null;
+    tax_rate: number;
+  }>;
 
   assert.equal(storedBrackets.length, 5);
   assert.deepEqual(
@@ -394,9 +394,9 @@ test('budgets and report snapshots persist the payroll rule set references used'
   const storedBudget = db
     .prepare('SELECT ccss_rule_set_id, income_tax_rule_set_id FROM budget WHERE id = ?')
     .get(budgetResponse.json.data.id) as {
-      ccss_rule_set_id: number | null;
-      income_tax_rule_set_id: number | null;
-    };
+    ccss_rule_set_id: number | null;
+    income_tax_rule_set_id: number | null;
+  };
 
   assert.equal(storedBudget.ccss_rule_set_id, ccssRuleSetId);
   assert.equal(storedBudget.income_tax_rule_set_id, incomeTaxRuleSetId);
@@ -414,13 +414,11 @@ test('budgets and report snapshots persist the payroll rule set references used'
   assert.equal(snapshotResponse.json.data.income_tax_rule_set_id, incomeTaxRuleSetId);
 
   const storedSnapshot = db
-    .prepare(
-      'SELECT ccss_rule_set_id, income_tax_rule_set_id FROM report_snapshot WHERE id = ?',
-    )
+    .prepare('SELECT ccss_rule_set_id, income_tax_rule_set_id FROM report_snapshot WHERE id = ?')
     .get(snapshotResponse.json.data.id) as {
-      ccss_rule_set_id: number | null;
-      income_tax_rule_set_id: number | null;
-    };
+    ccss_rule_set_id: number | null;
+    income_tax_rule_set_id: number | null;
+  };
 
   assert.equal(storedSnapshot.ccss_rule_set_id, ccssRuleSetId);
   assert.equal(storedSnapshot.income_tax_rule_set_id, incomeTaxRuleSetId);

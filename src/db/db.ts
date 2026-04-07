@@ -229,9 +229,7 @@ function createCashDenominationTableSql(tableName = 'cash_denomination'): string
   `;
 }
 
-function createCashReconciliationDetailTableSql(
-  tableName = 'cash_reconciliation_detail',
-): string {
+function createCashReconciliationDetailTableSql(tableName = 'cash_reconciliation_detail'): string {
   return `
     CREATE TABLE ${quoteIdentifier(tableName)} (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -302,9 +300,7 @@ function createPayrollCcssWorkerRateTableSql(tableName = 'payroll_ccss_worker_ra
   `;
 }
 
-function createPayrollIncomeTaxBracketTableSql(
-  tableName = 'payroll_income_tax_bracket',
-): string {
+function createPayrollIncomeTaxBracketTableSql(tableName = 'payroll_income_tax_bracket'): string {
   return `
     CREATE TABLE ${quoteIdentifier(tableName)} (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1182,7 +1178,12 @@ function migrateBudgetLineTable(): void {
   const amountIsNumeric = getColumnType('budget_line', 'amount') === 'NUMERIC';
   const percentageIsNumeric = getColumnType('budget_line', 'percentage') === 'NUMERIC';
 
-  if (columns.has('created_at') && columns.has('updated_at') && amountIsNumeric && percentageIsNumeric) {
+  if (
+    columns.has('created_at') &&
+    columns.has('updated_at') &&
+    amountIsNumeric &&
+    percentageIsNumeric
+  ) {
     return;
   }
 
@@ -1313,8 +1314,14 @@ function migrateReportSnapshotTable(): void {
   const numericColumnsAreCorrect =
     getColumnType('report_snapshot', 'total_crc') === 'NUMERIC' &&
     getColumnType('report_snapshot', 'total_usd') === 'NUMERIC' &&
-    getColumnType('report_snapshot', columns.has('exchange_rate_used') ? 'exchange_rate_used' : 'usd_to_crc_rate') === 'NUMERIC' &&
-    getColumnType('report_snapshot', columns.has('consolidated_amount') ? 'consolidated_amount' : 'consolidated_crc') === 'NUMERIC';
+    getColumnType(
+      'report_snapshot',
+      columns.has('exchange_rate_used') ? 'exchange_rate_used' : 'usd_to_crc_rate',
+    ) === 'NUMERIC' &&
+    getColumnType(
+      'report_snapshot',
+      columns.has('consolidated_amount') ? 'consolidated_amount' : 'consolidated_crc',
+    ) === 'NUMERIC';
   const tableDefinition = getTableDefinitionSql('report_snapshot') ?? '';
   const statusConstraintSupportsArchived = tableDefinition.includes("'ARCHIVED'");
 
@@ -1692,4 +1699,3 @@ export function initializeDatabase(): void {
 
 db.pragma('foreign_keys = ON');
 initializeDatabase();
-

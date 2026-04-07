@@ -128,8 +128,8 @@ export class BudgetRepository {
       ${where}
     `;
 
-    const totalItems = ((db.prepare(countQuery).get(...values) as { total?: number } | undefined)?.total ??
-      0) as number;
+    const totalItems = ((db.prepare(countQuery).get(...values) as { total?: number } | undefined)
+      ?.total ?? 0) as number;
     const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / params.pageSize);
     const offset = (params.page - 1) * params.pageSize;
 
@@ -367,7 +367,10 @@ export class BudgetRepository {
     return copy();
   }
 
-  findFundingAccounts(userId: number, currency: string): Array<{
+  findFundingAccounts(
+    userId: number,
+    currency: string,
+  ): Array<{
     id: number;
     name: string;
     currency: string;

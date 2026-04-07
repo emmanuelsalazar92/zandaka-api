@@ -145,7 +145,10 @@ test('budget happy path supports planning, funding plan and funding execution', 
   assert.equal(replaceRes.res.status, 200);
   assert.equal(replaceRes.json.data.validation.isValid, true);
 
-  const validateRes = await requestJson('GET', `/api/budgets/${budgetId}/validation?userId=${seed.userId}`);
+  const validateRes = await requestJson(
+    'GET',
+    `/api/budgets/${budgetId}/validation?userId=${seed.userId}`,
+  );
   assert.equal(validateRes.res.status, 200);
   assert.equal(validateRes.json.data.distributedAmount, 1000);
   assert.equal(validateRes.json.data.distributedPercentage, 100);
@@ -178,7 +181,9 @@ test('budget happy path supports planning, funding plan and funding execution', 
   assert.equal(fundRes.json.data.budget.status, 'funded');
   assert.equal(fundRes.json.data.transactionType, 'ADJUSTMENT');
 
-  const budget = db.prepare('SELECT status FROM budget WHERE id = ?').get(budgetId) as { status: string };
+  const budget = db.prepare('SELECT status FROM budget WHERE id = ?').get(budgetId) as {
+    status: string;
+  };
   assert.equal(budget.status, 'funded');
 
   const lines = db
@@ -361,8 +366,14 @@ test('funding options only return accounts and envelopes in the budget currency'
     `/api/budgets/${budgetId}/funding-options?userId=${seed.userId}`,
   );
   assert.equal(optionsRes.res.status, 200);
-  assert.equal(optionsRes.json.data.accounts.some((account: any) => account.id === seed.accountId), true);
-  assert.equal(optionsRes.json.data.accounts.some((account: any) => account.id === seed.crcAccountId), false);
+  assert.equal(
+    optionsRes.json.data.accounts.some((account: any) => account.id === seed.accountId),
+    true,
+  );
+  assert.equal(
+    optionsRes.json.data.accounts.some((account: any) => account.id === seed.crcAccountId),
+    false,
+  );
   assert.equal(
     optionsRes.json.data.lines[0].availableEnvelopes.some(
       (envelope: any) => envelope.id === seed.crcHousingEnvelopeId,

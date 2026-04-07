@@ -34,7 +34,9 @@ export class BudgetController {
       throw {
         code: 'VALIDATION_ERROR',
         message: 'Invalid month range.',
-        details: [{ field: 'fromMonth', detail: 'fromMonth must be less than or equal to toMonth.' }],
+        details: [
+          { field: 'fromMonth', detail: 'fromMonth must be less than or equal to toMonth.' },
+        ],
       };
     }
 

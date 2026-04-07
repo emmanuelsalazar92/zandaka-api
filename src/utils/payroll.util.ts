@@ -73,9 +73,8 @@ export function calculateProgressiveIncomeTax(
     const taxableAmount = roundPayrollMoney(
       Math.max(Math.min(safeTaxableBase, upperBound) - bracket.amount_from, 0),
     );
-    const taxAmount = bracket.is_exempt === 1
-      ? 0
-      : roundPayrollMoney(taxableAmount * bracket.tax_rate);
+    const taxAmount =
+      bracket.is_exempt === 1 ? 0 : roundPayrollMoney(taxableAmount * bracket.tax_rate);
 
     totalTax = roundPayrollMoney(totalTax + taxAmount);
     breakdown.push({

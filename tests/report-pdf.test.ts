@@ -83,9 +83,45 @@ function seedSnapshot() {
     `,
   );
 
-  insertLine.run(snapshotId, 'ACCOUNT_TOTAL', 1, 'BAC Ahorros', 'CRC', null, null, null, null, 850000, 0);
-  insertLine.run(snapshotId, 'ENVELOPE_TOTAL', 1, 'BAC Ahorros', 'CRC', 10, 'Supermercado', 10, 'Supermercado', 120000, 1);
-  insertLine.run(snapshotId, 'ENVELOPE_TOTAL', 1, 'BAC Ahorros', 'CRC', 11, 'Transporte', 11, 'Transporte', 80000, 2);
+  insertLine.run(
+    snapshotId,
+    'ACCOUNT_TOTAL',
+    1,
+    'BAC Ahorros',
+    'CRC',
+    null,
+    null,
+    null,
+    null,
+    850000,
+    0,
+  );
+  insertLine.run(
+    snapshotId,
+    'ENVELOPE_TOTAL',
+    1,
+    'BAC Ahorros',
+    'CRC',
+    10,
+    'Supermercado',
+    10,
+    'Supermercado',
+    120000,
+    1,
+  );
+  insertLine.run(
+    snapshotId,
+    'ENVELOPE_TOTAL',
+    1,
+    'BAC Ahorros',
+    'CRC',
+    11,
+    'Transporte',
+    11,
+    'Transporte',
+    80000,
+    2,
+  );
 
   return snapshotId;
 }

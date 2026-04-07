@@ -204,6 +204,10 @@ router.patch(
  *       204:
  *         description: Rule deactivated successfully
  */
-router.delete('/:id', validate(deleteAutoAssignmentRuleSchema), AutoAssignmentRuleController.remove);
+router.delete(
+  '/:id',
+  validate(deleteAutoAssignmentRuleSchema),
+  AutoAssignmentRuleController.remove,
+);
 
 export default router;

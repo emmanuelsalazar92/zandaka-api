@@ -129,7 +129,10 @@ export class AutoAssignmentRuleService {
     this.setStatus(id, userId, false);
   }
 
-  test(userId: number, description: string): {
+  test(
+    userId: number,
+    description: string,
+  ): {
     description: string;
     matched: boolean;
     matchedRule: AutoAssignmentRuleDetails | null;

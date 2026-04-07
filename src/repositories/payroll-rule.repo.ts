@@ -67,7 +67,11 @@ export class PayrollRuleRepository {
     return (stmt.get(id, userId) as PayrollRuleSet | undefined) ?? null;
   }
 
-  findActiveByDate(userId: number, ruleType: PayrollRuleType, periodDate: string): PayrollRuleSet | null {
+  findActiveByDate(
+    userId: number,
+    ruleType: PayrollRuleType,
+    periodDate: string,
+  ): PayrollRuleSet | null {
     const stmt = db.prepare(`
       SELECT *
       FROM payroll_rule_set
@@ -80,7 +84,9 @@ export class PayrollRuleRepository {
       LIMIT 1
     `);
 
-    return (stmt.get(userId, ruleType, periodDate, periodDate) as PayrollRuleSet | undefined) ?? null;
+    return (
+      (stmt.get(userId, ruleType, periodDate, periodDate) as PayrollRuleSet | undefined) ?? null
+    );
   }
 
   listHistory(userId: number, ruleType?: PayrollRuleType): PayrollRuleSet[] {
@@ -98,9 +104,7 @@ export class PayrollRuleRepository {
           ORDER BY effective_from DESC, id DESC
         `);
 
-    return (ruleType
-      ? stmt.all(userId, ruleType)
-      : stmt.all(userId)) as PayrollRuleSet[];
+    return (ruleType ? stmt.all(userId, ruleType) : stmt.all(userId)) as PayrollRuleSet[];
   }
 
   findOverlappingActiveRuleSets(params: {
@@ -174,7 +178,9 @@ export class PayrollRuleRepository {
       .filter((item): item is PayrollRuleSetDocument => item !== null);
   }
 
-  createCcssRuleSet(input: PayrollRuleSetHeaderInput & PayrollCcssDetailInput): PayrollRuleSetDocument {
+  createCcssRuleSet(
+    input: PayrollRuleSetHeaderInput & PayrollCcssDetailInput,
+  ): PayrollRuleSetDocument {
     const insertRuleSet = db.prepare(`
       INSERT INTO payroll_rule_set (
         user_id,
@@ -442,12 +448,14 @@ export class PayrollRuleRepository {
 
   isRuleSetUsed(ruleSetId: number): boolean {
     const budgetUsage = db
-      .prepare(`
+      .prepare(
+        `
         SELECT 1
         FROM budget
         WHERE ccss_rule_set_id = ? OR income_tax_rule_set_id = ?
         LIMIT 1
-      `)
+      `,
+      )
       .get(ruleSetId, ruleSetId);
 
     if (budgetUsage) {
@@ -455,12 +463,14 @@ export class PayrollRuleRepository {
     }
 
     const snapshotUsage = db
-      .prepare(`
+      .prepare(
+        `
         SELECT 1
         FROM report_snapshot
         WHERE ccss_rule_set_id = ? OR income_tax_rule_set_id = ?
         LIMIT 1
-      `)
+      `,
+      )
       .get(ruleSetId, ruleSetId);
 
     return Boolean(snapshotUsage);

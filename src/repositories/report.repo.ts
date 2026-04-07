@@ -229,7 +229,6 @@ export class ReportRepository {
     return (stmt.get(snapshotId) as ReportSnapshotRecord | undefined) ?? null;
   }
 
-
   archiveSnapshotById(snapshotId: number): ReportSnapshotRecord | null {
     const findSnapshot = db.prepare(`
       SELECT
@@ -284,7 +283,9 @@ export class ReportRepository {
     `);
 
     const transaction = db.transaction((targetSnapshotId: number) => {
-      const currentSnapshot = findSnapshot.get(targetSnapshotId) as ReportSnapshotRecord | undefined;
+      const currentSnapshot = findSnapshot.get(targetSnapshotId) as
+        | ReportSnapshotRecord
+        | undefined;
       if (!currentSnapshot) {
         return null;
       }
@@ -790,7 +791,10 @@ export class ReportRepository {
         }
       }
 
-      const snapshot = findSnapshotById.get(snapshotId) as Omit<ReportSnapshotSummary, 'line_count'>;
+      const snapshot = findSnapshotById.get(snapshotId) as Omit<
+        ReportSnapshotSummary,
+        'line_count'
+      >;
 
       return {
         ...snapshot,
@@ -891,6 +895,3 @@ export class ReportRepository {
     return stmt.all(userId) as SnapshotEnvelopeTotalRow[];
   }
 }
-
-
-

@@ -403,7 +403,10 @@ test('GET /api/reports excludes archived snapshots and PATCH /api/reports/:id/ar
   assert.equal(listRes.json[0].id, firstRes.json.data.id);
   assert.equal(listRes.json[0].is_latest, 1);
 
-  const archivedRes = await requestJson('GET', `/api/reports?userId=${seed.userId}&includeArchived=true`);
+  const archivedRes = await requestJson(
+    'GET',
+    `/api/reports?userId=${seed.userId}&includeArchived=true`,
+  );
   assert.equal(archivedRes.res.status, 200);
   assert.equal(archivedRes.json.length, 2);
   assert.equal(
@@ -412,7 +415,9 @@ test('GET /api/reports excludes archived snapshots and PATCH /api/reports/:id/ar
   );
 
   const storedSnapshots = db
-    .prepare('SELECT id, version, is_latest, status FROM report_snapshot WHERE user_id = ? ORDER BY version ASC')
+    .prepare(
+      'SELECT id, version, is_latest, status FROM report_snapshot WHERE user_id = ? ORDER BY version ASC',
+    )
     .all(seed.userId) as Array<Record<string, any>>;
 
   assert.deepEqual(storedSnapshots, [
@@ -420,5 +425,3 @@ test('GET /api/reports excludes archived snapshots and PATCH /api/reports/:id/ar
     { id: secondRes.json.data.id, version: 2, is_latest: 0, status: 'ARCHIVED' },
   ]);
 });
-
-

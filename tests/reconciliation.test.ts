@@ -229,7 +229,10 @@ test('cash denomination reconciliation stores detail and calculates totals', asy
 });
 
 test('denomination reconciliation uses expected balance and can start balanced', async () => {
-  const { accountId, envelopeId, userId } = seedBaseData({ institutionType: 'CASH', currency: 'CRC' });
+  const { accountId, envelopeId, userId } = seedBaseData({
+    institutionType: 'CASH',
+    currency: 'CRC',
+  });
   const seedTx = await requestJson('POST', '/api/transactions', {
     userId,
     date: '2024-01-30',
@@ -338,10 +341,7 @@ test('account cash denominations endpoint returns active catalog for the account
     sortOrder: 1,
   });
 
-  const res = await requestJson(
-    'GET',
-    `/api/reconciliations/accounts/${accountId}/denominations`,
-  );
+  const res = await requestJson('GET', `/api/reconciliations/accounts/${accountId}/denominations`);
 
   assert.equal(res.res.status, 200);
   assert.equal(res.json.currency, 'CRC');

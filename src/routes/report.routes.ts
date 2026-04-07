@@ -17,7 +17,11 @@ import {
 const router = Router();
 
 router.get('/', validate(listReportSnapshotsSchema), ReportController.listSnapshots);
-router.patch('/:id/archive', validate(archiveReportSnapshotSchema), ReportController.archiveSnapshot);
+router.patch(
+  '/:id/archive',
+  validate(archiveReportSnapshotSchema),
+  ReportController.archiveSnapshot,
+);
 
 /**
  * @swagger
@@ -127,11 +131,7 @@ router.patch('/:id/archive', validate(archiveReportSnapshotSchema), ReportContro
  *       500:
  *         description: Unexpected server error while generating the snapshot
  */
-router.post(
-  '/generate',
-  validate(generateReportSnapshotSchema),
-  ReportController.generateSnapshot,
-);
+router.post('/generate', validate(generateReportSnapshotSchema), ReportController.generateSnapshot);
 
 /**
  * @swagger
@@ -445,6 +445,3 @@ router.get('/active-inconsistencies', ReportController.getActiveAccountInconsist
 router.get('/:id', validate(getReportSnapshotSchema), ReportController.getSnapshotById);
 
 export default router;
-
-
-

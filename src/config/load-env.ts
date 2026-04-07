@@ -15,9 +15,7 @@ export function loadEnv(filePath = path.resolve(process.cwd(), '.env')): void {
       continue;
     }
 
-    const normalizedLine = line.startsWith('export ')
-      ? line.slice('export '.length)
-      : line;
+    const normalizedLine = line.startsWith('export ') ? line.slice('export '.length) : line;
     const separatorIndex = normalizedLine.indexOf('=');
 
     if (separatorIndex === -1) {

@@ -428,7 +428,7 @@ router.get('/:id/lines', validate(getBudgetSchema), BudgetController.getLines);
  *                   remainingPercentage: 46.95
  *                   errors:
  *                     - field: totalIncome
-*                       detail: 'Distributed amount is 1300, but the budget total income is 2450.75. Remaining amount: 1150.75.'
+ *                       detail: 'Distributed amount is 1300, but the budget total income is 2450.75. Remaining amount: 1150.75.'
  *       400:
  *         description: Invalid payload such as negative amounts or malformed fields.
  *         content:
@@ -597,14 +597,18 @@ router.post('/:id/finalize', validate(finalizeBudgetSchema), BudgetController.fi
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/:id/copy-from-previous', validate(copyBudgetSchema), BudgetController.copyFromPrevious);
+router.post(
+  '/:id/copy-from-previous',
+  validate(copyBudgetSchema),
+  BudgetController.copyFromPrevious,
+);
 
 /**
  * @swagger
  * /api/budgets/{id}/funding-options:
  *   get:
  *     summary: Get valid funding options
-*     description: 'Returns the accounts and account envelopes that are valid funding targets for the finalized budget. The query enforces budget currency rules: only active accounts with the same currency as the budget are returned, and only active account envelopes attached to active categories are exposed. No currency conversion happens here.'
+ *     description: 'Returns the accounts and account envelopes that are valid funding targets for the finalized budget. The query enforces budget currency rules: only active accounts with the same currency as the budget are returned, and only active account envelopes attached to active categories are exposed. No currency conversion happens here.'
  *     tags: [Budgets]
  *     parameters:
  *       - in: path
