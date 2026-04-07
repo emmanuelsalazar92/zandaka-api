@@ -31,13 +31,7 @@ export class TransactionRepository {
           line.envelopeId,
           line.amount,
         );
-        createdLines.push({
-          id: lineResult.lastInsertRowid as number,
-          transaction_id: transactionId,
-          account_id: line.accountId,
-          envelope_id: line.envelopeId,
-          amount: line.amount,
-        });
+        createdLines.push(this.findLineById(lineResult.lastInsertRowid as number)!);
       }
 
       const transaction = this.findById(transactionId)!;
@@ -55,6 +49,11 @@ export class TransactionRepository {
   findLinesByTransactionId(transactionId: number): TransactionLine[] {
     const stmt = db.prepare('SELECT * FROM transaction_line WHERE transaction_id = ?');
     return stmt.all(transactionId) as TransactionLine[];
+  }
+
+  findLineById(id: number): TransactionLine | null {
+    const stmt = db.prepare('SELECT * FROM transaction_line WHERE id = ?');
+    return stmt.get(id) as TransactionLine | null;
   }
 
   findWithFilters(params: {
@@ -204,6 +203,8 @@ export class TransactionRepository {
              tt.total_amount,
              tl.id as line_id,
              tl.account_id,
+             tl.created_at as line_created_at,
+             tl.updated_at as line_updated_at,
              a.name as account_name,
              a.currency as account_currency,
              tl.envelope_id,
@@ -247,6 +248,7 @@ export class TransactionRepository {
           description: row.description,
           type: row.type,
           created_at: row.created_at,
+          updated_at: row.updated_at,
           amount: row.total_amount ?? 0,
           account_currency: row.account_currency ?? null,
           lines: [],
@@ -259,6 +261,8 @@ export class TransactionRepository {
           account_id: row.account_id,
           envelope_id: row.envelope_id,
           amount: row.amount,
+          created_at: row.line_created_at,
+          updated_at: row.line_updated_at,
           account_name: row.account_name ?? null,
           account_currency: row.account_currency ?? null,
           category_id: row.category_id ?? null,

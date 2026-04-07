@@ -13,14 +13,20 @@ export function validate(schema: ZodSchema) {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
+        const details = error.errors.map((err) => ({
+          path: err.path.join('.'),
+          message: err.message,
+        }));
         const response: ErrorResponse = {
+          message: 'Validation failed',
+          errors: details.map((detail) => ({
+            field: detail.path || 'general',
+            detail: detail.message,
+          })),
           error: {
             code: 'VALIDATION_ERROR',
             message: 'Validation failed',
-            details: error.errors.map((err) => ({
-              path: err.path.join('.'),
-              message: err.message,
-            })),
+            details,
           },
         };
         return res.status(400).json(response);

@@ -1,6 +1,14 @@
 import db from '../db/db';
 import { Account, AccountsInfo } from '../types';
 
+export type AccountContext = {
+  id: number;
+  user_id: number;
+  currency: string;
+  is_active: number;
+  type: string | null;
+};
+
 export class AccountRepository {
   create(
     userId: number,
@@ -10,7 +18,14 @@ export class AccountRepository {
     allowOverdraft: boolean = false,
   ): Account {
     const stmt = db.prepare(`
-      INSERT INTO account (user_id, institution_id, name, currency, is_active, allow_overdraft)
+      INSERT INTO account (
+        user_id,
+        institution_id,
+        name,
+        currency,
+        is_active,
+        allow_overdraft
+      )
       VALUES (?, ?, ?, ?, 1, ?)
     `);
     const result = stmt.run(userId, institutionId, name, currency, allowOverdraft ? 1 : 0);
@@ -22,15 +37,39 @@ export class AccountRepository {
     return stmt.get(id) as Account | null;
   }
 
+  findContextById(id: number): AccountContext | null {
+    const stmt = db.prepare(`
+      SELECT
+        account.id,
+        account.user_id,
+        account.currency,
+        account.is_active,
+        institution.type
+      FROM account
+      INNER JOIN institution ON institution.id = account.institution_id
+      WHERE account.id = ?
+    `);
+
+    return stmt.get(id) as AccountContext | null;
+  }
+
   update(id: number, name?: string): Account | null {
     if (name === undefined) return this.findById(id);
-    const stmt = db.prepare('UPDATE account SET name = ? WHERE id = ?');
+    const stmt = db.prepare(`
+      UPDATE account
+      SET name = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
     stmt.run(name, id);
     return this.findById(id);
   }
 
   deactivate(id: number): boolean {
-    const stmt = db.prepare('UPDATE account SET is_active = 0 WHERE id = ?');
+    const stmt = db.prepare(`
+      UPDATE account
+      SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
     const result = stmt.run(id);
     return result.changes > 0;
   }

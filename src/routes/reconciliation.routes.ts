@@ -3,6 +3,8 @@ import { ReconciliationController } from '../controllers/reconciliation.controll
 import { validate } from '../middlewares/validator.middleware';
 import {
   createReconciliationSchema,
+  getCashDenominationsForAccountSchema,
+  getExpectedTotalForAccountSchema,
   getReconciliationsSchema,
   getReconciliationByIdSchema,
   updateReconciliationSchema,
@@ -14,35 +16,130 @@ const router = Router();
 
 /**
  * @swagger
+ * /api/reconciliations/accounts/{accountId}/denominations:
+ *   get:
+ *     summary: List active cash denominations for an account
+ *     description: Returns the active denomination catalog for the account currency. This endpoint only applies to CASH accounts.
+ *     tags: [Reconciliations]
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Active cash denominations for the account
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AccountCashDenominations'
+ *       404:
+ *         description: Account not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       409:
+ *         description: Account is inactive or not CASH
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get(
+  '/accounts/:accountId/denominations',
+  validate(getCashDenominationsForAccountSchema),
+  ReconciliationController.getCashDenominationsForAccount,
+);
+
+/**
+ * @swagger
+ * /api/reconciliations/accounts/{accountId}/expected-total:
+ *   get:
+ *     summary: Compute expected total for an account and date
+ *     description: Returns the calculated account balance as of the requested date so the client can preview reconciliation differences before saving.
+ *     tags: [Reconciliations]
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Expected total for the requested account/date
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ReconciliationExpectedTotal'
+ *       404:
+ *         description: Account not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       409:
+ *         description: Account is inactive
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get(
+  '/accounts/:accountId/expected-total',
+  validate(getExpectedTotalForAccountSchema),
+  ReconciliationController.getExpectedTotalForAccount,
+);
+
+/**
+ * @swagger
  * /api/reconciliations:
  *   post:
  *     summary: Create a reconciliation
- *     description: Creates a reconciliation record and automatically calculates the difference between real balance and calculated balance.
+ *     description: |
+ *       Creates a reconciliation record. Existing manual reconciliations continue to work with `countMethod=MANUAL_TOTAL`.
+ *       For CASH accounts, `countMethod=DENOMINATION_COUNT` accepts denomination lines, recalculates every line total on the backend,
+ *       stores a snapshot of each denomination used, and derives the final counted total automatically.
+ *       Duplicate denomination lines are rejected.
  *     tags: [Reconciliations]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - accountId
- *               - date
- *               - realBalance
- *             properties:
- *               accountId:
- *                 type: integer
- *                 example: 1
- *               date:
- *                 type: string
- *                 format: date
- *                 example: "2024-01-31"
- *               realBalance:
- *                 type: number
- *                 example: 123456.78
- *               note:
- *                 type: string
- *                 example: "End of month reconciliation"
+ *             $ref: '#/components/schemas/CreateReconciliationRequest'
+ *           examples:
+ *             manual:
+ *               summary: Manual counted total
+ *               value:
+ *                 accountId: 1
+ *                 date: "2026-04-01"
+ *                 countMethod: MANUAL_TOTAL
+ *                 realBalance: 123456.78
+ *                 note: "Month end reconciliation"
+ *             denominationCount:
+ *               summary: Denomination count for a CASH account
+ *               value:
+ *                 accountId: 12
+ *                 date: "2026-04-01"
+ *                 countMethod: DENOMINATION_COUNT
+ *                 notes: "Conteo físico de caja"
+ *                 lines:
+ *                   - denominationId: 1
+ *                     quantity: 4
+ *                   - denominationId: 2
+ *                     quantity: 3
+ *                   - denominationId: 7
+ *                     quantity: 11
+ *                   - denominationId: 8
+ *                     quantity: 127
  *     responses:
  *       201:
  *         description: Reconciliation created successfully
@@ -57,7 +154,19 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: Account not found
+ *         description: Account or denomination not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Denomination does not belong to the account owner
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       409:
+ *         description: Active reconciliation already exists, account is inactive, denomination is inactive, currency mismatch, or account is not CASH for denomination count
  *         content:
  *           application/json:
  *             schema:
@@ -146,6 +255,7 @@ router.get(
  * /api/reconciliations/{id}:
  *   get:
  *     summary: Get reconciliation by id
+ *     description: Returns the reconciliation header and, when it was created with denomination count, the stored denomination breakdown ordered by sort order.
  *     tags: [Reconciliations]
  *     parameters:
  *       - in: path
@@ -244,11 +354,7 @@ router.patch('/:id', validate(updateReconciliationSchema), ReconciliationControl
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post(
-  '/:id/ignore',
-  validate(ignoreReconciliationSchema),
-  ReconciliationController.ignore,
-);
+router.post('/:id/ignore', validate(ignoreReconciliationSchema), ReconciliationController.ignore);
 
 /**
  * @swagger

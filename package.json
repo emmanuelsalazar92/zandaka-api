@@ -11,7 +11,7 @@
     "lint": "eslint . --ext .ts,.js --max-warnings=0",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
-    "test": "node --test -r ts-node/register tests/reconciliation.test.ts"
+    "test": "node -r ts-node/register tests/reconciliation.test.ts && node -r ts-node/register tests/budget.test.ts && node -r ts-node/register tests/settings.test.ts && node -r ts-node/register tests/report-snapshot.test.ts && node -r ts-node/register tests/payroll.test.ts && node -r ts-node/register tests/report-pdf.test.ts"
   },
   "keywords": [
     "budget",
@@ -25,6 +25,7 @@
     "better-sqlite3": "^11.7.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "puppeteer": "^24.40.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "zod": "^3.22.4"

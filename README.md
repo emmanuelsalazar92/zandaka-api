@@ -80,25 +80,34 @@ src/
    npm install
    ```
 
-2. **Run the development server:**
+2. **Create your environment file:**
 
    ```bash
-   CORS_ORIGIN=http://localhost:3001 npm run dev
+   cp .env.example .env
    ```
 
    On Windows PowerShell:
 
    ```powershell
-   $env:CORS_ORIGIN='http://localhost:3001'; npm run dev
+   Copy-Item .env.example .env
    ```
+
+3. **Run the development server:**
+
+   ```bash
+   npm run dev
+   ```
+
+   Configure `CORS_ORIGIN` in `.env`. By default, the example file allows both
+   `http://localhost:3001` and `http://192.168.31.239:3001`.
 
    If you need multiple allowed frontend origins, separate them with commas:
 
    ```bash
-   CORS_ORIGIN=http://localhost:3001,https://app.example.com npm run dev
+   CORS_ORIGIN=http://localhost:3001,https://app.example.com
    ```
 
-3. **Build for production:**
+4. **Build for production:**
 
    ```bash
    npm run build
