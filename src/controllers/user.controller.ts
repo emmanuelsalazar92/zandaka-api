@@ -8,4 +8,17 @@ export class UserController {
     const preferredCurrency = service.getPreferredCurrency();
     res.json(preferredCurrency);
   }
+
+  static getById(req: Request, res: Response) {
+    const { id } = req.params;
+    const user = service.getSettings(Number(id));
+    res.json(user);
+  }
+
+  static update(req: Request, res: Response) {
+    const { id } = req.params;
+    const { name, baseCurrency } = req.body;
+    const user = service.updateSettings(Number(id), { name, baseCurrency });
+    res.json(user);
+  }
 }

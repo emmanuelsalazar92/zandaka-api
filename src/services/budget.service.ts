@@ -6,6 +6,7 @@ import { InstitutionRepository } from '../repositories/institution.repo';
 import { ReconciliationRepository } from '../repositories/reconciliation.repo';
 import { UserRepository } from '../repositories/user.repo';
 import { Budget, BudgetStatus } from '../types';
+import { PayrollRuleService } from './payroll-rule.service';
 
 const MONEY_TOLERANCE = 0.01;
 const PERCENT_TOLERANCE = 0.01;
@@ -23,15 +24,22 @@ export class BudgetService {
   private envelopeRepo = new EnvelopeRepository();
   private institutionRepo = new InstitutionRepository();
   private reconciliationRepo = new ReconciliationRepository();
+  private payrollRuleService = new PayrollRuleService();
 
   create(input: {
     userId: number;
     month: string;
     currency: string;
     totalIncome: number;
+    ccssRuleSetId?: number | null;
+    incomeTaxRuleSetId?: number | null;
   }) {
     this.ensureUserExists(input.userId);
     const currency = this.normalizeCurrency(input.currency);
+    this.validateOptionalPayrollRuleRefs(input.userId, {
+      ccssRuleSetId: input.ccssRuleSetId,
+      incomeTaxRuleSetId: input.incomeTaxRuleSetId,
+    });
 
     if (this.repo.findByUserMonthCurrency(input.userId, input.month, currency)) {
       throw {
@@ -46,7 +54,10 @@ export class BudgetService {
       };
     }
 
-    const budget = this.repo.create(input.userId, input.month, currency, input.totalIncome);
+    const budget = this.repo.create(input.userId, input.month, currency, input.totalIncome, {
+      ccssRuleSetId: input.ccssRuleSetId,
+      incomeTaxRuleSetId: input.incomeTaxRuleSetId,
+    });
 
     return {
       message: 'Budget created in draft status.',
@@ -186,6 +197,17 @@ export class BudgetService {
     return {
       message: 'Budget finalized successfully. Funding has not been executed yet.',
       data: this.mapBudgetWithSummary(updated!, this.repo.getDistributionSummary(id)),
+    };
+  }
+
+  remove(id: number, userId: number) {
+    const budget = this.getOwnedBudget(id, userId);
+    this.ensureBudgetStatus(budget, 'draft', 'Only draft budgets can be deleted.');
+    this.repo.remove(id);
+
+    return {
+      message: 'Budget deleted successfully.',
+      data: { id },
     };
   }
 
@@ -357,7 +379,7 @@ export class BudgetService {
     }
 
     this.validateFundingAssignments(userId, budget, budgetLines, input.sourceAccountId, input.lines);
-    this.repo.replaceFundingPlan(id, input.sourceAccountId, input.lines);
+    this.repo.replaceFundingPlan(id, input.lines);
 
     return {
       message: 'Funding plan saved successfully.',
@@ -385,7 +407,8 @@ export class BudgetService {
         details: [{ field: 'lines', detail: 'Add planning lines before funding the budget.' }],
       };
     }
-    if (!budget.funding_source_account_id) {
+    const sourceAccount = this.deriveFundingSource(lines);
+    if (!sourceAccount.sourceAccountId) {
       throw {
         code: 'CONFLICT',
         message: 'Funding plan is incomplete because the source account has not been selected.',
@@ -397,7 +420,7 @@ export class BudgetService {
       userId,
       budget,
       lines,
-      budget.funding_source_account_id,
+      sourceAccount.sourceAccountId,
       lines.map((line) => ({
         budgetLineId: line.id,
         accountEnvelopeId: line.account_envelope_id ?? 0,
@@ -421,11 +444,11 @@ export class BudgetService {
     });
 
     const activeReconciliation = this.reconciliationRepo.getActiveReconciliation(
-      budget.funding_source_account_id,
+      sourceAccount.sourceAccountId,
     );
     if (activeReconciliation) {
       const calculatedCurrent = this.reconciliationRepo.computeCalculatedBalance(
-        budget.funding_source_account_id,
+        sourceAccount.sourceAccountId,
         activeReconciliation.date,
       );
       const differenceCurrent = activeReconciliation.real_balance - calculatedCurrent;
@@ -812,15 +835,12 @@ export class BudgetService {
   }
 
   private buildFundingPlan(budget: Budget, lines: BudgetLineRow[]) {
-    const sourceAccount =
-      budget.funding_source_account_id !== null
-        ? this.accountRepo.findById(budget.funding_source_account_id)
-        : null;
+    const sourceAccount = this.deriveFundingSource(lines);
 
     return {
       budget: this.mapBudgetWithSummary(budget, this.repo.getDistributionSummary(budget.id)),
-      sourceAccountId: budget.funding_source_account_id,
-      sourceAccountName: sourceAccount?.name ?? null,
+      sourceAccountId: sourceAccount.sourceAccountId,
+      sourceAccountName: sourceAccount.sourceAccountName,
       lines: lines.map((line) => ({
         budgetLineId: line.id,
         categoryId: line.category_id,
@@ -833,7 +853,38 @@ export class BudgetService {
         accountCurrency: line.account_currency,
         isAssigned: line.account_envelope_id !== null,
       })),
-      isComplete: lines.length > 0 && lines.every((line) => line.account_envelope_id !== null),
+      isComplete:
+        sourceAccount.sourceAccountId !== null &&
+        lines.length > 0 &&
+        lines.every((line) => line.account_envelope_id !== null),
+    };
+  }
+
+  private deriveFundingSource(lines: BudgetLineRow[]): {
+    sourceAccountId: number | null;
+    sourceAccountName: string | null;
+  } {
+    const assignedLines = lines.filter(
+      (line) => line.account_envelope_id !== null && line.envelope_account_id !== null,
+    );
+    if (assignedLines.length === 0) {
+      return {
+        sourceAccountId: null,
+        sourceAccountName: null,
+      };
+    }
+
+    const sourceAccountIds = [...new Set(assignedLines.map((line) => line.envelope_account_id!))];
+    if (sourceAccountIds.length !== 1) {
+      return {
+        sourceAccountId: null,
+        sourceAccountName: null,
+      };
+    }
+
+    return {
+      sourceAccountId: assignedLines[0].envelope_account_id ?? null,
+      sourceAccountName: assignedLines[0].account_name ?? null,
     };
   }
 
@@ -877,8 +928,10 @@ export class BudgetService {
       month: budget.month,
       currency: budget.currency,
       totalIncome: budget.total_income,
+      ccssRuleSetId: budget.ccss_rule_set_id,
+      incomeTaxRuleSetId: budget.income_tax_rule_set_id,
       status: budget.status,
-      sourceAccountId: budget.funding_source_account_id,
+      sourceAccountId: null,
       createdAt: budget.created_at,
       updatedAt: budget.updated_at,
     };
@@ -905,6 +958,19 @@ export class BudgetService {
 
   private normalizeCurrency(currency: string): string {
     return currency.trim().toUpperCase();
+  }
+
+  private validateOptionalPayrollRuleRefs(
+    userId: number,
+    refs: { ccssRuleSetId?: number | null; incomeTaxRuleSetId?: number | null },
+  ) {
+    if (refs.ccssRuleSetId) {
+      this.payrollRuleService.assertRuleSetReference(userId, refs.ccssRuleSetId, 'CCSS_WORKER');
+    }
+
+    if (refs.incomeTaxRuleSetId) {
+      this.payrollRuleService.assertRuleSetReference(userId, refs.incomeTaxRuleSetId, 'INCOME_TAX');
+    }
   }
 
   private roundMoney(value: number): number {

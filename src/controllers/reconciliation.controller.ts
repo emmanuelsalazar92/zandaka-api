@@ -5,8 +5,7 @@ const service = new ReconciliationService();
 
 export class ReconciliationController {
   static create(req: Request, res: Response) {
-    const { accountId, date, realBalance, note } = req.body;
-    const reconciliation = service.create({ accountId, date, realBalance, note });
+    const reconciliation = service.create(req.body);
     res.status(201).json(reconciliation);
   }
 
@@ -33,6 +32,19 @@ export class ReconciliationController {
     const { id } = req.params;
     const reconciliation = service.findById(Number(id));
     res.json(reconciliation);
+  }
+
+  static getCashDenominationsForAccount(req: Request, res: Response) {
+    const { accountId } = req.params;
+    const payload = service.getCashDenominationsForAccount(Number(accountId));
+    res.json(payload);
+  }
+
+  static getExpectedTotalForAccount(req: Request, res: Response) {
+    const { accountId } = req.params;
+    const date = String(req.query.date);
+    const payload = service.getExpectedTotalForAccount(Number(accountId), date);
+    res.json(payload);
   }
 
   static getActiveByAccount(req: Request, res: Response) {

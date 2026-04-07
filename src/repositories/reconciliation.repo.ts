@@ -1,11 +1,20 @@
 import db from '../db/db';
 import { Reconciliation } from '../types';
 
+export type ReconciliationAccountContext = {
+  id: number;
+  user_id: number;
+  currency: string;
+  is_active: number;
+  type: string | null;
+};
+
 export class ReconciliationRepository {
   create(params: {
     accountId: number;
     date: string;
     realBalance: number;
+    countMethod: 'MANUAL_TOTAL' | 'DENOMINATION_COUNT';
     calculatedBalance: number;
     difference: number;
     status: 'OPEN' | 'BALANCED';
@@ -15,14 +24,25 @@ export class ReconciliationRepository {
   }): Reconciliation {
     const stmt = db.prepare(`
       INSERT INTO reconciliation (
-        account_id, date, real_balance, status, calculated_balance, difference, is_active, closed_at, note
+        account_id,
+        date,
+        real_balance,
+        count_method,
+        status,
+        calculated_balance,
+        difference,
+        is_active,
+        closed_at,
+        note
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
+
     const result = stmt.run(
       params.accountId,
       params.date,
       params.realBalance,
+      params.countMethod,
       params.status,
       params.calculatedBalance,
       params.difference,
@@ -30,6 +50,7 @@ export class ReconciliationRepository {
       params.closedAt,
       params.note || null,
     );
+
     return this.findById(result.lastInsertRowid as number)!;
   }
 
@@ -47,25 +68,25 @@ export class ReconciliationRepository {
 
   findLatestByAccountId(accountId: number): Reconciliation | null {
     const stmt = db.prepare(`
-      SELECT * FROM reconciliation 
-      WHERE account_id = ? 
-      ORDER BY date DESC, created_at DESC 
+      SELECT *
+      FROM reconciliation
+      WHERE account_id = ?
+      ORDER BY date DESC, created_at DESC
       LIMIT 1
     `);
     return stmt.get(accountId) as Reconciliation | null;
   }
 
   findAllLatest(): Array<{ accountId: number; reconciliation: Reconciliation | null }> {
-    // Get all accounts and their latest reconciliation
     const stmt = db.prepare(`
-      SELECT DISTINCT account_id 
+      SELECT DISTINCT account_id
       FROM account
     `);
     const accounts = stmt.all() as Array<{ account_id: number }>;
 
-    return accounts.map((acc) => ({
-      accountId: acc.account_id,
-      reconciliation: this.findLatestByAccountId(acc.account_id),
+    return accounts.map((account) => ({
+      accountId: account.account_id,
+      reconciliation: this.findLatestByAccountId(account.account_id),
     }));
   }
 
@@ -95,11 +116,16 @@ export class ReconciliationRepository {
       ORDER BY date DESC, created_at DESC
       LIMIT ? OFFSET ?
     `);
+
     return stmt.all(...values, params.limit, params.offset) as Reconciliation[];
   }
 
   updateNote(id: number, note: string | null): Reconciliation | null {
-    const stmt = db.prepare('UPDATE reconciliation SET note = ? WHERE id = ?');
+    const stmt = db.prepare(`
+      UPDATE reconciliation
+      SET note = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
     const result = stmt.run(note, id);
     if (result.changes === 0) {
       return null;
@@ -107,16 +133,32 @@ export class ReconciliationRepository {
     return this.findById(id);
   }
 
+  getAccountContext(accountId: number): ReconciliationAccountContext | null {
+    const stmt = db.prepare(`
+      SELECT
+        account.id,
+        account.user_id,
+        account.currency,
+        account.is_active,
+        institution.type
+      FROM account
+      INNER JOIN institution ON institution.id = account.institution_id
+      WHERE account.id = ?
+    `);
+
+    return stmt.get(accountId) as ReconciliationAccountContext | null;
+  }
+
   getAccountIsActive(accountId: number): boolean | null {
-    const stmt = db.prepare('SELECT is_active FROM account WHERE id = ?');
-    const result = stmt.get(accountId) as { is_active: number } | undefined;
-    if (!result) return null;
-    return result.is_active === 1;
+    const context = this.getAccountContext(accountId);
+    if (!context) return null;
+    return context.is_active === 1;
   }
 
   getActiveReconciliation(accountId: number): Reconciliation | null {
     const stmt = db.prepare(`
-      SELECT * FROM reconciliation
+      SELECT *
+      FROM reconciliation
       WHERE account_id = ? AND is_active = 1
       ORDER BY date DESC, created_at DESC
       LIMIT 1
@@ -126,7 +168,7 @@ export class ReconciliationRepository {
 
   computeCalculatedBalance(accountId: number, asOfDate: string): number {
     const stmt = db.prepare(`
-      SELECT COALESCE(SUM(tl.amount), 0) as balance
+      SELECT COALESCE(SUM(tl.amount), 0) AS balance
       FROM transaction_line tl
       JOIN transactions t ON tl.transaction_id = t.id
       WHERE tl.account_id = ?
@@ -139,7 +181,11 @@ export class ReconciliationRepository {
   closeReconciliation(reconciliationId: number): Reconciliation | null {
     const stmt = db.prepare(`
       UPDATE reconciliation
-      SET status = 'BALANCED', is_active = 0, closed_at = datetime('now')
+      SET
+        status = 'BALANCED',
+        is_active = 0,
+        closed_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND is_active = 1
     `);
     const result = stmt.run(reconciliationId);
@@ -152,7 +198,11 @@ export class ReconciliationRepository {
   ignoreReconciliation(reconciliationId: number): Reconciliation | null {
     const stmt = db.prepare(`
       UPDATE reconciliation
-      SET status = 'IGNORED', is_active = 0, closed_at = datetime('now')
+      SET
+        status = 'IGNORED',
+        is_active = 0,
+        closed_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND is_active = 1
     `);
     const result = stmt.run(reconciliationId);

@@ -15,6 +15,10 @@ import reportRoutes from './routes/report.routes';
 import exchangeRateRoutes from './routes/exchange-rate.routes';
 import userRoutes from './routes/user.routes';
 import budgetRoutes from './routes/budget.routes';
+import autoAssignmentRuleRoutes from './routes/auto-assignment-rule.routes';
+import cashDenominationRoutes from './routes/cash-denomination.routes';
+import payrollRuleRoutes from './routes/payroll-rule.routes';
+import payrollRoutes from './routes/payroll.routes';
 
 export function createApp(): Express {
   const app = express();
@@ -85,8 +89,12 @@ export function createApp(): Express {
   app.use('/api/reconciliations', reconciliationRoutes);
   app.use('/api/reports', reportRoutes);
   app.use('/api/exchange-rate', exchangeRateRoutes);
+  app.use('/api/auto-assignment-rules', autoAssignmentRuleRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/budgets', budgetRoutes);
+  app.use('/api/settings/cash-denominations', cashDenominationRoutes);
+  app.use('/api/payroll-rules', payrollRuleRoutes);
+  app.use('/api/payroll', payrollRoutes);
 
   // Error handler (must be last)
   app.use(errorHandler);

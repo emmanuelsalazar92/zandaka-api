@@ -28,19 +28,25 @@ async function requestJson(method: string, url: string, body?: unknown) {
   return { res, json };
 }
 
-function seedBaseData(options?: { accountActive?: number }) {
+function seedBaseData(options?: {
+  accountActive?: number;
+  institutionType?: 'BANK' | 'CASH' | 'VIRTUAL';
+  currency?: string;
+}) {
   const accountActive = options?.accountActive ?? 1;
+  const institutionType = options?.institutionType ?? 'BANK';
+  const currency = options?.currency ?? 'USD';
   const userId = db
     .prepare('INSERT INTO user (name, base_currency) VALUES (?, ?)')
     .run('Test User', 'USD').lastInsertRowid as number;
   const institutionId = db
     .prepare('INSERT INTO institution (user_id, name, type, is_active) VALUES (?, ?, ?, 1)')
-    .run(userId, 'Test Bank', 'BANK').lastInsertRowid as number;
+    .run(userId, 'Test Bank', institutionType).lastInsertRowid as number;
   const accountId = db
     .prepare(
       'INSERT INTO account (user_id, institution_id, name, currency, is_active, allow_overdraft) VALUES (?, ?, ?, ?, ?, 0)',
     )
-    .run(userId, institutionId, 'Checking', 'USD', accountActive).lastInsertRowid as number;
+    .run(userId, institutionId, 'Checking', currency, accountActive).lastInsertRowid as number;
   const categoryId = db
     .prepare('INSERT INTO category (user_id, name, parent_id, is_active) VALUES (?, ?, NULL, 1)')
     .run(userId, 'Adjustments').lastInsertRowid as number;
@@ -75,6 +81,8 @@ after(async () => {
 
 beforeEach(() => {
   db.exec(`
+    DELETE FROM cash_reconciliation_detail;
+    DELETE FROM cash_denomination;
     DELETE FROM transaction_line;
     DELETE FROM transactions;
     DELETE FROM reconciliation;
@@ -85,6 +93,30 @@ beforeEach(() => {
     DELETE FROM user;
   `);
 });
+
+function createCashDenomination(params: {
+  userId: number;
+  currency: string;
+  value: number;
+  type: 'BILL' | 'COIN';
+  label?: string;
+  sortOrder: number;
+}) {
+  return db
+    .prepare(
+      `INSERT INTO cash_denomination
+        (user_id, currency, value, type, label, sort_order, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, 1)`,
+    )
+    .run(
+      params.userId,
+      params.currency,
+      params.value,
+      params.type,
+      params.label ?? null,
+      params.sortOrder,
+    ).lastInsertRowid as number;
+}
 
 test('cannot create new reconciliation if active exists', async () => {
   const { accountId } = seedBaseData();
@@ -112,6 +144,210 @@ test('cannot reconcile inactive account', async () => {
     realBalance: 50,
   });
   assert.equal(res.res.status, 409);
+});
+
+test('cash denomination reconciliation stores detail and calculates totals', async () => {
+  const { accountId, userId } = seedBaseData({ institutionType: 'CASH', currency: 'CRC' });
+  const twoThousandId = createCashDenomination({
+    userId,
+    currency: 'CRC',
+    value: 2000,
+    type: 'BILL',
+    label: '₡2000',
+    sortOrder: 1,
+  });
+  const oneThousandId = createCashDenomination({
+    userId,
+    currency: 'CRC',
+    value: 1000,
+    type: 'BILL',
+    label: '₡1000',
+    sortOrder: 2,
+  });
+  const hundredId = createCashDenomination({
+    userId,
+    currency: 'CRC',
+    value: 100,
+    type: 'COIN',
+    label: '₡100',
+    sortOrder: 3,
+  });
+
+  const reconciliationRes = await requestJson('POST', '/api/reconciliations', {
+    accountId,
+    date: '2024-01-31',
+    countMethod: 'DENOMINATION_COUNT',
+    notes: 'Conteo físico de caja',
+    lines: [
+      { denominationId: twoThousandId, quantity: 4 },
+      { denominationId: oneThousandId, quantity: 3 },
+      { denominationId: hundredId, quantity: 11 },
+    ],
+  });
+
+  assert.equal(reconciliationRes.res.status, 201);
+  assert.equal(reconciliationRes.json.countMethod, 'DENOMINATION_COUNT');
+  assert.equal(reconciliationRes.json.currency, 'CRC');
+  assert.equal(reconciliationRes.json.expectedTotal, 0);
+  assert.equal(reconciliationRes.json.countedTotal, 12100);
+  assert.equal(reconciliationRes.json.realBalance, 12100);
+  assert.equal(reconciliationRes.json.calculatedBalance, 0);
+  assert.equal(reconciliationRes.json.difference, 12100);
+  assert.equal(reconciliationRes.json.notes, 'Conteo físico de caja');
+  assert.equal(reconciliationRes.json.lines.length, 3);
+  assert.equal(reconciliationRes.json.lines[0].denominationValue, 2000);
+  assert.equal(reconciliationRes.json.lines[0].lineTotal, 8000);
+  assert.equal(reconciliationRes.json.lines[2].denominationType, 'COIN');
+
+  const reconciliationId = reconciliationRes.json.id as number;
+  const getRes = await requestJson('GET', `/api/reconciliations/${reconciliationId}`);
+  assert.equal(getRes.res.status, 200);
+  assert.equal(getRes.json.lines.length, 3);
+
+  const storedLines = db
+    .prepare(
+      `SELECT denomination_value, denomination_type, quantity, line_total, sort_order
+       FROM cash_reconciliation_detail
+       WHERE reconciliation_id = ?
+       ORDER BY sort_order ASC`,
+    )
+    .all(reconciliationId) as Array<{
+    denomination_value: number;
+    denomination_type: string;
+    quantity: number;
+    line_total: number;
+    sort_order: number;
+  }>;
+  assert.equal(storedLines.length, 3);
+  assert.deepEqual(storedLines[0], {
+    denomination_value: 2000,
+    denomination_type: 'BILL',
+    quantity: 4,
+    line_total: 8000,
+    sort_order: 1,
+  });
+});
+
+test('denomination reconciliation uses expected balance and can start balanced', async () => {
+  const { accountId, envelopeId, userId } = seedBaseData({ institutionType: 'CASH', currency: 'CRC' });
+  const seedTx = await requestJson('POST', '/api/transactions', {
+    userId,
+    date: '2024-01-30',
+    type: 'ADJUSTMENT',
+    description: 'Seed cash',
+    lines: [{ accountId, envelopeId, amount: 12100 }],
+  });
+  assert.equal(seedTx.res.status, 201);
+
+  const twoThousandId = createCashDenomination({
+    userId,
+    currency: 'CRC',
+    value: 2000,
+    type: 'BILL',
+    sortOrder: 1,
+  });
+  const hundredId = createCashDenomination({
+    userId,
+    currency: 'CRC',
+    value: 100,
+    type: 'COIN',
+    sortOrder: 2,
+  });
+
+  const reconciliationRes = await requestJson('POST', '/api/reconciliations', {
+    accountId,
+    date: '2024-01-31',
+    countMethod: 'DENOMINATION_COUNT',
+    lines: [
+      { denominationId: twoThousandId, quantity: 6 },
+      { denominationId: hundredId, quantity: 1 },
+    ],
+  });
+
+  assert.equal(reconciliationRes.res.status, 201);
+  assert.equal(reconciliationRes.json.expectedTotal, 12100);
+  assert.equal(reconciliationRes.json.countedTotal, 12100);
+  assert.equal(reconciliationRes.json.difference, 0);
+  assert.equal(reconciliationRes.json.status, 'BALANCED');
+  assert.equal(reconciliationRes.json.isActive, 0);
+});
+
+test('rejects negative denomination quantities', async () => {
+  const { accountId, userId } = seedBaseData({ institutionType: 'CASH', currency: 'CRC' });
+  const denominationId = createCashDenomination({
+    userId,
+    currency: 'CRC',
+    value: 500,
+    type: 'COIN',
+    sortOrder: 1,
+  });
+
+  const res = await requestJson('POST', '/api/reconciliations', {
+    accountId,
+    date: '2024-01-31',
+    countMethod: 'DENOMINATION_COUNT',
+    lines: [{ denominationId, quantity: -1 }],
+  });
+
+  assert.equal(res.res.status, 400);
+});
+
+test('rejects denomination count for non-cash accounts', async () => {
+  const { accountId, userId } = seedBaseData({ institutionType: 'BANK', currency: 'CRC' });
+  const denominationId = createCashDenomination({
+    userId,
+    currency: 'CRC',
+    value: 500,
+    type: 'COIN',
+    sortOrder: 1,
+  });
+
+  const res = await requestJson('POST', '/api/reconciliations', {
+    accountId,
+    date: '2024-01-31',
+    countMethod: 'DENOMINATION_COUNT',
+    lines: [{ denominationId, quantity: 2 }],
+  });
+
+  assert.equal(res.res.status, 409);
+  assert.equal(res.json.error.message, 'Denomination counts are only available for CASH accounts');
+});
+
+test('account cash denominations endpoint returns active catalog for the account currency', async () => {
+  const { accountId, userId } = seedBaseData({ institutionType: 'CASH', currency: 'CRC' });
+  createCashDenomination({
+    userId,
+    currency: 'CRC',
+    value: 20000,
+    type: 'BILL',
+    sortOrder: 1,
+  });
+  const inactiveId = createCashDenomination({
+    userId,
+    currency: 'CRC',
+    value: 500,
+    type: 'COIN',
+    sortOrder: 2,
+  });
+  db.prepare('UPDATE cash_denomination SET is_active = 0 WHERE id = ?').run(inactiveId);
+  createCashDenomination({
+    userId,
+    currency: 'USD',
+    value: 1,
+    type: 'COIN',
+    sortOrder: 1,
+  });
+
+  const res = await requestJson(
+    'GET',
+    `/api/reconciliations/accounts/${accountId}/denominations`,
+  );
+
+  assert.equal(res.res.status, 200);
+  assert.equal(res.json.currency, 'CRC');
+  assert.equal(res.json.countMethod, 'DENOMINATION_COUNT');
+  assert.equal(res.json.denominations.length, 1);
+  assert.equal(res.json.denominations[0].value, 20000);
 });
 
 test('adjustment closes reconciliation when difference reaches 0', async () => {

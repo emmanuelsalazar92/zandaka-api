@@ -43,6 +43,8 @@ export const createBudgetSchema = z.object({
     month: monthString,
     currency: currencyString,
     totalIncome: z.number().positive(),
+    ccssRuleSetId: z.number().int().positive().nullable().optional(),
+    incomeTaxRuleSetId: z.number().int().positive().nullable().optional(),
   }),
 });
 
@@ -62,6 +64,8 @@ export const getBudgetSchema = z.object({
     userId: z.preprocess(numberFromQuery, z.number().int().positive()),
   }),
 });
+
+export const deleteBudgetSchema = getBudgetSchema;
 
 export const replaceBudgetLinesSchema = z.object({
   params: idParams,

@@ -3,6 +3,7 @@ import { BudgetService } from '../services/budget.service';
 import {
   copyBudgetSchema,
   createBudgetSchema,
+  deleteBudgetSchema,
   finalizeBudgetSchema,
   fundBudgetSchema,
   getBudgetSchema,
@@ -63,6 +64,11 @@ export class BudgetController {
   static finalize(req: Request, res: Response) {
     const parsed = finalizeBudgetSchema.parse({ params: req.params, body: req.body });
     res.json(service.finalize(parsed.params.id, parsed.body.userId));
+  }
+
+  static remove(req: Request, res: Response) {
+    const parsed = deleteBudgetSchema.parse({ params: req.params, query: req.query });
+    res.json(service.remove(parsed.params.id, parsed.query.userId));
   }
 
   static copyFromPrevious(req: Request, res: Response) {

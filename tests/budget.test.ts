@@ -214,7 +214,7 @@ test('cannot create duplicate budget for the same user month and currency', asyn
   assert.equal(second.json.message, 'A budget already exists for this month and currency.');
 });
 
-test('copy-from-previous copies lines and funding source metadata', async () => {
+test('copy-from-previous copies planning lines without carrying funding assignments', async () => {
   const seed = seedBudgetBase();
 
   const sourceCreate = await requestJson('POST', '/api/budgets', {
@@ -259,9 +259,54 @@ test('copy-from-previous copies lines and funding source metadata', async () => 
   });
   assert.equal(copyRes.res.status, 200);
   assert.equal(copyRes.json.data.sourceBudgetId, sourceBudgetId);
-  assert.equal(copyRes.json.data.budget.sourceAccountId, seed.accountId);
+  assert.equal(copyRes.json.data.budget.sourceAccountId, null);
   assert.equal(copyRes.json.data.lines.length, 2);
-  assert.equal(copyRes.json.data.lines[0].accountEnvelopeId, seed.housingEnvelopeId);
+  assert.equal(copyRes.json.data.lines[0].accountEnvelopeId, null);
+});
+
+test('draft budgets can be deleted and finalized budgets cannot', async () => {
+  const seed = seedBudgetBase();
+
+  const draftCreateRes = await requestJson('POST', '/api/budgets', {
+    userId: seed.userId,
+    month: '2024-07',
+    currency: 'USD',
+    totalIncome: 700,
+  });
+  assert.equal(draftCreateRes.res.status, 201);
+  const draftBudgetId = draftCreateRes.json.data.id as number;
+
+  const deleteDraftRes = await requestJson(
+    'DELETE',
+    `/api/budgets/${draftBudgetId}?userId=${seed.userId}`,
+  );
+  assert.equal(deleteDraftRes.res.status, 200);
+  assert.equal(deleteDraftRes.json.message, 'Budget deleted successfully.');
+  assert.equal(db.prepare('SELECT id FROM budget WHERE id = ?').get(draftBudgetId), undefined);
+
+  const finalizedCreateRes = await requestJson('POST', '/api/budgets', {
+    userId: seed.userId,
+    month: '2024-08',
+    currency: 'USD',
+    totalIncome: 500,
+  });
+  assert.equal(finalizedCreateRes.res.status, 201);
+  const finalizedBudgetId = finalizedCreateRes.json.data.id as number;
+
+  await requestJson('PUT', `/api/budgets/${finalizedBudgetId}/lines/bulk`, {
+    userId: seed.userId,
+    lines: [{ categoryId: seed.housingCategoryId, amount: 500, percentage: 100, sortOrder: 1 }],
+  });
+  await requestJson('POST', `/api/budgets/${finalizedBudgetId}/finalize`, {
+    userId: seed.userId,
+  });
+
+  const deleteFinalizedRes = await requestJson(
+    'DELETE',
+    `/api/budgets/${finalizedBudgetId}?userId=${seed.userId}`,
+  );
+  assert.equal(deleteFinalizedRes.res.status, 409);
+  assert.equal(deleteFinalizedRes.json.message, 'Only draft budgets can be deleted.');
 });
 
 test('funding plan rejects envelopes that do not match the budget line category', async () => {

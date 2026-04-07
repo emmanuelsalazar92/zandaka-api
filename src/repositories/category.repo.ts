@@ -31,6 +31,7 @@ export class CategoryRepository {
 
     if (updates.length === 0) return this.findById(id);
 
+    updates.push('updated_at = CURRENT_TIMESTAMP');
     values.push(id);
     const stmt = db.prepare(`UPDATE category SET ${updates.join(', ')} WHERE id = ?`);
     stmt.run(...values);
@@ -38,7 +39,11 @@ export class CategoryRepository {
   }
 
   deactivate(id: number): boolean {
-    const stmt = db.prepare('UPDATE category SET is_active = 0 WHERE id = ?');
+    const stmt = db.prepare(`
+      UPDATE category
+      SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
     const result = stmt.run(id);
     return result.changes > 0;
   }

@@ -5,6 +5,7 @@ type BudgetListRow = Budget & {
   distributed_amount: number;
   distributed_percentage: number;
   lines_count: number;
+  funding_source_account_id: number | null;
   funding_source_account_name: string | null;
 };
 
@@ -19,28 +20,57 @@ type BudgetLineRow = BudgetLine & {
 };
 
 export class BudgetRepository {
-  create(userId: number, month: string, currency: string, totalIncome: number): Budget {
+  create(
+    userId: number,
+    month: string,
+    currency: string,
+    totalIncome: number,
+    payrollRuleRefs?: { ccssRuleSetId?: number | null; incomeTaxRuleSetId?: number | null },
+  ): Budget {
     const stmt = db.prepare(`
-      INSERT INTO budget (user_id, month, currency, total_income, status)
-      VALUES (?, ?, ?, ?, 'draft')
+      INSERT INTO budget (
+        user_id,
+        month,
+        currency,
+        total_income,
+        ccss_rule_set_id,
+        income_tax_rule_set_id,
+        status
+      )
+      VALUES (?, ?, ?, ?, ?, ?, 'draft')
     `);
-    const result = stmt.run(userId, month, currency, totalIncome);
+    const result = stmt.run(
+      userId,
+      month,
+      currency,
+      totalIncome,
+      payrollRuleRefs?.ccssRuleSetId ?? null,
+      payrollRuleRefs?.incomeTaxRuleSetId ?? null,
+    );
     return this.findById(result.lastInsertRowid as number)!;
   }
 
   findById(id: number): Budget | null {
-    const stmt = db.prepare('SELECT * FROM budget WHERE id = ?');
+    const stmt = db.prepare(`
+      SELECT budget.*
+      FROM budget
+      WHERE id = ?
+    `);
     return stmt.get(id) as Budget | null;
   }
 
   findByIdForUser(id: number, userId: number): Budget | null {
-    const stmt = db.prepare('SELECT * FROM budget WHERE id = ? AND user_id = ?');
+    const stmt = db.prepare(`
+      SELECT budget.*
+      FROM budget
+      WHERE id = ? AND user_id = ?
+    `);
     return stmt.get(id, userId) as Budget | null;
   }
 
   findByUserMonthCurrency(userId: number, month: string, currency: string): Budget | null {
     const stmt = db.prepare(`
-      SELECT *
+      SELECT budget.*
       FROM budget
       WHERE user_id = ? AND month = ? AND currency = ?
     `);
@@ -112,16 +142,34 @@ export class BudgetRepository {
           COALESCE(SUM(percentage), 0) AS distributed_percentage
         FROM budget_line
         GROUP BY budget_id
+      ),
+      funding_accounts AS (
+        SELECT
+          bl.budget_id,
+          MIN(a.id) AS funding_source_account_id,
+          MIN(a.name) AS funding_source_account_name,
+          COUNT(DISTINCT a.id) AS source_account_count
+        FROM budget_line bl
+        JOIN account_envelope ae ON ae.id = bl.account_envelope_id
+        JOIN account a ON a.id = ae.account_id
+        GROUP BY bl.budget_id
       )
       SELECT
         b.*,
         COALESCE(s.distributed_amount, 0) AS distributed_amount,
         COALESCE(s.distributed_percentage, 0) AS distributed_percentage,
         COALESCE(s.lines_count, 0) AS lines_count,
-        a.name AS funding_source_account_name
+        CASE
+          WHEN COALESCE(fa.source_account_count, 0) = 1 THEN fa.funding_source_account_id
+          ELSE NULL
+        END AS funding_source_account_id,
+        CASE
+          WHEN COALESCE(fa.source_account_count, 0) = 1 THEN fa.funding_source_account_name
+          ELSE NULL
+        END AS funding_source_account_name
       FROM budget b
       LEFT JOIN summaries s ON s.budget_id = b.id
-      LEFT JOIN account a ON a.id = b.funding_source_account_id
+      LEFT JOIN funding_accounts fa ON fa.budget_id = b.id
       ${where}
       ORDER BY b.month DESC, b.id DESC
       LIMIT ? OFFSET ?
@@ -208,7 +256,7 @@ export class BudgetRepository {
     `);
     const touchBudget = db.prepare(`
       UPDATE budget
-      SET funding_source_account_id = NULL, updated_at = datetime('now')
+      SET updated_at = datetime('now')
       WHERE id = ?
     `);
 
@@ -252,9 +300,14 @@ export class BudgetRepository {
     return this.findById(id);
   }
 
+  remove(id: number): void {
+    const stmt = db.prepare('DELETE FROM budget WHERE id = ?');
+    stmt.run(id);
+  }
+
   findMostRecentPreviousBudget(userId: number, currency: string, month: string): Budget | null {
     const stmt = db.prepare(`
-      SELECT *
+      SELECT budget.*
       FROM budget
       WHERE user_id = ? AND currency = ? AND month < ?
       ORDER BY month DESC, id DESC
@@ -264,7 +317,6 @@ export class BudgetRepository {
   }
 
   copyLinesFromBudget(sourceBudgetId: number, destinationBudgetId: number): BudgetLine[] {
-    const getSourceBudget = db.prepare('SELECT funding_source_account_id FROM budget WHERE id = ?');
     const deleteLines = db.prepare('DELETE FROM budget_line WHERE budget_id = ?');
     const copyLines = db.prepare(`
       INSERT INTO budget_line (
@@ -279,7 +331,7 @@ export class BudgetRepository {
       SELECT
         ?,
         category_id,
-        account_envelope_id,
+        NULL,
         amount,
         percentage,
         notes,
@@ -290,17 +342,14 @@ export class BudgetRepository {
     `);
     const updateBudget = db.prepare(`
       UPDATE budget
-      SET funding_source_account_id = ?, updated_at = datetime('now')
+      SET updated_at = datetime('now')
       WHERE id = ?
     `);
 
     const copy = db.transaction(() => {
-      const sourceBudget = getSourceBudget.get(sourceBudgetId) as
-        | { funding_source_account_id: number | null }
-        | undefined;
       deleteLines.run(destinationBudgetId);
       copyLines.run(destinationBudgetId, sourceBudgetId);
-      updateBudget.run(sourceBudget?.funding_source_account_id ?? null, destinationBudgetId);
+      updateBudget.run(destinationBudgetId);
       return this.getLines(destinationBudgetId).map((line) => ({
         id: line.id,
         budget_id: line.budget_id,
@@ -402,7 +451,6 @@ export class BudgetRepository {
 
   replaceFundingPlan(
     budgetId: number,
-    sourceAccountId: number,
     lines: Array<{ budgetLineId: number; accountEnvelopeId: number }>,
   ): Budget {
     const resetLines = db.prepare(`
@@ -415,9 +463,9 @@ export class BudgetRepository {
       SET account_envelope_id = ?, updated_at = datetime('now')
       WHERE id = ? AND budget_id = ?
     `);
-    const updateBudget = db.prepare(`
+    const touchBudget = db.prepare(`
       UPDATE budget
-      SET funding_source_account_id = ?, updated_at = datetime('now')
+      SET updated_at = datetime('now')
       WHERE id = ?
     `);
 
@@ -426,7 +474,7 @@ export class BudgetRepository {
       for (const line of lines) {
         assignLine.run(line.accountEnvelopeId, line.budgetLineId, budgetId);
       }
-      updateBudget.run(sourceAccountId, budgetId);
+      touchBudget.run(budgetId);
       return this.findById(budgetId)!;
     });
 

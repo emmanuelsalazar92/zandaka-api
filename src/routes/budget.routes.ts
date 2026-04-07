@@ -4,6 +4,7 @@ import { validate } from '../middlewares/validator.middleware';
 import {
   copyBudgetSchema,
   createBudgetSchema,
+  deleteBudgetSchema,
   finalizeBudgetSchema,
   fundBudgetSchema,
   getBudgetSchema,
@@ -21,7 +22,7 @@ const router = Router();
  * /api/budgets:
  *   post:
  *     summary: Create a monthly budget header
- *     description: Creates a new budget in `draft` status for a specific user, month, and currency. Use this endpoint at the start of the planning phase, before any category distribution exists. The API blocks duplicates by `(userId, month, currency)` so the same user cannot create two monthly plans in the same currency for the same month.
+ *     description: Creates a new budget in `draft` status for a specific user, month, and currency. Use this endpoint at the start of the planning phase, before any category distribution exists. The API blocks duplicates by `(userId, month, currency)` so the same user cannot create two monthly plans in the same currency for the same month. When a budget is derived from a payroll net-salary calculation, optional `ccssRuleSetId` and `incomeTaxRuleSetId` can be stored to preserve the exact fiscal rule versions used.
  *     tags: [Budgets]
  *     requestBody:
  *       required: true
@@ -34,6 +35,8 @@ const router = Router();
  *             month: '2026-03'
  *             currency: USD
  *             totalIncome: 2450.75
+ *             ccssRuleSetId: 11
+ *             incomeTaxRuleSetId: 12
  *     responses:
  *       201:
  *         description: Budget created in draft status. No lines are created yet and no funding has been executed.
@@ -54,6 +57,8 @@ const router = Router();
  *                 month: '2026-03'
  *                 currency: USD
  *                 totalIncome: 2450.75
+ *                 ccssRuleSetId: 11
+ *                 incomeTaxRuleSetId: 12
  *                 status: draft
  *                 sourceAccountId: null
  *                 createdAt: '2026-03-26T21:30:00.000Z'
@@ -261,6 +266,7 @@ router.get('/history', validate(historyBudgetsSchema), BudgetController.history)
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/', validate(listBudgetsSchema), BudgetController.list);
+router.delete('/:id', validate(deleteBudgetSchema), BudgetController.remove);
 
 /**
  * @swagger
