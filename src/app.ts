@@ -22,16 +22,21 @@ import payrollRoutes from './routes/payroll.routes';
 
 export function createApp(): Express {
   const app = express();
-  const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:3001')
+  const corsOrigins =
+    process.env.CORS_ORIGINS ??
+    process.env.CORS_ORIGIN ??
+    'http://localhost:3001,http://127.0.0.1:3001';
+  const allowedOrigins = corsOrigins
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
+  const allowAllOrigins = allowedOrigins.includes('*');
 
   // Middleware
   app.use(
     cors({
       origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin || allowAllOrigins || allowedOrigins.includes(origin)) {
           callback(null, true);
           return;
         }
@@ -76,7 +81,7 @@ export function createApp(): Express {
    *                   type: string
    *                   format: date-time
    */
-  app.get('/health', (req, res) => {
+  app.get(['/health', '/api/health'], (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 

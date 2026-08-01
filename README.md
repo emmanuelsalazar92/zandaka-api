@@ -98,14 +98,17 @@ src/
    npm run dev
    ```
 
-   Configure `CORS_ORIGIN` in `.env`. By default, the example file allows both
-   `http://localhost:3001` and `http://192.168.31.239:3001`.
+   Configure `CORS_ORIGINS` in `.env`. By default, the example file allows both
+   `http://localhost:3001` and `http://127.0.0.1:3001`.
 
    If you need multiple allowed frontend origins, separate them with commas:
 
    ```bash
-   CORS_ORIGIN=http://localhost:3001,https://app.example.com
+   CORS_ORIGINS=http://localhost:3001,https://app.example.com
    ```
+
+   For local Docker releases where the backend is only reachable inside the Docker network,
+   `CORS_ORIGINS=*` can be used so LAN clients can access the frontend without editing the IP.
 
 4. **Build for production:**
 
@@ -118,7 +121,7 @@ The database file will be created automatically at `./data/presupuesto.db` when 
 
 ## API Endpoints
 
-### Base URL: `http://localhost:3000/api`
+### Base URL: `/api`
 
 ### Institutions
 

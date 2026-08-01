@@ -1,11 +1,13 @@
 import swaggerJsdoc from 'swagger-jsdoc';
+import type { OpenAPIV3 } from 'openapi-types';
+import path from 'path';
 
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
     info: {
       title: 'Personal Budgeting API',
-      version: '1.0.0',
+      version: '1.0.1',
       description: 'REST API for envelope budgeting system with Express, TypeScript, and SQLite',
       contact: {
         name: 'API Support',
@@ -13,8 +15,8 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
-        description: 'Development server',
+        url: '/api',
+        description: 'API mediante proxy',
       },
     ],
     components: {
@@ -928,7 +930,21 @@ const options: swaggerJsdoc.Options = {
       },
     ],
   },
-  apis: ['./src/routes/*.ts', './src/app.ts'],
+  apis: [path.join(__dirname, '../routes/*.js'), path.join(__dirname, '../app.js')],
 };
 
-export const swaggerSpec = swaggerJsdoc(options);
+function stripApiPrefixFromPaths(spec: OpenAPIV3.Document): OpenAPIV3.Document {
+  const normalizedPaths: OpenAPIV3.PathsObject = {};
+
+  Object.entries(spec.paths).forEach(([path, pathItem]) => {
+    const normalizedPath = path.startsWith('/api/') ? path.slice('/api'.length) : path;
+    normalizedPaths[normalizedPath] = pathItem;
+  });
+
+  return {
+    ...spec,
+    paths: normalizedPaths,
+  };
+}
+
+export const swaggerSpec = stripApiPrefixFromPaths(swaggerJsdoc(options) as OpenAPIV3.Document);
