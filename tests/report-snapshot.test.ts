@@ -280,18 +280,27 @@ test('POST /api/reports/generate persists a versioned historical snapshot with f
 
 test('POST /api/reports/generate still creates a snapshot when no exchange rate is available', async () => {
   const seed = seedReportBase();
+  const { ExchangeRateService } = await import('../src/services/exchange-rate.service');
+  const originalGetByDate = ExchangeRateService.prototype.getByDate;
+  ExchangeRateService.prototype.getByDate = async () => {
+    throw new Error('External exchange-rate service unavailable');
+  };
 
-  const res = await requestJson('POST', '/api/reports/generate', {
-    user_id: seed.userId,
-    report_month: '2026-04',
-    notes: 'Sin tasa',
-  });
+  try {
+    const res = await requestJson('POST', '/api/reports/generate', {
+      user_id: seed.userId,
+      report_month: '2026-04',
+      notes: 'Sin tasa',
+    });
 
-  assert.equal(res.res.status, 201);
-  assert.equal(res.json.data.base_currency, 'CRC');
-  assert.equal(res.json.data.exchange_rate_id, null);
-  assert.equal(res.json.data.exchange_rate_used, null);
-  assert.equal(res.json.data.consolidated_amount, null);
+    assert.equal(res.res.status, 201);
+    assert.equal(res.json.data.base_currency, 'CRC');
+    assert.equal(res.json.data.exchange_rate_id, null);
+    assert.equal(res.json.data.exchange_rate_used, null);
+    assert.equal(res.json.data.consolidated_amount, null);
+  } finally {
+    ExchangeRateService.prototype.getByDate = originalGetByDate;
+  }
 });
 
 test('POST /api/reports/generate auto-fetches and stores a month-end exchange rate when none is provided', async () => {
