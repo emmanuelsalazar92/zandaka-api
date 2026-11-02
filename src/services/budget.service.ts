@@ -1,3 +1,4 @@
+import { assertMoney, sumMoney, subtractMoney, roundDecimal } from '../utils/money';
 import { AccountRepository } from '../repositories/account.repo';
 import { BudgetLineRow, BudgetListRow, BudgetRepository } from '../repositories/budget.repo';
 import { CategoryRepository } from '../repositories/category.repo';
@@ -8,7 +9,7 @@ import { UserRepository } from '../repositories/user.repo';
 import { Budget, BudgetStatus } from '../types';
 import { PayrollRuleService } from './payroll-rule.service';
 
-const MONEY_TOLERANCE = 0.01;
+const MONEY_TOLERANCE = 0;
 const PERCENT_TOLERANCE = 0.01;
 
 type ValidationIssue = {
@@ -36,6 +37,7 @@ export class BudgetService {
   }) {
     this.ensureUserExists(input.userId);
     const currency = this.normalizeCurrency(input.currency);
+    assertMoney(input.totalIncome, currency);
     this.validateOptionalPayrollRuleRefs(input.userId, {
       ccssRuleSetId: input.ccssRuleSetId,
       incomeTaxRuleSetId: input.incomeTaxRuleSetId,
@@ -152,6 +154,7 @@ export class BudgetService {
   ) {
     const budget = this.getOwnedBudget(id, userId);
     this.ensureBudgetStatus(budget, 'draft', 'Only draft budgets can replace planning lines.');
+    lines.forEach((line) => assertMoney(line.amount, budget.currency));
     this.validatePlanningLines(userId, lines);
 
     this.repo.replaceLines(id, lines);
@@ -468,7 +471,7 @@ export class BudgetService {
         sourceAccount.sourceAccountId,
         activeReconciliation.date,
       );
-      const differenceCurrent = activeReconciliation.real_balance - calculatedCurrent;
+      const differenceCurrent = subtractMoney(activeReconciliation.real_balance, calculatedCurrent);
       if (Math.abs(differenceCurrent) <= MONEY_TOLERANCE) {
         this.reconciliationRepo.closeReconciliation(activeReconciliation.id);
       }
@@ -805,12 +808,15 @@ export class BudgetService {
   }
 
   private buildPlanningValidation(budget: Budget, lines: BudgetLineRow[]) {
-    const distributedAmount = this.roundMoney(lines.reduce((sum, line) => sum + line.amount, 0));
-    const distributedPercentage = this.roundPercentage(
-      lines.reduce((sum, line) => sum + line.percentage, 0),
+    const distributedAmount = assertMoney(
+      sumMoney(lines.map((line) => line.amount)),
+      budget.currency,
     );
-    const remainingAmount = this.roundMoney(budget.total_income - distributedAmount);
-    const remainingPercentage = this.roundPercentage(100 - distributedPercentage);
+    const distributedPercentage = this.roundPercentage(
+      sumMoney(lines.map((line) => line.percentage)),
+    );
+    const remainingAmount = subtractMoney(budget.total_income, distributedAmount);
+    const remainingPercentage = subtractMoney(100, distributedPercentage);
     const errors: ValidationIssue[] = [];
 
     if (lines.length === 0) {
@@ -921,7 +927,7 @@ export class BudgetService {
       distributed_percentage: number;
     },
   ) {
-    const distributedAmount = this.roundMoney(summary.distributed_amount);
+    const distributedAmount = assertMoney(summary.distributed_amount, budget.currency);
     const distributedPercentage = this.roundPercentage(summary.distributed_percentage);
 
     return {
@@ -929,8 +935,8 @@ export class BudgetService {
       linesCount: summary.line_count,
       distributedAmount,
       distributedPercentage,
-      remainingAmount: this.roundMoney(budget.total_income - distributedAmount),
-      remainingPercentage: this.roundPercentage(100 - distributedPercentage),
+      remainingAmount: subtractMoney(budget.total_income, distributedAmount),
+      remainingPercentage: subtractMoney(100, distributedPercentage),
     };
   }
 
@@ -998,11 +1004,7 @@ export class BudgetService {
     }
   }
 
-  private roundMoney(value: number): number {
-    return Math.round((value + Number.EPSILON) * 100) / 100;
-  }
-
   private roundPercentage(value: number): number {
-    return Math.round((value + Number.EPSILON) * 100) / 100;
+    return roundDecimal(value, 2);
   }
 }

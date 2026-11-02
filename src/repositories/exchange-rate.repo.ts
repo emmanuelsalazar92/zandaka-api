@@ -1,4 +1,4 @@
-import db from '../db/db';
+import { moneyStatement } from '../db/money-statement';
 import { ExchangeRate } from '../types';
 
 export class ExchangeRateRepository {
@@ -26,7 +26,7 @@ export class ExchangeRateRepository {
       values.push(params.effectiveDate);
     }
 
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT *
       FROM exchange_rate
       WHERE ${conditions.join(' AND ')}
@@ -37,7 +37,7 @@ export class ExchangeRateRepository {
   }
 
   findById(id: number): ExchangeRate | null {
-    const stmt = db.prepare('SELECT * FROM exchange_rate WHERE id = ?');
+    const stmt = moneyStatement('SELECT * FROM exchange_rate WHERE id = ?');
     return stmt.get(id) as ExchangeRate | null;
   }
 
@@ -66,7 +66,7 @@ export class ExchangeRateRepository {
       values.push(params.excludeId);
     }
 
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT *
       FROM exchange_rate
       WHERE ${conditions.join(' AND ')}
@@ -83,7 +83,7 @@ export class ExchangeRateRepository {
     rate: number;
     effectiveDate: string;
   }): ExchangeRate {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       INSERT INTO exchange_rate (
         user_id,
         from_currency,
@@ -144,7 +144,7 @@ export class ExchangeRateRepository {
     updates.push('updated_at = CURRENT_TIMESTAMP');
     values.push(id);
 
-    const stmt = db.prepare(`UPDATE exchange_rate SET ${updates.join(', ')} WHERE id = ?`);
+    const stmt = moneyStatement(`UPDATE exchange_rate SET ${updates.join(', ')} WHERE id = ?`);
     const result = stmt.run(...values);
 
     if (result.changes === 0) {
@@ -155,7 +155,7 @@ export class ExchangeRateRepository {
   }
 
   delete(id: number): boolean {
-    const stmt = db.prepare('DELETE FROM exchange_rate WHERE id = ?');
+    const stmt = moneyStatement('DELETE FROM exchange_rate WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
   }

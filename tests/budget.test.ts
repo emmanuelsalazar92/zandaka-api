@@ -4,10 +4,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
+import { createSyntheticDb } from './helpers/synthetic-db';
 
 const testDbPath = path.join(os.tmpdir(), `budget-test-${Date.now()}.db`);
 process.env.DB_PATH = testDbPath;
-fs.writeFileSync(testDbPath, '');
+createSyntheticDb(testDbPath);
 
 let db: any;
 let baseUrl = '';
@@ -190,7 +191,7 @@ test('budget happy path supports planning, funding plan and funding execution', 
     .prepare(
       'SELECT envelope_id, amount FROM transaction_line WHERE transaction_id = ? ORDER BY envelope_id ASC',
     )
-    .all(fundRes.json.data.fundingTransactionId) as Array<{ envelope_id: number; amount: number }>;
+    .all(fundRes.json.data.fundingTransactionId) as Array<{ envelope_id: number; amount: string }>;
   assert.equal(lines.length, 2);
   assert.deepEqual(
     lines.map((line) => line.amount),
@@ -380,4 +381,55 @@ test('funding options only return accounts and envelopes in the budget currency'
     ),
     false,
   );
+});
+
+test('money regression: budget planning, funding and repeat protection conserve exact cents', async () => {
+  const seed = seedBudgetBase();
+  const created = await requestJson('POST', '/api/budgets', {
+    userId: seed.userId,
+    month: '2026-03',
+    currency: 'USD',
+    totalIncome: 0.3,
+  });
+  assert.equal(created.res.status, 201);
+  const id = created.json.data.id;
+  const replaced = await requestJson('PUT', '/api/budgets/' + id + '/lines/bulk', {
+    userId: seed.userId,
+    lines: [
+      { categoryId: seed.housingCategoryId, amount: 0.1, percentage: 33.33, sortOrder: 1 },
+      { categoryId: seed.groceriesCategoryId, amount: 0.2, percentage: 66.67, sortOrder: 2 },
+    ],
+  });
+  assert.equal(replaced.res.status, 200);
+  assert.equal(replaced.json.data.validation.distributedAmount, 0.3);
+  assert.equal(replaced.json.data.validation.remainingAmount, 0);
+  assert.equal(
+    (await requestJson('POST', '/api/budgets/' + id + '/finalize', { userId: seed.userId })).res
+      .status,
+    200,
+  );
+  const lines = replaced.json.data.lines;
+  const plan = await requestJson('PUT', '/api/budgets/' + id + '/funding-plan', {
+    userId: seed.userId,
+    sourceAccountId: seed.accountId,
+    lines: lines.map((line: any) => ({
+      budgetLineId: line.id,
+      accountEnvelopeId:
+        line.categoryId === seed.housingCategoryId
+          ? seed.housingEnvelopeId
+          : seed.groceriesEnvelopeId,
+    })),
+  });
+  assert.equal(plan.res.status, 200);
+  const funded = await requestJson('POST', '/api/budgets/' + id + '/fund', { userId: seed.userId });
+  assert.equal(funded.res.status, 200);
+  assert.equal(
+    (await requestJson('POST', '/api/budgets/' + id + '/fund', { userId: seed.userId })).res.status,
+    409,
+  );
+  assert.equal(
+    db.prepare('SELECT decimal_sum(amount) AS total FROM transaction_line').get().total,
+    '0.3',
+  );
+  assert.equal(db.prepare('SELECT count(*) AS total FROM transactions').get().total, 1);
 });

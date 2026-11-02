@@ -1,5 +1,7 @@
+import { moneyStatement } from '../db/money-statement';
 import db from '../db/db';
 import { Budget, BudgetLine, BudgetStatus } from '../types';
+import { assertLedgerCapacity } from './ledger-money';
 
 type BudgetListRow = Budget & {
   distributed_amount: number;
@@ -27,7 +29,7 @@ export class BudgetRepository {
     totalIncome: number,
     payrollRuleRefs?: { ccssRuleSetId?: number | null; incomeTaxRuleSetId?: number | null },
   ): Budget {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       INSERT INTO budget (
         user_id,
         month,
@@ -51,7 +53,7 @@ export class BudgetRepository {
   }
 
   findById(id: number): Budget | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT budget.*
       FROM budget
       WHERE id = ?
@@ -60,7 +62,7 @@ export class BudgetRepository {
   }
 
   findByIdForUser(id: number, userId: number): Budget | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT budget.*
       FROM budget
       WHERE id = ? AND user_id = ?
@@ -69,7 +71,7 @@ export class BudgetRepository {
   }
 
   findByUserMonthCurrency(userId: number, month: string, currency: string): Budget | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT budget.*
       FROM budget
       WHERE user_id = ? AND month = ? AND currency = ?
@@ -128,8 +130,9 @@ export class BudgetRepository {
       ${where}
     `;
 
-    const totalItems = ((db.prepare(countQuery).get(...values) as { total?: number } | undefined)
-      ?.total ?? 0) as number;
+    const totalItems = ((
+      moneyStatement(countQuery).get(...values) as { total?: number } | undefined
+    )?.total ?? 0) as number;
     const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / params.pageSize);
     const offset = (params.page - 1) * params.pageSize;
 
@@ -138,8 +141,8 @@ export class BudgetRepository {
         SELECT
           budget_id,
           COUNT(*) AS lines_count,
-          COALESCE(SUM(amount), 0) AS distributed_amount,
-          COALESCE(SUM(percentage), 0) AS distributed_percentage
+          COALESCE(decimal_sum(amount), 0) AS distributed_amount,
+          COALESCE(decimal_sum(percentage), 0) AS distributed_percentage
         FROM budget_line
         GROUP BY budget_id
       ),
@@ -175,7 +178,11 @@ export class BudgetRepository {
       LIMIT ? OFFSET ?
     `;
 
-    const data = db.prepare(dataQuery).all(...values, params.pageSize, offset) as BudgetListRow[];
+    const data = moneyStatement(dataQuery).all(
+      ...values,
+      params.pageSize,
+      offset,
+    ) as BudgetListRow[];
 
     return {
       data,
@@ -195,11 +202,11 @@ export class BudgetRepository {
     distributed_amount: number;
     distributed_percentage: number;
   } {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT
         COUNT(*) AS line_count,
-        COALESCE(SUM(amount), 0) AS distributed_amount,
-        COALESCE(SUM(percentage), 0) AS distributed_percentage
+        COALESCE(decimal_sum(amount), 0) AS distributed_amount,
+        COALESCE(decimal_sum(percentage), 0) AS distributed_percentage
       FROM budget_line
       WHERE budget_id = ?
     `);
@@ -211,7 +218,7 @@ export class BudgetRepository {
   }
 
   getLines(budgetId: number): BudgetLineRow[] {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT
         bl.*,
         c.name AS category_name,
@@ -241,8 +248,8 @@ export class BudgetRepository {
       sortOrder: number;
     }>,
   ): BudgetLine[] {
-    const deleteLines = db.prepare('DELETE FROM budget_line WHERE budget_id = ?');
-    const insertLine = db.prepare(`
+    const deleteLines = moneyStatement('DELETE FROM budget_line WHERE budget_id = ?');
+    const insertLine = moneyStatement(`
       INSERT INTO budget_line (
         budget_id,
         category_id,
@@ -254,7 +261,7 @@ export class BudgetRepository {
       )
       VALUES (?, ?, NULL, ?, ?, ?, ?)
     `);
-    const touchBudget = db.prepare(`
+    const touchBudget = moneyStatement(`
       UPDATE budget
       SET updated_at = datetime('now')
       WHERE id = ?
@@ -291,7 +298,7 @@ export class BudgetRepository {
   }
 
   updateStatus(id: number, status: BudgetStatus): Budget | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       UPDATE budget
       SET status = ?, updated_at = datetime('now')
       WHERE id = ?
@@ -301,12 +308,12 @@ export class BudgetRepository {
   }
 
   remove(id: number): void {
-    const stmt = db.prepare('DELETE FROM budget WHERE id = ?');
+    const stmt = moneyStatement('DELETE FROM budget WHERE id = ?');
     stmt.run(id);
   }
 
   findMostRecentPreviousBudget(userId: number, currency: string, month: string): Budget | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT budget.*
       FROM budget
       WHERE user_id = ? AND currency = ? AND month < ?
@@ -317,8 +324,8 @@ export class BudgetRepository {
   }
 
   copyLinesFromBudget(sourceBudgetId: number, destinationBudgetId: number): BudgetLine[] {
-    const deleteLines = db.prepare('DELETE FROM budget_line WHERE budget_id = ?');
-    const copyLines = db.prepare(`
+    const deleteLines = moneyStatement('DELETE FROM budget_line WHERE budget_id = ?');
+    const copyLines = moneyStatement(`
       INSERT INTO budget_line (
         budget_id,
         category_id,
@@ -340,7 +347,7 @@ export class BudgetRepository {
       WHERE budget_id = ?
       ORDER BY sort_order ASC, id ASC
     `);
-    const updateBudget = db.prepare(`
+    const updateBudget = moneyStatement(`
       UPDATE budget
       SET updated_at = datetime('now')
       WHERE id = ?
@@ -377,7 +384,7 @@ export class BudgetRepository {
     institution_id: number;
     institution_name: string;
   }> {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT
         a.id,
         a.name,
@@ -419,7 +426,7 @@ export class BudgetRepository {
     }
 
     const placeholders = categoryIds.map(() => '?').join(', ');
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT
         ae.id,
         ae.account_id,
@@ -456,17 +463,17 @@ export class BudgetRepository {
     budgetId: number,
     lines: Array<{ budgetLineId: number; accountEnvelopeId: number }>,
   ): Budget {
-    const resetLines = db.prepare(`
+    const resetLines = moneyStatement(`
       UPDATE budget_line
       SET account_envelope_id = NULL, updated_at = datetime('now')
       WHERE budget_id = ?
     `);
-    const assignLine = db.prepare(`
+    const assignLine = moneyStatement(`
       UPDATE budget_line
       SET account_envelope_id = ?, updated_at = datetime('now')
       WHERE id = ? AND budget_id = ?
     `);
-    const touchBudget = db.prepare(`
+    const touchBudget = moneyStatement(`
       UPDATE budget
       SET updated_at = datetime('now')
       WHERE id = ?
@@ -491,21 +498,22 @@ export class BudgetRepository {
     description: string;
     lines: Array<{ accountId: number; envelopeId: number; amount: number }>;
   }): { transactionId: number } {
-    const insertTransaction = db.prepare(`
+    const insertTransaction = moneyStatement(`
       INSERT INTO transactions (user_id, date, description, type)
       VALUES (?, ?, ?, 'ADJUSTMENT')
     `);
-    const insertLine = db.prepare(`
+    const insertLine = moneyStatement(`
       INSERT INTO transaction_line (transaction_id, account_id, envelope_id, amount)
       VALUES (?, ?, ?, ?)
     `);
-    const markFunded = db.prepare(`
+    const markFunded = moneyStatement(`
       UPDATE budget
       SET status = 'funded', updated_at = datetime('now')
       WHERE id = ?
     `);
 
     const execute = db.transaction(() => {
+      assertLedgerCapacity(params.lines);
       const transactionResult = insertTransaction.run(
         params.userId,
         params.date,

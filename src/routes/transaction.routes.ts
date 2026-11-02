@@ -13,7 +13,7 @@ const router = Router();
  * /api/transactions:
  *   post:
  *     summary: Create a new transaction
- *     description: Creates a transaction with one or more lines. For TRANSFER type, must have exactly 2 lines that sum to zero. For INCOME, all line amounts must be positive. For EXPENSE, all line amounts must be negative.
+ *     description: Creates a transaction with one or more lines. For TRANSFER type, must have exactly 2 lines in the same currency that sum to exactly zero. Amounts must respect currency minor units and the safe numeric API range. For INCOME, all line amounts must be positive. For EXPENSE, all line amounts must be negative.
  *     tags: [Transactions]
  *     requestBody:
  *       required: true
@@ -61,6 +61,11 @@ const router = Router();
  *                     amount:
  *                       type: number
  *                       example: -50000
+ *                       description: Exact decimal monetary amount at the account currency scale.
+ *                     sourceAmountText:
+ *                       type: string
+ *                       maxLength: 200
+ *                       description: Optional original bank amount text preserved for import auditing.
  *     responses:
  *       201:
  *         description: Transaction created successfully

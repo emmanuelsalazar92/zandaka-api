@@ -1,4 +1,4 @@
-import db from '../db/db';
+import { moneyStatement } from '../db/money-statement';
 import { CashDenomination } from '../types';
 
 export class CashDenominationRepository {
@@ -11,7 +11,7 @@ export class CashDenominationRepository {
     sortOrder: number;
     isActive: boolean;
   }): CashDenomination {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       INSERT INTO cash_denomination (
         user_id,
         currency,
@@ -38,7 +38,7 @@ export class CashDenominationRepository {
   }
 
   findById(id: number): CashDenomination | null {
-    const stmt = db.prepare('SELECT * FROM cash_denomination WHERE id = ?');
+    const stmt = moneyStatement('SELECT * FROM cash_denomination WHERE id = ?');
     return stmt.get(id) as CashDenomination | null;
   }
 
@@ -59,11 +59,11 @@ export class CashDenominationRepository {
       conditions.push('is_active = 1');
     }
 
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT *
       FROM cash_denomination
       WHERE ${conditions.join(' AND ')}
-      ORDER BY sort_order ASC, value DESC, id ASC
+      ORDER BY sort_order ASC, CAST(value AS REAL) DESC, id ASC
     `);
 
     return stmt.all(...values) as CashDenomination[];
@@ -75,12 +75,12 @@ export class CashDenominationRepository {
     value: number;
     excludeId?: number;
   }): CashDenomination | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT *
       FROM cash_denomination
       WHERE user_id = ?
         AND currency = ?
-        AND value = ?
+        AND decimal_cmp(value, ?) = 0
         AND is_active = 1
         AND (? IS NULL OR id <> ?)
       LIMIT 1
@@ -106,7 +106,7 @@ export class CashDenominationRepository {
       isActive: boolean;
     },
   ): CashDenomination | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       UPDATE cash_denomination
       SET
         currency = ?,
@@ -137,7 +137,7 @@ export class CashDenominationRepository {
   }
 
   deactivate(id: number): CashDenomination | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       UPDATE cash_denomination
       SET is_active = 0, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?

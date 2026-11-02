@@ -1,3 +1,4 @@
+import { assertMoney, sumMoney, subtractMoney, multiplyMoney } from '../utils/money';
 import db from '../db/db';
 import { CashDenominationRepository } from '../repositories/cash-denomination.repo';
 import { CashReconciliationDetailRepository } from '../repositories/cash-reconciliation-detail.repo';
@@ -16,7 +17,7 @@ import {
   ReconciliationSummaryResponse,
 } from '../types';
 
-const MONEY_TOLERANCE = 0.01;
+const MONEY_TOLERANCE = 0;
 
 type NormalizedDenominationLine = {
   denominationId: number | null;
@@ -51,12 +52,12 @@ export class ReconciliationService {
     if (countMethod === 'DENOMINATION_COUNT') {
       this.assertCashAccount(account);
       lines = this.normalizeDenominationLines(account, data.lines ?? []);
-      countedTotal = this.roundMoney(lines.reduce((sum, line) => sum + line.lineTotal, 0));
+      countedTotal = assertMoney(sumMoney(lines.map((line) => line.lineTotal)), account.currency);
     } else {
-      countedTotal = this.resolveManualTotal(data);
+      countedTotal = assertMoney(this.resolveManualTotal(data), account.currency);
     }
 
-    const difference = this.roundMoney(countedTotal - expectedTotal);
+    const difference = subtractMoney(countedTotal, expectedTotal);
     const isBalanced = Math.abs(difference) <= MONEY_TOLERANCE;
     const status = isBalanced ? 'BALANCED' : 'OPEN';
     const isActive = isBalanced ? 0 : 1;
@@ -142,7 +143,7 @@ export class ReconciliationService {
       reconciliation.account_id,
       reconciliation.date,
     );
-    const differenceCurrent = this.roundMoney(reconciliation.real_balance - calculatedCurrent);
+    const differenceCurrent = subtractMoney(reconciliation.real_balance, calculatedCurrent);
     const statusCurrent = Math.abs(differenceCurrent) <= MONEY_TOLERANCE ? 'BALANCED' : 'OPEN';
     return {
       ...this.toResponse(reconciliation, {
@@ -241,7 +242,7 @@ export class ReconciliationService {
       };
     }
 
-    return this.roundMoney(countedTotal);
+    return countedTotal;
   }
 
   private normalizeDenominationLines(
@@ -260,7 +261,7 @@ export class ReconciliationService {
 
     return inputLines.map((line, index) => {
       const quantity = line.quantity;
-      if (!Number.isInteger(quantity) || quantity < 0) {
+      if (!Number.isSafeInteger(quantity) || quantity < 0) {
         throw {
           code: 'VALIDATION_ERROR',
           message: 'Invalid denomination quantity',
@@ -336,7 +337,7 @@ export class ReconciliationService {
           };
         }
 
-        denominationValue = this.roundMoney(line.denominationValue);
+        denominationValue = assertMoney(line.denominationValue, account.currency);
         denominationType = line.denominationType;
         denominationLabel = this.normalizeNote(line.denominationLabel) ?? null;
       }
@@ -365,7 +366,7 @@ export class ReconciliationService {
         denominationType,
         denominationLabel,
         quantity,
-        lineTotal: this.roundMoney(denominationValue * quantity),
+        lineTotal: assertMoney(multiplyMoney(denominationValue, quantity), account.currency),
         sortOrder,
       };
     });
@@ -394,10 +395,6 @@ export class ReconciliationService {
   private normalizeNote(value?: string | null): string | null {
     const note = value?.trim() ?? '';
     return note.length > 0 ? note : null;
-  }
-
-  private roundMoney(value: number): number {
-    return Math.round((value + Number.EPSILON) * 100) / 100;
   }
 
   private toResponse(

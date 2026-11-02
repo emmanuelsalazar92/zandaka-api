@@ -28,7 +28,8 @@ export const createTransactionSchema = z.object({
         z.object({
           accountId: z.number().int().positive(),
           envelopeId: z.number().int().positive(),
-          amount: z.number(),
+          amount: z.number().finite(),
+          sourceAmountText: z.string().max(200).optional(),
         }),
       )
       .min(1),

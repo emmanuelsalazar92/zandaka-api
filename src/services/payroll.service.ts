@@ -1,3 +1,4 @@
+import { assertMoney } from '../utils/money';
 import { PayrollNetSalaryCalculationResponse } from '../types';
 import { calculateNetSalary } from '../utils/payroll.util';
 import { PayrollRuleService } from './payroll-rule.service';
@@ -10,6 +11,7 @@ export class PayrollService {
     gross_salary: number;
     period_date: string;
   }): PayrollNetSalaryCalculationResponse {
+    assertMoney(input.gross_salary, 'CRC');
     const ccssRule = this.payrollRuleService.getActiveRuleSetByDate(
       input.user_id,
       'CCSS_WORKER',

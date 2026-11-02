@@ -1,3 +1,4 @@
+import { moneyStatement } from '../db/money-statement';
 import db from '../db/db';
 import { CashReconciliationDetail } from '../types';
 
@@ -18,7 +19,7 @@ export class CashReconciliationDetailRepository {
       return [];
     }
 
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       INSERT INTO cash_reconciliation_detail (
         reconciliation_id,
         denomination_id,
@@ -65,7 +66,7 @@ export class CashReconciliationDetailRepository {
   }
 
   findByReconciliationId(reconciliationId: number): CashReconciliationDetail[] {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT *
       FROM cash_reconciliation_detail
       WHERE reconciliation_id = ?
@@ -76,7 +77,7 @@ export class CashReconciliationDetailRepository {
   }
 
   hasDenominationUsage(denominationId: number): boolean {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT 1
       FROM cash_reconciliation_detail
       WHERE denomination_id = ?

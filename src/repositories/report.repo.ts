@@ -1,3 +1,5 @@
+import { sumMoney, subtractMoney, convertMoney } from '../utils/money';
+import { moneyStatement } from '../db/money-statement';
 import db from '../db/db';
 
 export interface AccountBalance {
@@ -172,7 +174,7 @@ type SnapshotRowInsert = {
 
 export class ReportRepository {
   listSnapshotsByUser(userId: number, includeArchived = false): ReportSnapshotRecord[] {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT
         id,
         user_id,
@@ -194,7 +196,7 @@ export class ReportRepository {
         updated_at
       FROM report_snapshot
       WHERE user_id = ?
-        AND (? = 1 OR status <> 'ARCHIVED')
+        AND (CAST(? AS INTEGER) = 1 OR status <> 'ARCHIVED')
       ORDER BY report_month DESC, is_latest DESC, version DESC, generated_at DESC, id DESC
     `);
 
@@ -202,7 +204,7 @@ export class ReportRepository {
   }
 
   findSnapshotById(snapshotId: number): ReportSnapshotRecord | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT
         id,
         user_id,
@@ -230,7 +232,7 @@ export class ReportRepository {
   }
 
   archiveSnapshotById(snapshotId: number): ReportSnapshotRecord | null {
-    const findSnapshot = db.prepare(`
+    const findSnapshot = moneyStatement(`
       SELECT
         id,
         user_id,
@@ -254,19 +256,19 @@ export class ReportRepository {
       WHERE id = ?
     `);
 
-    const archiveSnapshot = db.prepare(`
+    const archiveSnapshot = moneyStatement(`
       UPDATE report_snapshot
       SET status = 'ARCHIVED', is_latest = 0, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
 
-    const clearLatestForMonth = db.prepare(`
+    const clearLatestForMonth = moneyStatement(`
       UPDATE report_snapshot
       SET is_latest = 0, updated_at = CURRENT_TIMESTAMP
       WHERE user_id = ? AND report_month = ?
     `);
 
-    const findReplacementLatest = db.prepare(`
+    const findReplacementLatest = moneyStatement(`
       SELECT id
       FROM report_snapshot
       WHERE user_id = ?
@@ -276,7 +278,7 @@ export class ReportRepository {
       LIMIT 1
     `);
 
-    const setLatestSnapshot = db.prepare(`
+    const setLatestSnapshot = moneyStatement(`
       UPDATE report_snapshot
       SET is_latest = 1, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
@@ -312,7 +314,7 @@ export class ReportRepository {
     return transaction(snapshotId);
   }
   findSnapshotDocumentById(snapshotId: number): ReportSnapshotDocument | null {
-    const snapshotStmt = db.prepare(`
+    const snapshotStmt = moneyStatement(`
       SELECT
         id,
         user_id,
@@ -336,7 +338,7 @@ export class ReportRepository {
       WHERE id = ?
     `);
 
-    const linesStmt = db.prepare(`
+    const linesStmt = moneyStatement(`
       SELECT
         id,
         report_snapshot_id,
@@ -390,9 +392,9 @@ export class ReportRepository {
       FROM account a
       LEFT JOIN institution i ON a.institution_id = i.id
       LEFT JOIN (
-        SELECT account_id, COALESCE(SUM(amount), 0) as balance
-        FROM transaction_line
-        GROUP BY account_id
+        SELECT tl.account_id, money_balance(COALESCE(decimal_sum(tl.amount), 0), ac.currency) as balance
+        FROM transaction_line tl JOIN account ac ON ac.id = tl.account_id
+        GROUP BY tl.account_id, ac.currency
       ) ab ON a.id = ab.account_id
       LEFT JOIN (
         SELECT account_id, COUNT(*) as active_envelopes_count
@@ -410,7 +412,7 @@ export class ReportRepository {
 
     query += ' ORDER BY a.name';
 
-    const stmt = db.prepare(query);
+    const stmt = moneyStatement(query);
     const rows = stmt.all(...params) as RawAccountBalance[];
 
     return rows.map((row) => ({
@@ -420,12 +422,12 @@ export class ReportRepository {
   }
 
   getEnvelopeBalances(accountId: number): EnvelopeBalance[] {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT 
         ae.id as envelopeId,
         ae.category_id as categoryId,
         c.name as categoryName,
-        COALESCE(SUM(tl.amount), 0) as balance,
+        money_balance(COALESCE(decimal_sum(tl.amount), 0), a.currency) as balance,
         a.currency as currency
       FROM account_envelope ae
       JOIN account a ON ae.account_id = a.id
@@ -439,7 +441,7 @@ export class ReportRepository {
   }
 
   getNegativeEnvelopes(): NegativeEnvelope[] {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT 
         ae.id as envelopeId,
         ae.account_id as accountId,
@@ -447,27 +449,27 @@ export class ReportRepository {
         UPPER(a.currency) as currency,
         ae.category_id as categoryId,
         c.name as categoryName,
-        COALESCE(SUM(tl.amount), 0) as balance
+        money_balance(COALESCE(decimal_sum(tl.amount), 0), a.currency) as balance
       FROM account_envelope ae
       JOIN account a ON ae.account_id = a.id
       JOIN category c ON ae.category_id = c.id
       LEFT JOIN transaction_line tl ON ae.id = tl.envelope_id
       WHERE ae.is_active = 1
       GROUP BY ae.id, ae.account_id, a.name, a.currency, ae.category_id, c.name
-      HAVING balance < 0
-      ORDER BY balance ASC
+      HAVING decimal_cmp(balance, 0) < 0
+      ORDER BY CAST(balance AS REAL) ASC
     `);
     return stmt.all() as NegativeEnvelope[];
   }
 
   getMonthlyExpenses(month: string): MonthlyExpense[] {
     // month format: YYYY-MM
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT 
         c.id as categoryId,
         c.name as categoryName,
         UPPER(a.currency) as currency,
-        COALESCE(SUM(tl.amount), 0) as total
+        money_balance(COALESCE(decimal_sum(tl.amount), 0), a.currency) as total
       FROM transaction_line tl
       JOIN transactions t ON tl.transaction_id = t.id
       JOIN account_envelope ae ON tl.envelope_id = ae.id
@@ -475,36 +477,36 @@ export class ReportRepository {
       JOIN category c ON ae.category_id = c.id
       WHERE t.date LIKE ? 
         AND t.type IN ('EXPENSE', 'TRANSFER')
-        AND tl.amount < 0
+        AND decimal_cmp(tl.amount, 0) < 0
       GROUP BY c.id, c.name, a.currency
-      ORDER BY total ASC
+      ORDER BY CAST(total AS REAL) ASC
     `);
     return stmt.all(`${month}%`) as MonthlyExpense[];
   }
 
   getCategoryTotals(): CategoryTotal[] {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT 
         c.id as categoryId,
         c.name as categoryName,
         UPPER(a.currency) as currency,
-        COALESCE(SUM(tl.amount), 0) as total
+        money_balance(COALESCE(decimal_sum(tl.amount), 0), a.currency) as total
       FROM transaction_line tl
       JOIN account_envelope ae ON tl.envelope_id = ae.id
       JOIN account a ON ae.account_id = a.id
       JOIN category c ON ae.category_id = c.id
       WHERE ae.is_active = 1
       GROUP BY c.id, c.name, a.currency
-      ORDER BY total ASC
+      ORDER BY CAST(total AS REAL) ASC
     `);
     return stmt.all() as CategoryTotal[];
   }
 
   getEnvelopeTotalByCurrency(currency: string): EnvelopeCurrencyTotal {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT
         UPPER(a.currency) as currency,
-        COALESCE(SUM(tl.amount), 0) as total
+        money_balance(COALESCE(decimal_sum(tl.amount), 0), ?) as total
       FROM account_envelope ae
       JOIN account a ON ae.account_id = a.id
       LEFT JOIN transaction_line tl ON ae.id = tl.envelope_id
@@ -512,7 +514,7 @@ export class ReportRepository {
         AND UPPER(a.currency) = UPPER(?)
     `);
 
-    const result = stmt.get(currency) as EnvelopeCurrencyTotal | undefined;
+    const result = stmt.get(currency, currency) as EnvelopeCurrencyTotal | undefined;
 
     return {
       currency: currency.toUpperCase(),
@@ -522,19 +524,20 @@ export class ReportRepository {
 
   getAccountCalculatedBalance(accountId: number, asOfDate?: string): number {
     let query = `
-      SELECT COALESCE(SUM(tl.amount), 0) as balance
+      SELECT money_balance(COALESCE(decimal_sum(tl.amount), 0),
+        (SELECT currency FROM account WHERE id = ?)) as balance
       FROM transaction_line tl
       JOIN transactions t ON tl.transaction_id = t.id
       WHERE tl.account_id = ?
     `;
-    const params: any[] = [accountId];
+    const params: any[] = [accountId, accountId];
 
     if (asOfDate) {
       query += ' AND t.date <= ?';
       params.push(asOfDate);
     }
 
-    const stmt = db.prepare(query);
+    const stmt = moneyStatement(query);
     const result = stmt.get(...params) as { balance: number } | undefined;
     return result?.balance || 0;
   }
@@ -558,10 +561,9 @@ export class ReportRepository {
       if (!account) continue;
 
       const calculatedBalance = this.getAccountCalculatedBalance(accId, reconciliation.date);
-      const difference = reconciliation.real_balance - calculatedBalance;
+      const difference = subtractMoney(reconciliation.real_balance, calculatedBalance);
 
-      if (Math.abs(difference) > 0.01) {
-        // Only include if difference is significant (more than 1 cent)
+      if (difference !== 0) {
         inconsistencies.push({
           accountId: accId,
           accountName: account.name,
@@ -588,9 +590,9 @@ export class ReportRepository {
       if (!account) continue;
 
       const calculatedBalance = this.getAccountCalculatedBalance(accountId, reconciliation.date);
-      const difference = reconciliation.real_balance - calculatedBalance;
+      const difference = subtractMoney(reconciliation.real_balance, calculatedBalance);
 
-      if (Math.abs(difference) > 0.01) {
+      if (difference !== 0) {
         inconsistencies.push({
           accountId,
           accountName: account.name,
@@ -607,7 +609,7 @@ export class ReportRepository {
   }
 
   private findLatestReconciliation(accountId: number) {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT * FROM reconciliation 
       WHERE account_id = ? 
       ORDER BY date DESC, created_at DESC 
@@ -617,7 +619,7 @@ export class ReportRepository {
   }
 
   generateSnapshot(input: GenerateReportSnapshotInput): ReportSnapshotSummary {
-    const insertSnapshot = db.prepare(`
+    const insertSnapshot = moneyStatement(`
       INSERT INTO report_snapshot (
         user_id,
         report_month,
@@ -637,19 +639,19 @@ export class ReportRepository {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 'FINALIZED')
     `);
 
-    const deactivatePreviousSnapshots = db.prepare(`
+    const deactivatePreviousSnapshots = moneyStatement(`
       UPDATE report_snapshot
       SET is_latest = 0, updated_at = CURRENT_TIMESTAMP
       WHERE user_id = ? AND report_month = ? AND is_latest = 1
     `);
 
-    const findLatestVersion = db.prepare(`
+    const findLatestVersion = moneyStatement(`
       SELECT COALESCE(MAX(version), 0) as max_version
       FROM report_snapshot
       WHERE user_id = ? AND report_month = ?
     `);
 
-    const insertLine = db.prepare(`
+    const insertLine = moneyStatement(`
       INSERT INTO report_snapshot_line (
         report_snapshot_id,
         line_type,
@@ -666,7 +668,7 @@ export class ReportRepository {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const findSnapshotById = db.prepare(`
+    const findSnapshotById = moneyStatement(`
       SELECT
         id,
         user_id,
@@ -690,18 +692,22 @@ export class ReportRepository {
       const accountTotals = this.getActiveAccountTotalsByUser(payload.userId);
       const envelopeTotals = this.getActiveEnvelopeTotalsByUser(payload.userId);
 
-      const totalCrc = accountTotals
-        .filter((account) => account.account_currency.toUpperCase() === 'CRC')
-        .reduce((sum, account) => sum + account.amount, 0);
-      const totalUsd = accountTotals
-        .filter((account) => account.account_currency.toUpperCase() === 'USD')
-        .reduce((sum, account) => sum + account.amount, 0);
+      const totalCrc = sumMoney(
+        accountTotals
+          .filter((account) => account.account_currency.toUpperCase() === 'CRC')
+          .map((account) => account.amount),
+      );
+      const totalUsd = sumMoney(
+        accountTotals
+          .filter((account) => account.account_currency.toUpperCase() === 'USD')
+          .map((account) => account.amount),
+      );
 
       const consolidatedAmount =
         payload.exchangeRateUsed !== null
           ? payload.baseCurrency === 'CRC'
-            ? totalCrc + totalUsd * payload.exchangeRateUsed
-            : totalUsd + totalCrc / payload.exchangeRateUsed
+            ? sumMoney([totalCrc, convertMoney(totalUsd, payload.exchangeRateUsed, 'CRC')])
+            : sumMoney([totalUsd, convertMoney(totalCrc, payload.exchangeRateUsed, 'USD', true)])
           : null;
 
       const latestVersionRow = findLatestVersion.get(payload.userId, payload.reportMonth) as {
@@ -806,7 +812,7 @@ export class ReportRepository {
   }
 
   private findLatestActiveReconciliation(accountId: number) {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT * FROM reconciliation
       WHERE account_id = ?
         AND is_active = 1
@@ -817,7 +823,7 @@ export class ReportRepository {
   }
 
   private findAllLatestReconciliations(activeOnly = false) {
-    const accountsStmt = db.prepare(`
+    const accountsStmt = moneyStatement(`
       SELECT id as account_id
       FROM account
       ${activeOnly ? 'WHERE is_active = 1' : ''}
@@ -831,7 +837,7 @@ export class ReportRepository {
   }
 
   private findAllLatestActiveReconciliationsForActiveAccounts() {
-    const accountsStmt = db.prepare(`
+    const accountsStmt = moneyStatement(`
       SELECT id as account_id
       FROM account
       WHERE is_active = 1
@@ -845,17 +851,17 @@ export class ReportRepository {
   }
 
   private getAccount(accountId: number) {
-    const stmt = db.prepare('SELECT * FROM account WHERE id = ?');
+    const stmt = moneyStatement('SELECT * FROM account WHERE id = ?');
     return stmt.get(accountId) as any;
   }
 
   private getActiveAccountTotalsByUser(userId: number): SnapshotAccountTotalRow[] {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT
         a.id as account_id,
         a.name as account_name,
         UPPER(a.currency) as account_currency,
-        CAST(COALESCE(SUM(tl.amount), 0) AS NUMERIC) as amount
+        money_balance(COALESCE(decimal_sum(tl.amount), 0), a.currency) as amount
       FROM account a
       LEFT JOIN transaction_line tl ON a.id = tl.account_id
       WHERE a.user_id = ?
@@ -868,7 +874,7 @@ export class ReportRepository {
   }
 
   private getActiveEnvelopeTotalsByUser(userId: number): SnapshotEnvelopeTotalRow[] {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT
         a.id as account_id,
         a.name as account_name,
@@ -877,7 +883,7 @@ export class ReportRepository {
         c.name as envelope_name,
         c.id as category_id,
         c.name as category_name,
-        CAST(COALESCE(SUM(tl.amount), 0) AS NUMERIC) as amount
+        money_balance(COALESCE(decimal_sum(tl.amount), 0), a.currency) as amount
       FROM account a
       JOIN account_envelope ae
         ON ae.account_id = a.id

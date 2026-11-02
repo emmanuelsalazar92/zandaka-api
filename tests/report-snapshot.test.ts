@@ -4,10 +4,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
+import { createSyntheticDb } from './helpers/synthetic-db';
 
 const testDbPath = path.join(os.tmpdir(), `report-snapshot-test-${Date.now()}.db`);
 process.env.DB_PATH = testDbPath;
-fs.writeFileSync(testDbPath, '');
+createSyntheticDb(testDbPath);
 
 let db: any;
 let baseUrl = '';
@@ -379,7 +380,7 @@ test('POST /api/reports/generate uses one consolidated amount in the user base c
   assert.equal(res.json.data.base_currency, 'USD');
   assert.equal(res.json.data.exchange_rate_used, 520);
   assert.equal(res.json.data.exchange_rate_id, seed.crcToUsdRateId);
-  assert.ok(Math.abs(res.json.data.consolidated_amount - 344.2307692307692) < 0.000001);
+  assert.equal(res.json.data.consolidated_amount, 344.23);
 });
 test('GET /api/reports excludes archived snapshots and PATCH /api/reports/:id/archive promotes the previous version', async () => {
   const seed = seedReportBase();
@@ -433,4 +434,28 @@ test('GET /api/reports excludes archived snapshots and PATCH /api/reports/:id/ar
     { id: firstRes.json.data.id, version: 1, is_latest: 1, status: 'FINALIZED' },
     { id: secondRes.json.data.id, version: 2, is_latest: 0, status: 'ARCHIVED' },
   ]);
+});
+
+test('money regression: repeated initialization preserves legacy snapshot rows and schema unchanged', async () => {
+  const seed = seedReportBase();
+  const generated = await requestJson('POST', '/api/reports/generate', {
+    user_id: seed.userId,
+    report_month: '2026-03',
+    exchange_rate_id: seed.usdToCrcRateId,
+  });
+  assert.equal(generated.res.status, 201);
+  const before = db.prepare('SELECT * FROM report_snapshot').all();
+  const schemaBefore = db.prepare('SELECT name,sql FROM sqlite_master ORDER BY name').all();
+  const { initializeDatabase } = await import('../src/db/db');
+  initializeDatabase();
+  initializeDatabase();
+  assert.deepEqual(db.prepare('SELECT * FROM report_snapshot').all(), before);
+  assert.deepEqual(
+    db.prepare('SELECT name,sql FROM sqlite_master ORDER BY name').all(),
+    schemaBefore,
+  );
+  assert.equal(
+    db.prepare('SELECT typeof(total_crc) AS storage FROM report_snapshot').get().storage,
+    'integer',
+  );
 });
