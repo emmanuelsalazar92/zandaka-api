@@ -11,7 +11,8 @@
     "lint": "eslint . --ext .ts,.js --max-warnings=0",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
-    "test": "node -r ts-node/register tests/reconciliation.test.ts && node -r ts-node/register tests/budget.test.ts && node -r ts-node/register tests/settings.test.ts && node -r ts-node/register tests/report-snapshot.test.ts && node -r ts-node/register tests/payroll.test.ts && node -r ts-node/register tests/report-pdf.test.ts"
+    "test:balances": "node --test --test-concurrency=2 -r ts-node/register tests/monetary-balance.test.ts tests/reconciliation.test.ts tests/budget.test.ts tests/settings.test.ts tests/report-snapshot.test.ts tests/payroll.test.ts tests/report-pdf.test.ts",
+    "test": "npm run test:balances && node -r ts-node/register tests/decimal-arithmetic.test.ts"
   },
   "keywords": [
     "budget",
@@ -24,6 +25,7 @@
   "dependencies": {
     "better-sqlite3": "^11.7.0",
     "cors": "^2.8.5",
+    "decimal.js": "10.6.0",
     "express": "^4.18.2",
     "puppeteer": "^24.40.0",
     "swagger-jsdoc": "^6.2.8",

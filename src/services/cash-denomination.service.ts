@@ -1,3 +1,4 @@
+import { assertMoney } from '../utils/money';
 import { CashDenominationRepository } from '../repositories/cash-denomination.repo';
 import { UserRepository } from '../repositories/user.repo';
 import { CashDenominationResponse, CashDenominationListResponse } from '../types';
@@ -39,7 +40,7 @@ export class CashDenominationService {
     this.assertUserExists(input.userId);
 
     const currency = input.currency.trim().toUpperCase();
-    const value = input.value;
+    const value = assertMoney(input.value, currency);
     const isActive = input.isActive ?? true;
 
     if (isActive) {
@@ -87,7 +88,7 @@ export class CashDenominationService {
     this.assertUserExists(input.userId);
 
     const currency = input.currency.trim().toUpperCase();
-    const value = input.value;
+    const value = assertMoney(input.value, currency);
     const isActive = input.isActive ?? existing.is_active === 1;
 
     if (isActive) {

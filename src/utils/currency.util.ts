@@ -1,3 +1,4 @@
+import { currencyDigits } from './money';
 const CURRENCY_SYMBOLS: Record<string, string> = {
   CRC: '₡',
   USD: '$',
@@ -12,8 +13,8 @@ export function formatMoney(value: number | null, currency: string): string {
   const symbol = CURRENCY_SYMBOLS[normalizedCurrency] ?? `${normalizedCurrency} `;
   const absolute = Math.abs(value);
   const formatted = absolute.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: currencyDigits(currency),
+    maximumFractionDigits: currencyDigits(currency),
   });
 
   return `${value < 0 ? '-' : ''}${symbol} ${formatted}`;

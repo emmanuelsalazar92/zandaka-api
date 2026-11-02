@@ -4,10 +4,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
+import { createSyntheticDb } from './helpers/synthetic-db';
 
 const testDbPath = path.join(os.tmpdir(), `payroll-test-${Date.now()}.db`);
 process.env.DB_PATH = testDbPath;
-fs.writeFileSync(testDbPath, '');
+createSyntheticDb(testDbPath);
 
 let db: any;
 let baseUrl = '';

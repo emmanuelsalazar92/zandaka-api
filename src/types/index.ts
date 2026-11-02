@@ -56,6 +56,7 @@ export interface Transaction extends AuditedEntity {
 }
 
 export interface TransactionLine extends AuditedEntity {
+  source_amount_text?: string | null;
   id: number;
   transaction_id: number;
   account_id: number;
@@ -249,6 +250,7 @@ export interface CreateTransactionRequest {
     accountId: number;
     envelopeId: number;
     amount: number;
+    sourceAmountText?: string;
   }>;
 }
 

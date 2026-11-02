@@ -1,5 +1,7 @@
+import { moneyStatement } from '../db/money-statement';
 import db from '../db/db';
 import { Transaction, TransactionLine } from '../types';
+import { assertLedgerCapacity } from './ledger-money';
 
 export class TransactionRepository {
   create(
@@ -7,30 +9,41 @@ export class TransactionRepository {
     date: string,
     description: string,
     type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT',
-    lines: Array<{ accountId: number; envelopeId: number; amount: number }>,
+    lines: Array<{
+      accountId: number;
+      envelopeId: number;
+      amount: number;
+      sourceAmountText?: string;
+    }>,
   ): { transaction: Transaction; lines: TransactionLine[] } {
-    const insertTransaction = db.prepare(`
+    const insertTransaction = moneyStatement(`
       INSERT INTO transactions (user_id, date, description, type)
       VALUES (?, ?, ?, ?)
     `);
 
-    const insertLine = db.prepare(`
-      INSERT INTO transaction_line (transaction_id, account_id, envelope_id, amount)
-      VALUES (?, ?, ?, ?)
-    `);
+    // Optional provenance column exists only on some installations. Do not add
+    // it or require a schema migration in order to post a monetary operation.
+    const hasSourceText = (
+      db.prepare('PRAGMA table_info(transaction_line)').all() as Array<{ name: string }>
+    ).some((column) => column.name === 'source_amount_text');
+    const insertLine = moneyStatement(
+      hasSourceText
+        ? `INSERT INTO transaction_line (transaction_id, account_id, envelope_id, amount, source_amount_text)
+           VALUES (?, ?, ?, ?, ?)`
+        : `INSERT INTO transaction_line (transaction_id, account_id, envelope_id, amount)
+           VALUES (?, ?, ?, ?)`,
+    );
 
     const transaction = db.transaction(() => {
+      assertLedgerCapacity(lines);
       const txResult = insertTransaction.run(userId, date, description, type);
       const transactionId = txResult.lastInsertRowid as number;
 
       const createdLines: TransactionLine[] = [];
       for (const line of lines) {
-        const lineResult = insertLine.run(
-          transactionId,
-          line.accountId,
-          line.envelopeId,
-          line.amount,
-        );
+        const values: unknown[] = [transactionId, line.accountId, line.envelopeId, line.amount];
+        if (hasSourceText) values.push(line.sourceAmountText ?? null);
+        const lineResult = insertLine.run(...values);
         createdLines.push(this.findLineById(lineResult.lastInsertRowid as number)!);
       }
 
@@ -42,17 +55,17 @@ export class TransactionRepository {
   }
 
   findById(id: number): Transaction | null {
-    const stmt = db.prepare('SELECT * FROM transactions WHERE id = ?');
+    const stmt = moneyStatement('SELECT * FROM transactions WHERE id = ?');
     return stmt.get(id) as Transaction | null;
   }
 
   findLinesByTransactionId(transactionId: number): TransactionLine[] {
-    const stmt = db.prepare('SELECT * FROM transaction_line WHERE transaction_id = ?');
+    const stmt = moneyStatement('SELECT * FROM transaction_line WHERE transaction_id = ?');
     return stmt.all(transactionId) as TransactionLine[];
   }
 
   findLineById(id: number): TransactionLine | null {
-    const stmt = db.prepare('SELECT * FROM transaction_line WHERE id = ?');
+    const stmt = moneyStatement('SELECT * FROM transaction_line WHERE id = ?');
     return stmt.get(id) as TransactionLine | null;
   }
 
@@ -148,17 +161,17 @@ export class TransactionRepository {
       values.push(params.categoryId);
     }
     if (params.amountMin !== undefined) {
-      conditions.push('IFNULL(tt.total_amount, 0) >= ?');
+      conditions.push('decimal_cmp(IFNULL(tt.total_amount, 0), ?) >= 0');
       values.push(params.amountMin);
     }
     if (params.amountMax !== undefined) {
-      conditions.push('IFNULL(tt.total_amount, 0) <= ?');
+      conditions.push('decimal_cmp(IFNULL(tt.total_amount, 0), ?) <= 0');
       values.push(params.amountMax);
     }
 
     const sortColumnMap: Record<typeof params.sortBy, string> = {
       date: 't.date',
-      amount: 'tt.total_amount',
+      amount: 'CAST(tt.total_amount AS REAL)',
       createdAt: 't.created_at',
     };
     const sortColumn = sortColumnMap[params.sortBy];
@@ -167,7 +180,7 @@ export class TransactionRepository {
     const baseWhere = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const countQuery = `
       WITH totals AS (
-        SELECT tl.transaction_id, SUM(tl.amount) AS total_amount
+        SELECT tl.transaction_id, decimal_sum(tl.amount) AS total_amount
         FROM transaction_line tl
         JOIN account_envelope ae ON tl.envelope_id = ae.id
         WHERE ae.is_active = 1
@@ -179,13 +192,13 @@ export class TransactionRepository {
       ${baseWhere}
     `;
 
-    const totalItems = (db.prepare(countQuery).get(...values) as any)?.total ?? 0;
+    const totalItems = (moneyStatement(countQuery).get(...values) as any)?.total ?? 0;
     const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / params.pageSize);
     const offset = (params.page - 1) * params.pageSize;
 
     const dataQuery = `
       WITH totals AS (
-        SELECT tl.transaction_id, SUM(tl.amount) AS total_amount
+        SELECT tl.transaction_id, decimal_sum(tl.amount) AS total_amount
         FROM transaction_line tl
         JOIN account_envelope ae ON tl.envelope_id = ae.id
         WHERE ae.is_active = 1
@@ -221,7 +234,7 @@ export class TransactionRepository {
       ORDER BY ${sortColumn} ${sortDir}, t.id DESC, tl.id ASC
     `;
 
-    const rows = db.prepare(dataQuery).all(...values, params.pageSize, offset) as any[];
+    const rows = moneyStatement(dataQuery).all(...values, params.pageSize, offset) as any[];
 
     const transactionMap = new Map<
       number,

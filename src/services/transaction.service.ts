@@ -1,3 +1,4 @@
+import { assertMoney, sumMoney, subtractMoney } from '../utils/money';
 import { TransactionRepository } from '../repositories/transaction.repo';
 import { EnvelopeRepository } from '../repositories/envelope.repo';
 import { AccountRepository } from '../repositories/account.repo';
@@ -34,9 +35,8 @@ export class TransactionService {
         };
       }
 
-      const sum = data.lines.reduce((acc, line) => acc + line.amount, 0);
-      if (Math.abs(sum) > 0.01) {
-        // Allow small floating point differences
+      const sum = sumMoney(data.lines.map((line) => line.amount));
+      if (sum !== 0) {
         throw {
           code: 'VALIDATION_ERROR',
           message: 'TRANSFER transaction lines must sum to zero',
@@ -67,6 +67,8 @@ export class TransactionService {
         };
       }
     }
+
+    const currencies = new Set<string>();
 
     // Validate each line
     for (const line of data.lines) {
@@ -115,6 +117,16 @@ export class TransactionService {
         };
       }
 
+      assertMoney(line.amount, account.currency);
+      if (line.amount === 0) {
+        throw {
+          code: 'VALIDATION_ERROR',
+          message: 'Transaction line amounts must be non-zero',
+          details: [],
+        };
+      }
+      currencies.add(account.currency.toUpperCase());
+
       // Verify category is active
       const category = this.categoryRepo.findById(envelope.category_id);
       if (!category) {
@@ -139,6 +151,14 @@ export class TransactionService {
       }
     }
 
+    if (data.type === 'TRANSFER' && currencies.size !== 1) {
+      throw {
+        code: 'VALIDATION_ERROR',
+        message:
+          'TRANSFER lines must use the same currency; cross-currency transfers require an explicit conversion model',
+      };
+    }
+
     // Create transaction with lines atomically
     const result = this.repo.create(
       data.userId,
@@ -159,8 +179,8 @@ export class TransactionService {
         accountId,
         activeReconciliation.date,
       );
-      const differenceCurrent = activeReconciliation.real_balance - calculatedCurrent;
-      if (Math.abs(differenceCurrent) <= 0.01) {
+      const differenceCurrent = subtractMoney(activeReconciliation.real_balance, calculatedCurrent);
+      if (differenceCurrent === 0) {
         this.reconciliationRepo.closeReconciliation(activeReconciliation.id);
       }
     }

@@ -1,3 +1,4 @@
+import { decimal, roundDecimal, roundMoney, subtractMoney, sumMoney } from './money';
 export const PAYROLL_MONEY_PRECISION = 2;
 export const PAYROLL_RATE_PRECISION = 6;
 
@@ -19,10 +20,7 @@ export type ProgressiveTaxBreakdownLine = {
   amountTo: number | null;
 };
 
-const roundTo = (value: number, digits: number) => {
-  const factor = 10 ** digits;
-  return Math.round((value + Number.EPSILON) * factor) / factor;
-};
+const roundTo = roundDecimal;
 
 export function roundPayrollMoney(value: number) {
   return roundTo(value, PAYROLL_MONEY_PRECISION);
@@ -33,7 +31,7 @@ export function roundPayrollRate(value: number) {
 }
 
 export function calculateCcssWorkerAmount(grossSalary: number, employeeRate: number) {
-  return roundPayrollMoney(grossSalary * employeeRate);
+  return roundMoney(decimal(grossSalary).mul(employeeRate), 'CRC');
 }
 
 export function calculateTaxableBase(grossSalary: number, _ccssWorkerAmount: number) {
@@ -71,12 +69,12 @@ export function calculateProgressiveIncomeTax(
 
     const upperBound = bracket.amount_to ?? safeTaxableBase;
     const taxableAmount = roundPayrollMoney(
-      Math.max(Math.min(safeTaxableBase, upperBound) - bracket.amount_from, 0),
+      Math.max(subtractMoney(Math.min(safeTaxableBase, upperBound), bracket.amount_from), 0),
     );
     const taxAmount =
-      bracket.is_exempt === 1 ? 0 : roundPayrollMoney(taxableAmount * bracket.tax_rate);
+      bracket.is_exempt === 1 ? 0 : roundMoney(decimal(taxableAmount).mul(bracket.tax_rate), 'CRC');
 
-    totalTax = roundPayrollMoney(totalTax + taxAmount);
+    totalTax = sumMoney([totalTax, taxAmount]);
     breakdown.push({
       rangeOrder: bracket.range_order,
       taxableAmount,
@@ -103,7 +101,7 @@ export function calculateNetSalary(params: {
   const taxableBase = calculateTaxableBase(params.grossSalary, ccssWorkerAmount);
   const incomeTax = calculateProgressiveIncomeTax(taxableBase, params.incomeTaxBrackets);
   const netSalary = roundPayrollMoney(
-    params.grossSalary - ccssWorkerAmount - incomeTax.incomeTaxAmount,
+    subtractMoney(params.grossSalary, ccssWorkerAmount, incomeTax.incomeTaxAmount),
   );
 
   return {

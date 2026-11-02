@@ -4,10 +4,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import type { AddressInfo } from 'node:net';
+import { createSyntheticDb } from './helpers/synthetic-db';
 
 const testDbPath = path.join(os.tmpdir(), `backend-test-${Date.now()}.db`);
 process.env.DB_PATH = testDbPath;
-fs.writeFileSync(testDbPath, '');
+createSyntheticDb(testDbPath);
 
 let db: any;
 let baseUrl = '';
@@ -722,4 +723,171 @@ test('active inconsistencies ignore inactive reconciliations on active accounts'
   assert.equal(res.res.status, 200);
   assert.equal(Array.isArray(res.json), true);
   assert.equal(res.json.length, 0);
+});
+
+test('money regression: API preserves exact cents on the legacy schema without adding provenance columns', async () => {
+  const seed = seedBaseData({ currency: 'CRC' });
+  for (const amount of [0.1, 0.2]) {
+    const result = await requestJson('POST', '/api/transactions', {
+      userId: seed.userId,
+      date: '2026-03-01',
+      type: 'INCOME',
+      description: 'Precision regression',
+      lines: [
+        {
+          accountId: seed.accountId,
+          envelopeId: seed.envelopeId,
+          amount,
+          sourceAmountText: '₡' + amount,
+        },
+      ],
+    });
+    assert.equal(result.res.status, 201);
+    assert.equal(result.json.lines[0].amount, amount);
+  }
+  const report = await requestJson(
+    'GET',
+    '/api/reports/envelope-balances?accountId=' + seed.accountId,
+  );
+  assert.equal(report.res.status, 200);
+  assert.equal(report.json[0].balance, 0.3);
+  const stored = db
+    .prepare('SELECT amount,typeof(amount) AS storage FROM transaction_line ORDER BY id')
+    .all();
+  assert.deepEqual(stored, [
+    { amount: 0.1, storage: 'real' },
+    { amount: 0.2, storage: 'real' },
+  ]);
+  const reconciliation = await requestJson('POST', '/api/reconciliations', {
+    accountId: seed.accountId,
+    date: '2026-03-01',
+    realBalance: 0.3,
+  });
+  assert.equal(reconciliation.res.status, 201);
+  assert.equal(reconciliation.json.difference, 0);
+  assert.equal(reconciliation.json.status, 'BALANCED');
+  const cancelled = await requestJson('POST', '/api/transactions', {
+    userId: seed.userId,
+    date: '2026-03-01',
+    type: 'EXPENSE',
+    description: 'Exact cancellation',
+    lines: [{ accountId: seed.accountId, envelopeId: seed.envelopeId, amount: -0.3 }],
+  });
+  assert.equal(cancelled.res.status, 201);
+  const zero = await requestJson(
+    'GET',
+    '/api/reports/envelope-balances?accountId=' + seed.accountId,
+  );
+  assert.equal(zero.json[0].balance, 0);
+});
+
+test('money regression: transfers conserve cents and reject a one-cent discrepancy', async () => {
+  const seed = seedBaseData();
+  const categoryId = db
+    .prepare("INSERT INTO category(user_id,name,is_active) VALUES(?,'Second envelope',1)")
+    .run(seed.userId).lastInsertRowid;
+  const envelopeId = db
+    .prepare('INSERT INTO account_envelope(account_id,category_id,is_active) VALUES(?,?,1)')
+    .run(seed.accountId, categoryId).lastInsertRowid;
+  const transfer = (amount: number) =>
+    requestJson('POST', '/api/transactions', {
+      userId: seed.userId,
+      date: '2026-03-01',
+      type: 'TRANSFER',
+      description: 'Transfer precision',
+      lines: [
+        { accountId: seed.accountId, envelopeId: seed.envelopeId, amount: -0.1 },
+        { accountId: seed.accountId, envelopeId, amount },
+      ],
+    });
+  assert.equal((await transfer(0.1)).res.status, 201);
+  const balances = await requestJson('GET', '/api/reports/account-balances');
+  assert.equal(balances.json[0].balance, 0);
+  assert.equal((await transfer(0.11)).res.status, 400);
+  assert.equal((await transfer(0.101)).res.status, 400);
+  assert.equal(db.prepare('SELECT count(*) AS total FROM transactions').get().total, 1);
+});
+
+test('money regression: a real cent reconciliation difference stays open', async () => {
+  const seed = seedBaseData();
+  const result = await requestJson('POST', '/api/reconciliations', {
+    accountId: seed.accountId,
+    date: '2026-03-01',
+    realBalance: 0.01,
+  });
+  assert.equal(result.res.status, 201);
+  assert.equal(result.json.difference, 0.01);
+  assert.equal(result.json.status, 'OPEN');
+});
+
+test('money regression: source currency scale and numeric API range are validated atomically', async () => {
+  const seed = seedBaseData({ currency: 'JPY' });
+  for (const amount of [0.01, 9007199254740992]) {
+    const result = await requestJson('POST', '/api/transactions', {
+      userId: seed.userId,
+      date: '2026-03-01',
+      type: 'INCOME',
+      description: 'Invalid precision',
+      lines: [{ accountId: seed.accountId, envelopeId: seed.envelopeId, amount }],
+    });
+    assert.equal(result.res.status, 400);
+  }
+  assert.equal(db.prepare('SELECT count(*) AS total FROM transactions').get().total, 0);
+});
+
+test('money regression: SQL balances reproduce the reported envelope totals across thousands of lines', async () => {
+  const seed = seedBaseData({ currency: 'CRC' });
+  const txId = db
+    .prepare(
+      "INSERT INTO transactions(user_id,date,description,type) VALUES(?,'2026-03-01','Bulk precision regression','ADJUSTMENT')",
+    )
+    .run(seed.userId).lastInsertRowid;
+  const insert = db.prepare(
+    'INSERT INTO transaction_line(transaction_id,account_id,envelope_id,amount) VALUES(?,?,?,?)',
+  );
+  const expected = [121734.27, 0, 16814.14];
+  db.transaction(() => {
+    for (const [index, balance] of expected.entries()) {
+      const categoryId = db
+        .prepare('INSERT INTO category(user_id,name,is_active) VALUES(?,?,1)')
+        .run(seed.userId, 'Precision ' + index).lastInsertRowid;
+      const envelopeId = db
+        .prepare('INSERT INTO account_envelope(account_id,category_id,is_active) VALUES(?,?,1)')
+        .run(seed.accountId, categoryId).lastInsertRowid;
+      insert.run(txId, seed.accountId, envelopeId, String(balance));
+      for (let i = 0; i < 1000; i++) insert.run(txId, seed.accountId, envelopeId, '0.01');
+      insert.run(txId, seed.accountId, envelopeId, '-10');
+    }
+  })();
+  const result = await requestJson(
+    'GET',
+    '/api/reports/envelope-balances?accountId=' + seed.accountId,
+  );
+  assert.equal(result.res.status, 200);
+  for (const [index, balance] of expected.entries())
+    assert.equal(
+      result.json.find((row: any) => row.categoryName === 'Precision ' + index).balance,
+      balance,
+    );
+  const accounts = await requestJson('GET', '/api/reports/account-balances');
+  assert.equal(accounts.json[0].balance, 138548.41);
+  const expenses = await requestJson('GET', '/api/reports/negative-envelopes');
+  assert.deepEqual(expenses.json, []);
+});
+
+test('money regression: cumulative overflow rolls back before adding ledger lines', async () => {
+  const seed = seedBaseData();
+  const create = (amount: number) =>
+    requestJson('POST', '/api/transactions', {
+      userId: seed.userId,
+      date: '2026-03-01',
+      type: 'INCOME',
+      description: 'Safe capacity regression',
+      lines: [{ accountId: seed.accountId, envelopeId: seed.envelopeId, amount }],
+    });
+  assert.equal((await create(90071992547409.9)).res.status, 201);
+  assert.equal((await create(0.01)).res.status, 400);
+  assert.equal(db.prepare('SELECT count(*) AS total FROM transactions').get().total, 1);
+  assert.equal(db.prepare('SELECT count(*) AS total FROM transaction_line').get().total, 1);
+  assert.equal(db.prepare('SELECT amount FROM transaction_line').get().amount, 90071992547409.9);
 });

@@ -8,7 +8,8 @@ const options: swaggerJsdoc.Options = {
     info: {
       title: 'Personal Budgeting API',
       version: '1.0.1',
-      description: 'REST API for envelope budgeting system with Express, TypeScript, and SQLite',
+      description:
+        'Envelope budgeting API. Monetary JSON fields remain numbers: finite decimal round-trip and safe minor units are required at the currency scale. Calculations and persistence use exact decimals. Settlement uses ROUND_HALF_UP. Fractional minor units and unsafe values return VALIDATION_ERROR.',
       contact: {
         name: 'API Support',
       },

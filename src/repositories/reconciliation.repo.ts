@@ -1,4 +1,4 @@
-import db from '../db/db';
+import { moneyStatement } from '../db/money-statement';
 import { Reconciliation } from '../types';
 
 export type ReconciliationAccountContext = {
@@ -22,7 +22,7 @@ export class ReconciliationRepository {
     closedAt: string | null;
     note?: string;
   }): Reconciliation {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       INSERT INTO reconciliation (
         account_id,
         date,
@@ -55,19 +55,19 @@ export class ReconciliationRepository {
   }
 
   findById(id: number): Reconciliation | null {
-    const stmt = db.prepare('SELECT * FROM reconciliation WHERE id = ?');
+    const stmt = moneyStatement('SELECT * FROM reconciliation WHERE id = ?');
     return stmt.get(id) as Reconciliation | null;
   }
 
   findByAccountId(accountId: number): Reconciliation[] {
-    const stmt = db.prepare(
+    const stmt = moneyStatement(
       'SELECT * FROM reconciliation WHERE account_id = ? ORDER BY date DESC, created_at DESC',
     );
     return stmt.all(accountId) as Reconciliation[];
   }
 
   findLatestByAccountId(accountId: number): Reconciliation | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT *
       FROM reconciliation
       WHERE account_id = ?
@@ -78,7 +78,7 @@ export class ReconciliationRepository {
   }
 
   findAllLatest(): Array<{ accountId: number; reconciliation: Reconciliation | null }> {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT DISTINCT account_id
       FROM account
     `);
@@ -109,7 +109,7 @@ export class ReconciliationRepository {
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT *
       FROM reconciliation
       ${where}
@@ -121,7 +121,7 @@ export class ReconciliationRepository {
   }
 
   updateNote(id: number, note: string | null): Reconciliation | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       UPDATE reconciliation
       SET note = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
@@ -134,7 +134,7 @@ export class ReconciliationRepository {
   }
 
   getAccountContext(accountId: number): ReconciliationAccountContext | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT
         account.id,
         account.user_id,
@@ -156,7 +156,7 @@ export class ReconciliationRepository {
   }
 
   getActiveReconciliation(accountId: number): Reconciliation | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT *
       FROM reconciliation
       WHERE account_id = ? AND is_active = 1
@@ -167,19 +167,20 @@ export class ReconciliationRepository {
   }
 
   computeCalculatedBalance(accountId: number, asOfDate: string): number {
-    const stmt = db.prepare(`
-      SELECT COALESCE(SUM(tl.amount), 0) AS balance
+    const stmt = moneyStatement(`
+      SELECT money_balance(COALESCE(decimal_sum(tl.amount), 0),
+        (SELECT currency FROM account WHERE id = ?)) AS balance
       FROM transaction_line tl
       JOIN transactions t ON tl.transaction_id = t.id
       WHERE tl.account_id = ?
         AND t.date <= ?
     `);
-    const result = stmt.get(accountId, asOfDate) as { balance: number } | undefined;
+    const result = stmt.get(accountId, accountId, asOfDate) as { balance: number } | undefined;
     return result?.balance ?? 0;
   }
 
   closeReconciliation(reconciliationId: number): Reconciliation | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       UPDATE reconciliation
       SET
         status = 'BALANCED',
@@ -196,7 +197,7 @@ export class ReconciliationRepository {
   }
 
   ignoreReconciliation(reconciliationId: number): Reconciliation | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       UPDATE reconciliation
       SET
         status = 'IGNORED',

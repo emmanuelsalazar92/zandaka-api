@@ -1,5 +1,7 @@
 import Database, { type Database as DatabaseType } from 'better-sqlite3';
 import fs from 'fs';
+import { registerDecimalSql, migrateMoneyDatabase } from './precision';
+import { registerMonetaryBalanceSql } from './monetary-balance';
 
 type TableColumn = {
   cid: number;
@@ -17,6 +19,9 @@ if (!fs.existsSync(dbPath)) {
 }
 
 const db: DatabaseType = new Database(dbPath);
+
+registerDecimalSql(db);
+registerMonetaryBalanceSql(db);
 
 export { db };
 export default db;
@@ -674,7 +679,9 @@ function migrateTransactionLineTable(): void {
   }
 
   const columns = getColumnNames('transaction_line');
-  const amountIsNumeric = getColumnType('transaction_line', 'amount') === 'NUMERIC';
+  const amountIsNumeric = ['NUMERIC', 'TEXT'].includes(
+    getColumnType('transaction_line', 'amount') ?? '',
+  );
   if (columns.has('created_at') && columns.has('updated_at') && amountIsNumeric) {
     return;
   }
@@ -714,9 +721,9 @@ function migrateReconciliationTable(): void {
 
   const columns = getColumnNames('reconciliation');
   const monetaryColumnsAreNumeric =
-    getColumnType('reconciliation', 'real_balance') === 'NUMERIC' &&
-    getColumnType('reconciliation', 'calculated_balance') === 'NUMERIC' &&
-    getColumnType('reconciliation', 'difference') === 'NUMERIC';
+    ['NUMERIC', 'TEXT'].includes(getColumnType('reconciliation', 'real_balance') ?? '') &&
+    ['NUMERIC', 'TEXT'].includes(getColumnType('reconciliation', 'calculated_balance') ?? '') &&
+    ['NUMERIC', 'TEXT'].includes(getColumnType('reconciliation', 'difference') ?? '');
   const tableDefinition = getTableDefinitionSql('reconciliation') ?? '';
   const supportsCountMethod =
     columns.has('count_method') &&
@@ -794,7 +801,9 @@ function migrateCashDenominationTable(): void {
     'updated_at',
   ];
   const missingRequiredColumn = requiredColumns.some((column) => !columns.has(column));
-  const numericValue = getColumnType('cash_denomination', 'value') === 'NUMERIC';
+  const numericValue = ['NUMERIC', 'TEXT'].includes(
+    getColumnType('cash_denomination', 'value') ?? '',
+  );
 
   if (!missingRequiredColumn && numericValue) {
     return;
@@ -855,8 +864,10 @@ function migrateCashReconciliationDetailTable(): void {
   ];
   const missingRequiredColumn = requiredColumns.some((column) => !columns.has(column));
   const numericColumnsAreCorrect =
-    getColumnType('cash_reconciliation_detail', 'denomination_value') === 'NUMERIC' &&
-    getColumnType('cash_reconciliation_detail', 'line_total') === 'NUMERIC';
+    ['NUMERIC', 'TEXT'].includes(
+      getColumnType('cash_reconciliation_detail', 'denomination_value') ?? '',
+    ) &&
+    ['NUMERIC', 'TEXT'].includes(getColumnType('cash_reconciliation_detail', 'line_total') ?? '');
 
   if (!missingRequiredColumn && numericColumnsAreCorrect) {
     return;
@@ -904,7 +915,7 @@ function migrateExchangeRateTable(): void {
   }
 
   const columns = getColumnNames('exchange_rate');
-  const rateIsNumeric = getColumnType('exchange_rate', 'rate') === 'NUMERIC';
+  const rateIsNumeric = ['NUMERIC', 'TEXT'].includes(getColumnType('exchange_rate', 'rate') ?? '');
   if (
     columns.has('effective_date') &&
     columns.has('created_at') &&
@@ -1023,8 +1034,10 @@ function migratePayrollCcssWorkerRateTable(): void {
   ];
   const missingRequiredColumn = requiredColumns.some((column) => !columns.has(column));
   const numericColumnsAreCorrect =
-    getColumnType('payroll_ccss_worker_rate', 'employee_rate') === 'NUMERIC' &&
-    getColumnType('payroll_ccss_worker_rate', 'employer_rate') === 'NUMERIC';
+    ['NUMERIC', 'TEXT'].includes(
+      getColumnType('payroll_ccss_worker_rate', 'employee_rate') ?? '',
+    ) &&
+    ['NUMERIC', 'TEXT'].includes(getColumnType('payroll_ccss_worker_rate', 'employer_rate') ?? '');
 
   if (!missingRequiredColumn && numericColumnsAreCorrect) {
     return;
@@ -1077,9 +1090,11 @@ function migratePayrollIncomeTaxBracketTable(): void {
   ];
   const missingRequiredColumn = requiredColumns.some((column) => !columns.has(column));
   const numericColumnsAreCorrect =
-    getColumnType('payroll_income_tax_bracket', 'amount_from') === 'NUMERIC' &&
-    getColumnType('payroll_income_tax_bracket', 'amount_to') === 'NUMERIC' &&
-    getColumnType('payroll_income_tax_bracket', 'tax_rate') === 'NUMERIC';
+    ['NUMERIC', 'TEXT'].includes(
+      getColumnType('payroll_income_tax_bracket', 'amount_from') ?? '',
+    ) &&
+    ['NUMERIC', 'TEXT'].includes(getColumnType('payroll_income_tax_bracket', 'amount_to') ?? '') &&
+    ['NUMERIC', 'TEXT'].includes(getColumnType('payroll_income_tax_bracket', 'tax_rate') ?? '');
 
   if (!missingRequiredColumn && numericColumnsAreCorrect) {
     return;
@@ -1123,7 +1138,9 @@ function migrateBudgetTable(): void {
   }
 
   const columns = getColumnNames('budget');
-  const totalIncomeIsNumeric = getColumnType('budget', 'total_income') === 'NUMERIC';
+  const totalIncomeIsNumeric = ['NUMERIC', 'TEXT'].includes(
+    getColumnType('budget', 'total_income') ?? '',
+  );
   const hasPayrollRuleReferences =
     columns.has('ccss_rule_set_id') && columns.has('income_tax_rule_set_id');
   if (
@@ -1175,8 +1192,12 @@ function migrateBudgetLineTable(): void {
   }
 
   const columns = getColumnNames('budget_line');
-  const amountIsNumeric = getColumnType('budget_line', 'amount') === 'NUMERIC';
-  const percentageIsNumeric = getColumnType('budget_line', 'percentage') === 'NUMERIC';
+  const amountIsNumeric = ['NUMERIC', 'TEXT'].includes(
+    getColumnType('budget_line', 'amount') ?? '',
+  );
+  const percentageIsNumeric = ['NUMERIC', 'TEXT'].includes(
+    getColumnType('budget_line', 'percentage') ?? '',
+  );
 
   if (
     columns.has('created_at') &&
@@ -1312,16 +1333,20 @@ function migrateReportSnapshotTable(): void {
   ];
   const missingRequiredColumn = requiredColumns.some((column) => !columns.has(column));
   const numericColumnsAreCorrect =
-    getColumnType('report_snapshot', 'total_crc') === 'NUMERIC' &&
-    getColumnType('report_snapshot', 'total_usd') === 'NUMERIC' &&
-    getColumnType(
-      'report_snapshot',
-      columns.has('exchange_rate_used') ? 'exchange_rate_used' : 'usd_to_crc_rate',
-    ) === 'NUMERIC' &&
-    getColumnType(
-      'report_snapshot',
-      columns.has('consolidated_amount') ? 'consolidated_amount' : 'consolidated_crc',
-    ) === 'NUMERIC';
+    ['NUMERIC', 'TEXT'].includes(getColumnType('report_snapshot', 'total_crc') ?? '') &&
+    ['NUMERIC', 'TEXT'].includes(getColumnType('report_snapshot', 'total_usd') ?? '') &&
+    ['NUMERIC', 'TEXT'].includes(
+      getColumnType(
+        'report_snapshot',
+        columns.has('exchange_rate_used') ? 'exchange_rate_used' : 'usd_to_crc_rate',
+      ) ?? '',
+    ) &&
+    ['NUMERIC', 'TEXT'].includes(
+      getColumnType(
+        'report_snapshot',
+        columns.has('consolidated_amount') ? 'consolidated_amount' : 'consolidated_crc',
+      ) ?? '',
+    );
   const tableDefinition = getTableDefinitionSql('report_snapshot') ?? '';
   const statusConstraintSupportsArchived = tableDefinition.includes("'ARCHIVED'");
 
@@ -1450,7 +1475,9 @@ function migrateReportSnapshotLineTable(): void {
     'updated_at',
   ];
   const missingRequiredColumn = requiredColumns.some((column) => !columns.has(column));
-  const amountIsNumeric = getColumnType('report_snapshot_line', 'amount') === 'NUMERIC';
+  const amountIsNumeric = ['NUMERIC', 'TEXT'].includes(
+    getColumnType('report_snapshot_line', 'amount') ?? '',
+  );
 
   if (!missingRequiredColumn && amountIsNumeric) {
     return;
@@ -1672,6 +1699,7 @@ export function migrateDatabase(): void {
       migrateReportSnapshotTable();
       migrateReportSnapshotLineTable();
       ensureIndexes();
+      migrateMoneyDatabase(db);
     });
 
     migrate();
@@ -1694,7 +1722,15 @@ export function migrateDatabase(): void {
 }
 
 export function initializeDatabase(): void {
-  migrateDatabase();
+  // Existing NUMERIC and TEXT schemas are supported as-is. Starting the app must
+  // never migrate a user's database or rewrite historical monetary values.
+  for (const table of ['user', 'account', 'account_envelope', 'transactions', 'transaction_line']) {
+    if (!tableExists(table)) {
+      throw new Error(
+        `Existing SQLite schema required: missing table ${table}. Startup does not migrate databases.`,
+      );
+    }
+  }
 }
 
 db.pragma('foreign_keys = ON');

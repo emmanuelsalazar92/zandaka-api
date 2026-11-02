@@ -1,3 +1,4 @@
+import { moneyStatement } from '../db/money-statement';
 import db from '../db/db';
 import {
   PayrollCcssWorkerRate,
@@ -38,7 +39,7 @@ type PayrollIncomeTaxBracketInput = {
 
 export class PayrollRuleRepository {
   countByUserAndType(userId: number, ruleType: PayrollRuleType): number {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT COUNT(*) AS total
       FROM payroll_rule_set
       WHERE user_id = ? AND rule_type = ?
@@ -48,7 +49,7 @@ export class PayrollRuleRepository {
   }
 
   findById(id: number): PayrollRuleSet | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT *
       FROM payroll_rule_set
       WHERE id = ?
@@ -58,7 +59,7 @@ export class PayrollRuleRepository {
   }
 
   findByIdForUser(id: number, userId: number): PayrollRuleSet | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT *
       FROM payroll_rule_set
       WHERE id = ? AND user_id = ?
@@ -72,7 +73,7 @@ export class PayrollRuleRepository {
     ruleType: PayrollRuleType,
     periodDate: string,
   ): PayrollRuleSet | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT *
       FROM payroll_rule_set
       WHERE user_id = ?
@@ -91,13 +92,13 @@ export class PayrollRuleRepository {
 
   listHistory(userId: number, ruleType?: PayrollRuleType): PayrollRuleSet[] {
     const stmt = ruleType
-      ? db.prepare(`
+      ? moneyStatement(`
           SELECT *
           FROM payroll_rule_set
           WHERE user_id = ? AND rule_type = ?
           ORDER BY effective_from DESC, id DESC
         `)
-      : db.prepare(`
+      : moneyStatement(`
           SELECT *
           FROM payroll_rule_set
           WHERE user_id = ?
@@ -114,7 +115,7 @@ export class PayrollRuleRepository {
     effectiveTo: string | null;
     excludeId?: number;
   }): PayrollRuleSet[] {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT *
       FROM payroll_rule_set
       WHERE user_id = ?
@@ -136,7 +137,7 @@ export class PayrollRuleRepository {
   }
 
   findCcssDetailByRuleSetId(ruleSetId: number): PayrollCcssWorkerRate | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT *
       FROM payroll_ccss_worker_rate
       WHERE rule_set_id = ?
@@ -147,7 +148,7 @@ export class PayrollRuleRepository {
   }
 
   findIncomeTaxBracketsByRuleSetId(ruleSetId: number): PayrollIncomeTaxBracket[] {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       SELECT *
       FROM payroll_income_tax_bracket
       WHERE rule_set_id = ?
@@ -181,7 +182,7 @@ export class PayrollRuleRepository {
   createCcssRuleSet(
     input: PayrollRuleSetHeaderInput & PayrollCcssDetailInput,
   ): PayrollRuleSetDocument {
-    const insertRuleSet = db.prepare(`
+    const insertRuleSet = moneyStatement(`
       INSERT INTO payroll_rule_set (
         user_id,
         country_code,
@@ -194,7 +195,7 @@ export class PayrollRuleRepository {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const insertDetail = db.prepare(`
+    const insertDetail = moneyStatement(`
       INSERT INTO payroll_ccss_worker_rate (
         rule_set_id,
         employee_rate,
@@ -234,7 +235,7 @@ export class PayrollRuleRepository {
   createIncomeTaxRuleSet(
     input: PayrollRuleSetHeaderInput & { brackets: PayrollIncomeTaxBracketInput[] },
   ): PayrollRuleSetDocument {
-    const insertRuleSet = db.prepare(`
+    const insertRuleSet = moneyStatement(`
       INSERT INTO payroll_rule_set (
         user_id,
         country_code,
@@ -247,7 +248,7 @@ export class PayrollRuleRepository {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const insertBracket = db.prepare(`
+    const insertBracket = moneyStatement(`
       INSERT INTO payroll_income_tax_bracket (
         rule_set_id,
         range_order,
@@ -298,7 +299,7 @@ export class PayrollRuleRepository {
     },
     detail?: PayrollCcssDetailInput,
   ): PayrollRuleSetDocument {
-    const updateHeader = db.prepare(`
+    const updateHeader = moneyStatement(`
       UPDATE payroll_rule_set
       SET
         country_code = ?,
@@ -309,11 +310,11 @@ export class PayrollRuleRepository {
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
-    const deleteDetail = db.prepare(`
+    const deleteDetail = moneyStatement(`
       DELETE FROM payroll_ccss_worker_rate
       WHERE rule_set_id = ?
     `);
-    const insertDetail = db.prepare(`
+    const insertDetail = moneyStatement(`
       INSERT INTO payroll_ccss_worker_rate (
         rule_set_id,
         employee_rate,
@@ -366,7 +367,7 @@ export class PayrollRuleRepository {
     },
     brackets?: PayrollIncomeTaxBracketInput[],
   ): PayrollRuleSetDocument {
-    const updateHeader = db.prepare(`
+    const updateHeader = moneyStatement(`
       UPDATE payroll_rule_set
       SET
         country_code = ?,
@@ -377,11 +378,11 @@ export class PayrollRuleRepository {
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
-    const deleteBrackets = db.prepare(`
+    const deleteBrackets = moneyStatement(`
       DELETE FROM payroll_income_tax_bracket
       WHERE rule_set_id = ?
     `);
-    const insertBracket = db.prepare(`
+    const insertBracket = moneyStatement(`
       INSERT INTO payroll_income_tax_bracket (
         rule_set_id,
         range_order,
@@ -433,7 +434,7 @@ export class PayrollRuleRepository {
   }
 
   deactivate(ruleSetId: number): PayrollRuleSetDocument | null {
-    const stmt = db.prepare(`
+    const stmt = moneyStatement(`
       UPDATE payroll_rule_set
       SET is_active = 0, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
