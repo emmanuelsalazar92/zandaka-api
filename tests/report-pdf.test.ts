@@ -190,7 +190,10 @@ test('GET /api/reports/:id/pdf returns a PDF attachment generated from the store
       'attachment; filename="zandaka-report-2026-03-v2.pdf"',
     );
     assert.equal(response.buffer.toString('utf8'), '%PDF-FAKE%');
-    assert.match(capturedHtml, /Financial Report/);
+    assert.match(capturedHtml, /Tu resumen financiero/);
+    assert.match(capturedHtml, /Mes de referencia/);
+    assert.match(capturedHtml, /no acredita un cierre contable/);
+    assert.match(capturedHtml, /size: letter/);
     assert.match(capturedHtml, /BAC Ahorros/);
     assert.match(capturedHtml, /Executive PDF snapshot/);
     assert.doesNotMatch(capturedHtml, /::before/);
@@ -205,4 +208,27 @@ test('GET /api/reports/:id/pdf returns 404 when the snapshot does not exist', as
 
   assert.equal(response.res.status, 404);
   assert.equal(response.json.error.code, 'NOT_FOUND');
+});
+
+test('HTML report uses the stored snapshot, escapes user text and blocks active content', async () => {
+  const snapshotId = seedSnapshot();
+  db.prepare('UPDATE report_snapshot SET notes = ? WHERE id = ?').run(
+    '<script>alert("unsafe")</script>',
+    snapshotId,
+  );
+  const response = await fetch(`${baseUrl}/api/reports/${snapshotId}/html`);
+  const html = await response.text();
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type') ?? '', /text\/html/);
+  assert.equal(response.headers.get('cache-control'), 'private, no-store');
+  assert.match(response.headers.get('content-security-policy') ?? '', /default-src 'none'/);
+  assert.match(html, /&lt;script&gt;/);
+  assert.doesNotMatch(html, /<script>/);
+  assert.match(html, /BAC Ahorros/);
+  assert.match(html, /no acredita un cierre contable/);
+});
+
+test('HTML report returns 404 for an absent snapshot', async () => {
+  const response = await fetch(`${baseUrl}/api/reports/999999/html`);
+  assert.equal(response.status, 404);
 });

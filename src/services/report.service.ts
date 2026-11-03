@@ -130,6 +130,14 @@ export class ReportService {
     };
   }
 
+  getSnapshotHtml(snapshotId: number): string {
+    const document = this.repo.findSnapshotDocumentById(snapshotId);
+    if (!document) {
+      throw { code: 'NOT_FOUND', message: `Report snapshot ${snapshotId} not found` };
+    }
+    return buildReportPdfHtml(document, this.logoAssetService.getLogoDataUri());
+  }
+
   async generateSnapshot(input: {
     user_id: number;
     report_month: string;

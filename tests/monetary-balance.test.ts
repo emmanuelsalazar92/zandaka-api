@@ -121,7 +121,7 @@ after(async () => {
 
 test('balance policy recognizes representation noise only at the aggregate calculation scale', () => {
   assert.equal(monetaryBalance(sumMoney([0.1, 0.2]), 'CRC'), 0.3);
-  assert.equal(formatMoney(monetaryBalance('0.3', 'CRC'), 'CRC'), '₡ 0.30');
+  assert.equal(formatMoney(monetaryBalance('0.3', 'CRC'), 'CRC'), '₡ 0,30');
   assert.equal(monetaryBalance('0.019999999998617554', 'CRC'), 0.02);
   assert.equal(monetaryBalance('121734.26999999997', 'CRC'), 121734.27);
   for (const value of ['-0.000000000001382446', '0.000000000032165846']) {

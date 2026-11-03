@@ -12,7 +12,7 @@ export function formatMoney(value: number | null, currency: string): string {
   const normalizedCurrency = currency.toUpperCase();
   const symbol = CURRENCY_SYMBOLS[normalizedCurrency] ?? `${normalizedCurrency} `;
   const absolute = Math.abs(value);
-  const formatted = absolute.toLocaleString('en-US', {
+  const formatted = absolute.toLocaleString('es-CR', {
     minimumFractionDigits: currencyDigits(currency),
     maximumFractionDigits: currencyDigits(currency),
   });

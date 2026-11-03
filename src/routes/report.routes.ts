@@ -170,6 +170,9 @@ router.post('/generate', validate(generateReportSnapshotSchema), ReportControlle
  */
 router.get('/:id/pdf', validate(getReportSnapshotPdfSchema), ReportController.downloadSnapshotPdf);
 
+/** Read-only HTML alternative to the PDF. Uses the same stored snapshot and no browser process. */
+router.get('/:id/html', validate(getReportSnapshotSchema), ReportController.getSnapshotHtml);
+
 /**
  * @swagger
  * /api/reports/account-balances:

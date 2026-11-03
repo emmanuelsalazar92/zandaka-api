@@ -130,8 +130,26 @@ export class ReportController {
       const disposition = req.query.disposition === 'inline' ? 'inline' : 'attachment';
       const result = await service.generateSnapshotPdf(Number(id));
       res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('Content-Disposition', disposition + '; filename="' + result.fileName + '"');
       res.status(200).send(result.pdf);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static getSnapshotHtml(req: Request, res: Response, next: NextFunction) {
+    try {
+      const html = service.getSnapshotHtml(Number(req.params.id));
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'",
+      );
+      res.status(200).send(html);
     } catch (error) {
       next(error);
     }
