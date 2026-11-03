@@ -139,7 +139,7 @@ export function buildReportPdfHtml(
     .tagline { font-size: 11px; color: #56677e; }
     .period { text-align: right; }
     .eyebrow { font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; font-weight: 600; }
-    .period p { margin: 3px 0 0; text-transform: capitalize; }
+    .period p { margin: 3px 0 0; }
     h1 { margin: 0 0 20px; font-size: 32px; line-height: 1.12; letter-spacing: -1px; font-weight: 700; }
     .hero { padding: 28px 30px; border-radius: 20px; background: radial-gradient(ellipse at 110% 0%, #0d657d 0%, transparent 52%), linear-gradient(120deg, #102b57, #1c49b1 78%, #245bdb); color: #fff; break-inside: avoid; }
     .hero .eyebrow { color: #e3edff; }

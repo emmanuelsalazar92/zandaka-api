@@ -2,6 +2,8 @@
 
 Trabajo relacionado: ZA-104. El rediseño cambia presentación y vías de consulta, preservando los valores almacenados de cada snapshot.
 
+ZA-79/ZA-98: el pie del reporte se presenta en español y el mes conserva la capitalización propia de es-CR. Este ajuste de localización no modifica el documento histórico, sus importes ni el contrato de consulta. Las convenciones de la experiencia web y el glosario se describen en zandaka-web/docs/confianza-accesibilidad.md.
+
 ## Contrato temporal
 
 generateSnapshot obtiene saldos activos al generar la versión. report_month identifica el mes de referencia; no constituye por sí mismo un filtro temporal de movimientos ni un cierre contable. generated_at registra la captura. La implementación existente no conserva corte contable y fecha efectiva de cotización como campos independientes del snapshot.
