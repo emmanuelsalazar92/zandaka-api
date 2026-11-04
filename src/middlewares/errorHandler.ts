@@ -21,6 +21,8 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
       NOT_FOUND: 404,
       FORBIDDEN: 403,
       CONFLICT: 409,
+      IDEMPOTENCY_CONFLICT: 409,
+      FEATURE_NOT_READY: 503,
       INACTIVE_RESOURCE: 409,
       INTERNAL_ERROR: 500,
     };

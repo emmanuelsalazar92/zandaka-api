@@ -263,3 +263,5 @@ The database schema is automatically created on first run. Tables include:
 - Dates are stored as TEXT in YYYY-MM-DD format
 - Boolean values are stored as INTEGER (0/1)
 - Foreign keys are enforced by SQLite
+
+Transferencias guiadas y preparación explícita de idempotencia: [ZA-90](docs/transfers.md).

@@ -19,3 +19,7 @@ Mantener DB_PATH, CORS y API_INTERNAL_URL conforme a la red privada de testing. 
 Ejecutar npm run format:check, npm run lint, npm run type-check, npm test y npm run build. Las pruebas utilizan bases sintéticas temporales. Los tests HTTP necesitan permitir conexiones loopback; una denegación EACCES de localhost no debe confundirse con un fallo funcional de las rutas.
 
 Registrar por bloque tickets, commits web/API, checks, revisión visual, etiquetas/digests de imagen, verificación de salud y procedimiento de reversión. El número X no se fija desde un ticket individual.
+
+## Transferencias guiadas — ZA-90
+
+Este bloque funcional añade POST /api/transfers. Antes de promover la pareja de imágenes web/API, preparar transfer_request en la base de testing mediante el script explícito descrito en [Transferencias](transfers.md). El arranque no modifica el esquema. Sin esa preparación, el endpoint devuelve FEATURE_NOT_READY antes de escribir. Conservar la tabla auxiliar al revertir imágenes para mantener las confirmaciones de reintento. La copia productiva de auditoría no se usa para este paso.

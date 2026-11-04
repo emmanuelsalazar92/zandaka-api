@@ -10,6 +10,7 @@ import accountRoutes from './routes/account.routes';
 import categoryRoutes from './routes/category.routes';
 import envelopeRoutes from './routes/envelope.routes';
 import transactionRoutes from './routes/transaction.routes';
+import transferRoutes from './routes/transfer.routes';
 import reconciliationRoutes from './routes/reconciliation.routes';
 import reportRoutes from './routes/report.routes';
 import exchangeRateRoutes from './routes/exchange-rate.routes';
@@ -91,6 +92,7 @@ export function createApp(): Express {
   app.use('/api/categories', categoryRoutes);
   app.use('/api/envelopes', envelopeRoutes);
   app.use('/api/transactions', transactionRoutes);
+  app.use('/api/transfers', transferRoutes);
   app.use('/api/reconciliations', reconciliationRoutes);
   app.use('/api/reports', reportRoutes);
   app.use('/api/exchange-rate', exchangeRateRoutes);

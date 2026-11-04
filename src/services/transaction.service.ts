@@ -35,6 +35,12 @@ export class TransactionService {
         };
       }
 
+      if (
+        data.lines[0].accountId === data.lines[1].accountId &&
+        data.lines[0].envelopeId === data.lines[1].envelopeId
+      ) {
+        throw { code: 'VALIDATION_ERROR', message: 'TRANSFER endpoints must differ' };
+      }
       const sum = sumMoney(data.lines.map((line) => line.amount));
       if (sum !== 0) {
         throw {
