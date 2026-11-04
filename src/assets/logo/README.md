@@ -1,4 +1,4 @@
-The bundled `zandaka-logo.svg` is the Atlántico mark approved on 4 November 2026: a cobalt tile and three solid planes in white/turquoise. It is byte-identical to `zandaka-web/public/brand/zandaka-mark.svg`; keep these two copies synchronized when updating the identity. The vector has no scripts, fonts, external references, filters or embedded raster images.
+The bundled `zandaka-logo.svg` was updated on 4 November 2026 using the approved Atlántico palette: a cobalt tile and three solid planes in white/turquoise. It is byte-identical to `zandaka-web/public/brand/zandaka-mark.svg`; keep these two copies synchronized when updating the identity. The vector has no scripts, fonts, external references, filters or embedded raster images.
 
 It updates the default logo used by PDF and HTML exports without changing their template, snapshots or balances. Brand specification and regeneration instructions are in `zandaka-web/docs/brand.md`. Both repositories integrate on `staging`; publishing images does not deploy testing. No database preparation or migration is required for this asset update.
 
