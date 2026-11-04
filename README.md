@@ -2,6 +2,8 @@
 
 ## Atlántico y staging
 
+**Para desplegar testing, empezar por la [guía operativa del bloque](docs/deploy-testing.md). ZA-90 requiere preparar explícitamente una tabla SQLite antes de habilitar el nuevo flujo; actualizar imágenes no basta.**
+
 Consultar [contrato histórico y renderizado de reportes](docs/atlantico-reportes.md) y [publicación desde staging](docs/staging.md). La alternativa HTML y la exportación PDF utilizan los valores conservados del snapshot. Web y API deben promoverse como imágenes compatibles.
 
 A REST API for an envelope budgeting system built with Express, TypeScript, and SQLite.

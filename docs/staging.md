@@ -1,5 +1,7 @@
 # Rama staging y publicación para testing
 
+**Entrada operativa: [Desplegar un bloque en testing](deploy-testing.md). Incluye el cambio de DB pendiente de ZA-90, respaldo, orden de ejecución, comprobaciones y reversión.**
+
 La API y la web son repositorios independientes. Trabajan sobre staging y se despliegan a testing en bloques de X tickets definidos por el propietario, utilizando imágenes publicadas por GitHub. Una publicación de imagen no es un despliegue.
 
 ## Pipeline
