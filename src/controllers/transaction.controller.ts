@@ -1,10 +1,28 @@
 import { Request, Response } from 'express';
 import { TransactionService } from '../services/transaction.service';
-import { getTransactionsSchema } from '../validators/transaction.validator';
+import {
+  getTransactionDetailSchema,
+  getTransactionsSchema,
+} from '../validators/transaction.validator';
 
 const service = new TransactionService();
 
 export class TransactionController {
+  static detail(req: Request, res: Response) {
+    const { params, query } = getTransactionDetailSchema.parse({
+      params: req.params,
+      query: req.query,
+    });
+    const detail = service.findDetail(params.id, query.userId);
+    res.setHeader('Cache-Control', 'no-store');
+    if (!detail) {
+      return res
+        .status(404)
+        .json({ error: { code: 'NOT_FOUND', message: 'Transaction not found' } });
+    }
+    return res.json(detail);
+  }
+
   static create(req: Request, res: Response) {
     const data = req.body;
     const result = service.create(data);

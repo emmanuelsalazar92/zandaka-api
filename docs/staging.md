@@ -12,6 +12,8 @@ La imagen ghcr.io/emmanuelsalazar92/zandaka-api:staging contiene plataformas lin
 
 ## Compatibilidad del bloque Atlántico
 
+ZA-88 añade `GET /api/transactions/:id?userId=...` para la [ficha completa de movimientos](transaction-detail.md), con todas las líneas históricas incluso inactivas. Promover una pareja compatible web/API que incluya el ticket. **Sin cambios de DB por ZA-88**; no ejecutar migraciones monetarias ni recálculos. La preparación auxiliar de ZA-90 sigue siendo independiente.
+
 La web usa el nuevo GET /api/reports/:id/html. Promover un par compatible de imágenes web/API y conservar el par anterior para revertir. Los cambios de presentación no requieren migraciones financieras ni recalcular reportes históricos. La base de testing es independiente de la copia productiva de auditoría.
 
 Mantener DB_PATH, CORS y API_INTERNAL_URL conforme a la red privada de testing. No incorporar la base real ni secretos al build o a los fixtures. La instalación de fuentes está en Dockerfile; no requiere descargas de fuentes al exportar un reporte.

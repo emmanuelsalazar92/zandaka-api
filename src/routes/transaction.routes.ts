@@ -4,6 +4,7 @@ import { validate } from '../middlewares/validator.middleware';
 import {
   createTransactionSchema,
   getTransactionsSchema,
+  getTransactionDetailSchema,
 } from '../validators/transaction.validator';
 
 const router = Router();
@@ -371,5 +372,35 @@ router.post('/', validate(createTransactionSchema), TransactionController.create
  *                       type: boolean
  */
 router.get('/', validate(getTransactionsSchema), TransactionController.list);
+
+/**
+ * @swagger
+ * /api/transactions/{id}:
+ *   get:
+ *     summary: Inspect a complete historical transaction without modifying it
+ *     description: Returns every stored line, including inactive or unresolved envelopes. Requires the existing userId scope; this parameter is not authentication. No historical edit/delete contract is provided.
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *       - in: query
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *     responses:
+ *       200:
+ *         description: Complete transaction with ordered lines, names, currency, registration timestamp and read-only correction capability. Cache-Control no-store.
+ *       400:
+ *         description: Invalid or missing identifier or user scope
+ *       404:
+ *         description: Transaction absent or outside the requested user scope
+ */
+router.get('/:id', validate(getTransactionDetailSchema), TransactionController.detail);
 
 export default router;

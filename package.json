@@ -11,7 +11,7 @@
     "lint": "eslint . --ext .ts,.js --max-warnings=0",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
-    "test:balances": "node --test --test-concurrency=2 -r ts-node/register tests/monetary-balance.test.ts tests/reconciliation.test.ts tests/budget.test.ts tests/settings.test.ts tests/report-snapshot.test.ts tests/payroll.test.ts tests/report-pdf.test.ts tests/transfers.test.ts",
+    "test:balances": "node --test --test-concurrency=2 -r ts-node/register tests/monetary-balance.test.ts tests/reconciliation.test.ts tests/budget.test.ts tests/settings.test.ts tests/report-snapshot.test.ts tests/payroll.test.ts tests/report-pdf.test.ts tests/transfers.test.ts tests/transaction-detail.test.ts",
     "test": "npm run test:balances && node -r ts-node/register tests/decimal-arithmetic.test.ts",
     "db:transfer-idempotency": "ts-node src/scripts/enable-transfer-idempotency.ts"
   },

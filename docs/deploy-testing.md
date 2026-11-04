@@ -21,6 +21,8 @@ La preparación explícita de ZA-90 forma parte de completar el deploy solicitad
 
 ## 1. Identificar el entorno y las imágenes
 
+**Compatibilidad ZA-88:** si el bloque incluye la ficha de movimientos, ambas imágenes deben incluir el ticket. La web consulta `GET /api/transactions/:id?userId=...`; la API debe devolver todas las líneas, incluidas las de sobres inactivos. ZA-88 no requiere cambios de DB. Verificar descripción completa, extremos de transferencia, fechas y retorno al historial con datos de prueba aislados. La preparación de `transfer_request` de ZA-90 sigue vigente si está incluido. Ver [contrato de consulta](transaction-detail.md).
+
 1. Identificar el host, el proyecto de contenedores, los servicios reales, sus imágenes actuales y la configuración efectiva de testing. La última URL comunicada por el propietario fue `http://192.168.31.76:3101/`; comprobar su vigencia. No se documentaron todavía en este workspace el acceso SSH, el nombre de servicio Compose ni la ruta del volumen SQLite. Descubrirlos en la configuración autorizada; no inventarlos ni confundir una ruta del host con la ruta dentro del contenedor.
 2. Registrar tickets incluidos, commits de ambos repositorios, calidad CI y publicación efectiva de sus imágenes. Verificar disponibilidad y arquitectura del manifiesto para el host. Un job de calidad aprobado no demuestra que la imagen ya esté publicada.
 3. Seleccionar y registrar digests inmutables de `ghcr.io/emmanuelsalazar92/zandaka-api` y `ghcr.io/emmanuelsalazar92/zandaka-web`. Evitar depender de la etiqueta móvil `staging`; `latest` corresponde a main. Registrar el par anterior y la configuración necesaria para revertir.

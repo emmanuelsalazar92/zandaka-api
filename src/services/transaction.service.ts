@@ -1,5 +1,6 @@
 import { assertMoney, sumMoney, subtractMoney } from '../utils/money';
 import { TransactionRepository } from '../repositories/transaction.repo';
+import { TransactionDetailRepository } from '../repositories/transaction-detail.repo';
 import { EnvelopeRepository } from '../repositories/envelope.repo';
 import { AccountRepository } from '../repositories/account.repo';
 import { CategoryRepository } from '../repositories/category.repo';
@@ -8,6 +9,10 @@ import { ReconciliationRepository } from '../repositories/reconciliation.repo';
 import { CreateTransactionRequest, Transaction, TransactionLine } from '../types';
 
 export class TransactionService {
+  findDetail(id: number, userId: number) {
+    return new TransactionDetailRepository().findForUser(id, userId);
+  }
+
   private repo = new TransactionRepository();
   private envelopeRepo = new EnvelopeRepository();
   private accountRepo = new AccountRepository();

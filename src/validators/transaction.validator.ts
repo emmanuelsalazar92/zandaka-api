@@ -56,3 +56,8 @@ export const getTransactionsSchema = z.object({
     sortDir: z.enum(['asc', 'desc']).default('desc'),
   }),
 });
+
+export const getTransactionDetailSchema = z.object({
+  params: z.object({ id: z.preprocess(numberFromQuery, z.number().int().positive().safe()) }),
+  query: z.object({ userId: z.preprocess(numberFromQuery, z.number().int().positive().safe()) }),
+});
