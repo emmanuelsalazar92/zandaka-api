@@ -1,5 +1,7 @@
 # Rama staging y publicación para testing
 
+La actualización de marca Atlántico unifica el logo de los reportes con la web. El cambio en la API es únicamente el SVG local y documentación, sin cambios de endpoints o DB. Publicar/promover ambas imágenes del bloque para obtener la identidad uniforme; conservar overrides `ZANDAKA_LOGO_PATH` e imágenes personalizadas, cuya prioridad se documenta en `src/assets/logo/README.md`. No requiere migraciones; ZA-90 mantiene su preparación independiente.
+
 **Entrada operativa: [Desplegar un bloque en testing](deploy-testing.md). Incluye el cambio de DB pendiente de ZA-90, respaldo, orden de ejecución, comprobaciones y reversión.**
 
 La API y la web son repositorios independientes. Trabajan sobre staging y se despliegan a testing en bloques de X tickets definidos por el propietario, utilizando imágenes publicadas por GitHub. Una publicación de imagen no es un despliegue.
