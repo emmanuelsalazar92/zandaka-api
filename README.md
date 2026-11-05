@@ -2,7 +2,9 @@
 
 ## Atlántico y staging
 
-**Para desplegar testing, empezar por la [guía operativa del bloque](docs/deploy-testing.md). ZA-90 requiere preparar explícitamente una tabla SQLite antes de habilitar el nuevo flujo; actualizar imágenes no basta.**
+**Para desplegar testing, empezar por la [guía operativa del bloque](docs/deploy-testing.md). ZA-97 añade `budget_plan`, pendiente de preparación explícita; ZA-90 requiere `transfer_request`. El worker SSH instalado solo prepara ZA-90 y necesita ampliación revisada para ZA-97. Actualizar imágenes no basta.**
+
+Consultar [Presupuestos mensuales Marea](docs/budget-plans.md): ingreso neto/comprobantes, planificación USD/CRC y asignación balanceada de fondos existentes. Sin cambios en presupuestos ni saldos históricos.
 
 Consultar [contrato histórico y renderizado de reportes](docs/atlantico-reportes.md) y [publicación desde staging](docs/staging.md). La alternativa HTML y la exportación PDF utilizan los valores conservados del snapshot. Web y API deben promoverse como imágenes compatibles.
 

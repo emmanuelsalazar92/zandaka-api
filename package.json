@@ -11,10 +11,11 @@
     "lint": "eslint . --ext .ts,.js,.mjs --max-warnings=0",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
-    "test:balances": "node --test --test-concurrency=2 -r ts-node/register tests/monetary-balance.test.ts tests/reconciliation.test.ts tests/budget.test.ts tests/settings.test.ts tests/report-snapshot.test.ts tests/payroll.test.ts tests/report-pdf.test.ts tests/transfers.test.ts tests/transaction-detail.test.ts",
+    "test:balances": "node --test --test-concurrency=2 -r ts-node/register tests/monetary-balance.test.ts tests/reconciliation.test.ts tests/budget.test.ts tests/settings.test.ts tests/report-snapshot.test.ts tests/payroll.test.ts tests/report-pdf.test.ts tests/transfers.test.ts tests/transaction-detail.test.ts tests/budget-plan.test.ts",
     "test": "npm run test:balances && node -r ts-node/register tests/decimal-arithmetic.test.ts && npm run test:ssh-client",
     "test:ssh-client": "node --test tests/testing-ssh-client.test.mjs",
-    "db:transfer-idempotency": "ts-node src/scripts/enable-transfer-idempotency.ts"
+    "db:transfer-idempotency": "ts-node src/scripts/enable-transfer-idempotency.ts",
+    "db:budget-plans": "ts-node src/scripts/enable-budget-plans.ts"
   },
   "keywords": [
     "budget",

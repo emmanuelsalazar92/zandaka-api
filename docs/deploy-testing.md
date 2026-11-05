@@ -4,6 +4,24 @@ Esta es la guía de entrada para retomar un despliegue sin depender del chat. Le
 
 El [desplegador SSH del Mac está instalado y pasó la aceptación de lectura desde Windows](testing-deployer-installed.md): identidad contrastada, cliente dedicado, servicios/montaje reales y protocolo de inspección/plan comprobados. **El primer deploy real terminó el 4 de noviembre de 2026 y creó `transfer_request` sin cambios históricos: [registro del bloque aplicado](deployments/2026-11-04-testing.md).** Ese registro acredita esa entrega; comprobar siempre el estado vigente al retomar. Usar el cliente `scripts/testing-ssh-client.mjs` conforme a esa guía. Cada bloque requiere petición del propietario, selección de imágenes y un plan nuevo; un push no despliega testing.
 
+## Preparación de esquema: ZA-97 — nuevo requisito pendiente
+
+**Todo bloque que incluya Presupuestos Marea (ZA-97) requiere `budget_plan`, además de `transfer_request` de ZA-90.** El 5 de noviembre de 2026 se implementó el instalador y se probó con bases sintéticas; **no se ejecutó contra ninguna base del usuario ni se desplegó testing**. Inspeccionar el estado real al entregar. Las tablas `budget` anteriores no cambian ni se migran. Ver [contrato de presupuestos](budget-plans.md).
+
+**El desplegador SSH instalado y verificado el 4 de noviembre solo prepara ZA-90. No crea `budget_plan`.** Un ACK o recibo antiguo con `transferRequestReady` no acredita ZA-97. Antes del primer despliegue de este módulo, ampliar el helper local del Mac mediante revisión e instalación controlada con nuevos pins, manteniendo el comando forzado y las restricciones existentes. La clave Windows no permite ejecutar CLI arbitrarios ni sustituir los helpers. No intentar eludir esa restricción ni actualizar pins para silenciar drift. Esta implementación no modifica el desplegador instalado.
+
+La ampliación debe cargar `installBudgetPlans` de `/app/dist/db/budget-plan.js` de la candidata, dentro de la misma transacción exterior de preparación, después del backup y con servicios detenidos. Debe verificar la definición con `budgetPlansReady`, rechazar triggers/DDL incompatibles, conservar filas y recibos existentes de ambas tablas auxiliares y demostrar que todas las demás tablas/objetos conservan sus valores. Excluir del fingerprint únicamente la creación esperada de objetos auxiliares; verificar por separado que no cambian sus filas preexistentes. Exigir en el recibo `budgetPlanReady`, tabla creada o ya compatible y preservación histórica, además de los controles actuales. Probar creación, repetición, incompatibilidad y rollback sobre SQLite sintético antes de instalar. Registrar nueva identidad/pins del helper y comprobar inspect/plan desde Windows antes de pedir el deploy.
+
+Si se usa una intervención operativa local autorizada en lugar del helper ampliado, ejecutar **con la imagen API candidata**, el montaje real ya identificado y un backup consistente verificado:
+
+```sh
+node dist/scripts/enable-budget-plans.js --db /RUTA_INTERNA_REAL_DE_TESTING.db
+```
+
+El marcador debe sustituirse por la ruta comprobada. No arrancar el servidor ni crear una DB/volumen vacío para preparar. No ejecutar CLI manual y worker en paralelo. Comprobar `budget_plan` antes/después, integridad, referencias y preservación de libro, snapshots y presupuestos anteriores. El arranque no prepara el esquema. Sin tabla compatible, la nueva planificación responde 503; sin ZA-90 la aplicación a sobres tampoco puede completarse.
+
+Al promover, comprobar lista/creación/guardado/preparación y consulta del recibo; probar asignación/reintento únicamente con datos aislados. No convertir divisas ni introducir fondos para una prueba visual. Al revertir imágenes **conservar `budget_plan`, `transfer_request` y todos sus recibos**. Registrar explícitamente qué quedó aplicado y qué continúa pendiente. No declarar completo un despliegue ZA-97 solo por actualizar contenedores o por aprobar salud.
+
 ## Preparación de esquema: ZA-90
 
 **ZA-90 requiere crear la tabla auxiliar `transfer_request` en la base de testing antes de habilitar las nuevas transferencias. Actualizar las imágenes por sí solo no completa este despliegue.**

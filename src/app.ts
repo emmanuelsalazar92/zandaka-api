@@ -16,6 +16,7 @@ import reportRoutes from './routes/report.routes';
 import exchangeRateRoutes from './routes/exchange-rate.routes';
 import userRoutes from './routes/user.routes';
 import budgetRoutes from './routes/budget.routes';
+import budgetPlanRoutes from './routes/budget-plan.routes';
 import autoAssignmentRuleRoutes from './routes/auto-assignment-rule.routes';
 import cashDenominationRoutes from './routes/cash-denomination.routes';
 import payrollRuleRoutes from './routes/payroll-rule.routes';
@@ -99,6 +100,7 @@ export function createApp(): Express {
   app.use('/api/auto-assignment-rules', autoAssignmentRuleRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/budgets', budgetRoutes);
+  app.use('/api/budget-plans', budgetPlanRoutes);
   app.use('/api/settings/cash-denominations', cashDenominationRoutes);
   app.use('/api/payroll-rules', payrollRuleRoutes);
   app.use('/api/payroll', payrollRoutes);

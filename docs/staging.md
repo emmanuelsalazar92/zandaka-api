@@ -31,3 +31,7 @@ Registrar por bloque tickets, commits web/API, checks, revisión visual, etiquet
 ## Transferencias guiadas — ZA-90
 
 Este bloque funcional añade POST /api/transfers. Antes de promover la pareja de imágenes web/API, preparar transfer_request en la base de testing mediante el script explícito descrito en [Transferencias](transfers.md). El arranque no modifica el esquema. Sin esa preparación, el endpoint devuelve FEATURE_NOT_READY antes de escribir. Conservar la tabla auxiliar al revertir imágenes para mantener las confirmaciones de reintento. La copia productiva de auditoría no se usa para este paso.
+
+## Presupuestos Marea — ZA-97
+
+Consultar [contrato y preparación](budget-plans.md). Requiere preparar budget_plan explícitamente antes de habilitar la nueva planificación; transfer_request sigue siendo necesario para asignar. No modifica presupuestos históricos. El worker SSH instalado solo prepara ZA-90: ampliar y revisar el helper local con nuevos pins antes del primer bloque ZA-97, conforme a [deploy-testing](deploy-testing.md). Esta implementación no prepara ninguna base del usuario ni despliega testing.
