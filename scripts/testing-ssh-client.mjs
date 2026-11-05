@@ -23,8 +23,8 @@ const requireValue = (condition, code = 'UNVERIFIABLE_RESPONSE') => {
   if (!condition) throw new ClientError(code);
 };
 const digestOf = (value) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-const isDigest = (value) => typeof value === 'string' && DIGEST.test(value);
-const isUuid = (value) => typeof value === 'string' && UUID.test(value);
+const isDigest = (value) => typeof value === 'string' && value.length === 71 && DIGEST.test(value);
+const isUuid = (value) => typeof value === 'string' && value.length === 36 && UUID.test(value);
 
 function readJson(file) {
   requireValue(fs.existsSync(file), 'LOCAL_STATE_NOT_FOUND');
@@ -51,7 +51,7 @@ function checkSafeResponse(value) {
   for (const [key, item] of Object.entries(value)) {
     requireValue(
       !/^(?:env|environment|password|secret|token|credentials|authorization|private_?key)$/i.test(
-        key,
+        key.trim(),
       ),
       'UNSAFE_RESPONSE_FIELDS',
     );
@@ -105,7 +105,9 @@ function validateJob(reply, request) {
         result.database?.historicalUnchanged === true,
     );
     requireValue(
-      typeof result.backup?.sha256 === 'string' && /^[a-f0-9]{64}$/.test(result.backup.sha256),
+      typeof result.backup?.sha256 === 'string' &&
+        result.backup.sha256.length === 64 &&
+        /^[a-f0-9]{64}$/.test(result.backup.sha256),
     );
     requireValue(isDigest(result.previous?.apiDigest) && isDigest(result.previous?.webDigest));
   } else {

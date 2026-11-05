@@ -90,10 +90,13 @@ test('invalid verbs, digests, UUIDs and shell tokens never reach SSH', async (t)
     ['sh'],
     ['inspect', 'id'],
     ['plan', `${API};id`, WEB],
+    ['plan', `${API}\n`, WEB],
+    ['plan', API, `${WEB}\r\n`],
     ['plan', API.toUpperCase(), WEB],
     ['deploy', '../../private'],
     ['deploy', PLAN, 'bad-id'],
     ['status', '$(id)'],
+    ['status', `${ID}\n`],
     ['rollback', ID, `${ROLLBACK};id`],
   ]) {
     await rejected(runClient(argv, context), 'INVALID_ARGUMENTS');
