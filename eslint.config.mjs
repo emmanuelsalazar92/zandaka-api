@@ -7,7 +7,7 @@ const eslintConfig = [
     ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'data/**'],
   },
   {
-    files: ['**/*.{ts,js}'],
+    files: ['**/*.{ts,js,mjs}'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {

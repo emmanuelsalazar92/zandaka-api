@@ -48,6 +48,8 @@ Resultado real: marcador `ZANDAKA_TESTING_SSH_PROBE_V1`, `user=emmanuelsalazar`,
 
 ## Habilitar despliegues posteriormente
 
+El [contrato de instalación única del desplegador](testing-deployer-contract.md) define el siguiente paso concreto y su protocolo. El cliente Windows está implementado y probado en `scripts/testing-ssh-client.mjs`; **la contraparte de Mac todavía requiere instalación local**. No confundir la existencia del cliente o pruebas con transporte simulado con un desplegador operativo.
+
 La clave inicial **no permite desplegar**. Antes de ampliar su autoridad hay que identificar contexto Docker, servicios, imágenes actuales, montaje/DB reales y método de respaldo. Diseñar un procedimiento fijo local del Mac con imágenes propias por digest, validación de parámetros, respaldo, requisitos del bloque, verificaciones y reversión. No aceptar comandos de shell arbitrarios ni ejecutar código recibido de PR. Ni un push ni un archivo nuevo en Git autorizan a sustituir el endpoint local del Mac.
 
 Un futuro despliegue requiere petición del propietario y seguir [deploy-testing](deploy-testing.md) y ambas guías de staging. El requisito de ZA-90 para `transfer_request` permanece independiente del acceso SSH. No ejecutar migraciones monetarias, saneamientos o recálculos, ni usar la copia productiva de auditoría.
