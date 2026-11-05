@@ -2,9 +2,9 @@
 
 ## Estado y responsables
 
-El canal SSH inicial funciona y limita la clave a `probe`. El propietario pidió continuar para automatizar los despliegues. **Esta entrega prepara el cliente Windows y el contrato de instalación; no afirma que el desplegador del Mac ya exista ni ejecuta un deploy.**
+Este documento conserva el contrato utilizado para preparar e instalar el endpoint. **La instalación del Mac y la aceptación remota de lectura ya se completaron; el estado operativo vigente está en [desplegador instalado](testing-deployer-installed.md). No se ha ejecutado un deploy real.** El propietario pidió automatizar las entregas posteriores al bootstrap SSH exclusivo de prueba.
 
-Windows mantiene el cliente y verifica el resultado. La única intervención local pendiente en el Mac es descubrir su configuración efectiva, implementar/instalar el endpoint conforme a este contrato y registrar código, pruebas y datos operativos en la [página SSH](https://app.notion.com/p/40fb70136a488093be28d20334b0ac4a). Después Windows podrá inspeccionar y preparar planes sin ampliar otra vez el acceso por cada bloque. No se requiere un shell remoto general.
+Windows mantiene el cliente y verifica el resultado. La instalación local del Mac ya descubrió la configuración efectiva, instaló el endpoint y registró código/pruebas en la [página SSH](https://app.notion.com/p/40fb70136a488093be28d20334b0ac4a). Este contrato conserva sus requisitos; el registro instalado informa lo efectivamente comprobado. Los bloques normales se gestionan desde Windows sin ampliar el acceso por cada entrega ni conceder un shell remoto general.
 
 ## Datos de instalación y descubrimiento
 
