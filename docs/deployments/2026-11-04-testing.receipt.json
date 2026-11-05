@@ -1,0 +1,127 @@
+{
+  "date": "2026-11-04",
+  "timezone": "America/Costa_Rica",
+  "requestId": "e6ee8950-994a-410b-8507-ba283c577393",
+  "supersedes": "c80b1c06-0871-48f9-9188-9d2d46929d88",
+  "source": {
+    "api": "c7af11c10393a5d6e6a0024e0774aa974d432934",
+    "web": "ae5161f0440947baf3bd7846e3c0fc0546cbefe6"
+  },
+  "receipt": {
+    "protocol": "zandaka-testing-v1",
+    "action": "status",
+    "ok": true,
+    "requestId": "e6ee8950-994a-410b-8507-ba283c577393",
+    "phase": "succeeded",
+    "terminal": true,
+    "stage": "complete",
+    "result": {
+      "apiDigest": "sha256:75b42cee5af28bf8d4ad03a006f136e8538fb45d0b39e58a35b98efae3e3624f",
+      "webDigest": "sha256:464f600b527059e68961ba7422427f09173ee74e3927d2824a1cd67302fb5b38",
+      "health": {
+        "api": true,
+        "web": true,
+        "proxy": true
+      },
+      "previous": {
+        "apiDigest": "sha256:b44e5a509f4f84565e0b853c8fce897bef47bfb3b9d0f206c2bd9b84979a73b9",
+        "webDigest": "sha256:72e4d02298735b30808d6f25bce6240b75ed95934e2e527d1a80c05da50f233c"
+      },
+      "imageIds": {
+        "api": "sha256:75b42cee5af28bf8d4ad03a006f136e8538fb45d0b39e58a35b98efae3e3624f",
+        "web": "sha256:464f600b527059e68961ba7422427f09173ee74e3927d2824a1cd67302fb5b38"
+      },
+      "override": "/Users/emmanuelsalazar/.local/share/zandaka-testing-deployer/overrides/e6ee8950-994a-410b-8507-ba283c577393.json",
+      "journal": "/Users/emmanuelsalazar/.local/share/zandaka-testing-deployer/jobs/e6ee8950-994a-410b-8507-ba283c577393.json",
+      "backup": {
+        "sha256": "0b341d9d243f378d79936aa32ea50cc6b8a6cf60f3957cbc67521cd07b7ded69",
+        "path": "/Users/emmanuelsalazar/.local/share/zandaka-testing-deployer/backups/e6ee8950-994a-410b-8507-ba283c577393.db"
+      },
+      "database": {
+        "transferRequestReady": true,
+        "historicalUnchanged": true,
+        "historicalFingerprint": "aef2bd1ce2024875d8d2e507b34563b30e271dfb331792be5d5f4513510af856",
+        "preexistingForeignKeyViolations": 0,
+        "created": true
+      }
+    }
+  },
+  "verification": {
+    "liveReadOnlyHttp": [
+      {
+        "path": "/",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 38234
+      },
+      {
+        "path": "/api/health",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 54
+      },
+      {
+        "path": "/transactions",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 40187
+      },
+      {
+        "path": "/reconciliation",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 35217
+      },
+      {
+        "path": "/reports",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 33367
+      },
+      {
+        "path": "/api/accounts",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 1668
+      },
+      {
+        "path": "/api/transactions?userId=1&page=1&pageSize=10",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 5493
+      },
+      {
+        "path": "/api/transactions/:existingId?userId=1",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 414,
+        "completeLinesPresent": true
+      },
+      {
+        "path": "/api/reports?userId=1",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 3412
+      },
+      {
+        "path": "/api/reports/:existingId/html",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 15497
+      },
+      {
+        "path": "/api/reports/:existingId/pdf",
+        "status": 200,
+        "contentType": "application/pdf",
+        "bytes": 110009,
+        "pdfSignatureVerified": true
+      }
+    ],
+    "browser": {
+      "passed": 12,
+      "failed": 0,
+      "scope": "Published frontend with synthetic intercepted API; keyboard, geometry and axe AA in representative desktop/mobile light/dark scenarios. No financial writes sent to testing."
+    }
+  },
+  "localAuditDirectory": "operaciones\\deploy-testing\\2026-11-04\\e6ee8950-994a-410b-8507-ba283c577393"
+}

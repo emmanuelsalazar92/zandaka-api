@@ -2,9 +2,9 @@
 
 Esta es la guía de entrada para retomar un despliegue sin depender del chat. Leer también [staging](staging.md) y los requisitos de los tickets posteriores que se incluyan en el bloque. El propietario solicita cuándo desplegar; no se despliega por cada ticket. Los proyectos web y API se promueven juntos mediante imágenes publicadas por GitHub desde `staging`.
 
-El [desplegador SSH del Mac está instalado y pasó la aceptación de lectura desde Windows](testing-deployer-installed.md): identidad contrastada, cliente dedicado, servicios/montaje reales y protocolo de inspección/plan comprobados. **No se ha ejecutado todavía el primer deploy real ni preparado la DB real.** Usar el cliente `scripts/testing-ssh-client.mjs` conforme a esa guía. Cada bloque requiere petición del propietario, selección de imágenes y un plan nuevo; un push no despliega testing.
+El [desplegador SSH del Mac está instalado y pasó la aceptación de lectura desde Windows](testing-deployer-installed.md): identidad contrastada, cliente dedicado, servicios/montaje reales y protocolo de inspección/plan comprobados. **El primer deploy real terminó el 4 de noviembre de 2026 y creó `transfer_request` sin cambios históricos: [registro del bloque aplicado](deployments/2026-11-04-testing.md).** Ese registro acredita esa entrega; comprobar siempre el estado vigente al retomar. Usar el cliente `scripts/testing-ssh-client.mjs` conforme a esa guía. Cada bloque requiere petición del propietario, selección de imágenes y un plan nuevo; un push no despliega testing.
 
-## Pendiente conocido: ZA-90 cambia el esquema
+## Preparación de esquema: ZA-90
 
 **ZA-90 requiere crear la tabla auxiliar `transfer_request` en la base de testing antes de habilitar las nuevas transferencias. Actualizar las imágenes por sí solo no completa este despliegue.**
 
@@ -27,7 +27,7 @@ La preparación explícita de ZA-90 forma parte de completar el deploy solicitad
 
 1. Comprobar la vigencia del destino descubierto: `192.168.31.35`, proyecto `zandaka-testing`, contexto `desktop-linux`, servicios `backend` y `frontend`. La web `http://192.168.31.35:3101/` y `/api/health` respondieron correctamente desde Windows durante la aceptación. La IP anterior `192.168.31.76` quedó obsoleta. La DB dentro de la API es `/app/data/presupuesto.db`, bind desde `/Users/emmanuelsalazar/Documents/MacOS/Testing/data`, archivo host `presupuesto.db` dentro de esa carpeta. Reconfirmar mediante inspect el montaje, identidades e imágenes actuales; ver [instalación comprobada](testing-deployer-installed.md). No confundir el archivo del host con la ruta interna ni asumir que el esquema ya fue preparado.
 2. Registrar tickets incluidos, commits de ambos repositorios, calidad CI y publicación efectiva de sus imágenes. Verificar disponibilidad y arquitectura del manifiesto para el host. Un job de calidad aprobado no demuestra que la imagen ya esté publicada.
-3. Seleccionar y registrar digests inmutables de `ghcr.io/emmanuelsalazar92/zandaka-api` y `ghcr.io/emmanuelsalazar92/zandaka-web`. Evitar depender de la etiqueta móvil `staging`; `latest` corresponde a main. Registrar el par anterior y la configuración necesaria para revertir.
+3. Seleccionar los manifiestos específicos de las plataformas configuradas, verificar su pertenencia al índice OCI publicado y su revisión/arquitectura. El primer intento con índices multiarquitectura fue rechazado en la validación de candidatos; el bloque se completó con sus manifiestos por plataforma, conservando todos los controles. Seleccionar y registrar digests inmutables de `ghcr.io/emmanuelsalazar92/zandaka-api` y `ghcr.io/emmanuelsalazar92/zandaka-web`. Evitar depender de la etiqueta móvil `staging`; `latest` corresponde a main. Registrar el par anterior y la configuración necesaria para revertir.
 4. Resolver `DB_PATH` efectivo y el montaje que lo conecta con la base persistente de testing. Mantener `API_INTERNAL_URL` apuntando a la API dentro de la red del despliegue, y comprobar CORS y puertos. No imprimir secretos en registros o documentación.
 
 ## 2. Respaldar e inspeccionar la base seleccionada

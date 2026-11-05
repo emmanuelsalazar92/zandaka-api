@@ -1,6 +1,6 @@
 # Desplegador de testing instalado y verificado
 
-Registro del 4 de noviembre de 2026, hora de Costa Rica. **La instalación local del Mac terminó y Windows verificó su inspección/plan de solo lectura. No se ejecutó el primer deploy real.** Una nueva instalación local no forma parte de cada entrega normal; desde Windows se usa el cliente con la clave dedicada ya verificada. Un push o una imagen publicada no ejecuta el desplegador.
+Registro del 4 de noviembre de 2026, hora de Costa Rica. **La instalación local del Mac terminó y Windows verificó su inspección/plan de solo lectura. Después, el propietario solicitó el primer deploy y se completó: [release aplicado y preparación real de DB](deployments/2026-11-04-testing.md).** Una nueva instalación local no forma parte de cada entrega normal; desde Windows se usa el cliente con la clave dedicada ya verificada. Un push o una imagen publicada no ejecuta el desplegador.
 
 ## Destino real descubierto
 
@@ -19,7 +19,7 @@ Registro del 4 de noviembre de 2026, hora de Costa Rica. **La instalación local
 | Web desde Windows    | `http://192.168.31.35:3101/`, GET 200                                       |
 | Proxy desde Windows  | `http://192.168.31.35:3101/api/health`, GET 200 y JSON `status: ok`         |
 
-Los datos de servicios, imágenes, contexto y montaje se obtuvieron también mediante el endpoint autenticado desde Windows. La presencia del archivo y su dispositivo/inode se comprobaron por metadatos; **no se abrió SQLite ni se consultó el esquema real**. ZA-90 sigue pendiente de comprobación/preparación durante el despliegue solicitado. No usar la copia productiva de auditoría de Windows.
+Los datos de servicios, imágenes, contexto y montaje se obtuvieron también mediante el endpoint autenticado desde Windows. Durante la aceptación inicial, la presencia del archivo y su dispositivo/inode se comprobaron por metadatos; no se abrió SQLite ni se consultó su esquema. En el despliegue posterior documentado se obtuvo respaldo y se creó/verificó la tabla auxiliar de ZA-90 sin cambios históricos. Revalidar el esquema en cada entrega. No usar la copia productiva de auditoría de Windows.
 
 ## Instalación en el Mac
 
@@ -52,7 +52,7 @@ El pin interno `installationHash` es `sha256:3228fc4c5ce911ee2c27808a34fb8dc3d70
 - PTY y forwarding remoto rechazados con 255; SFTP con 64. Conservada la verificación estricta de identidad.
 - Web/proxy desde Windows correctos según la tabla anterior.
 
-Mac reportó además 13 pruebas con Docker simulado, 5 de SQLite sintético aislado, 1 de backup temporal WAL y 1 de worker desacoplado con Docker/backup simulados. No se presentan como pruebas de un deploy real ni como comprobación del esquema actual de testing. Windows verificó fuentes/recibos y las acciones de lectura; las rutas mutantes siguen teniendo su primera ejecución real pendiente de solicitud del propietario.
+Mac reportó además 13 pruebas con Docker simulado, 5 de SQLite sintético aislado, 1 de backup temporal WAL y 1 de worker desacoplado con Docker/backup simulados. No se presentan como pruebas de un deploy real ni como comprobación del esquema actual de testing. Windows verificó fuentes/recibos y las acciones de lectura; esas pruebas aisladas no acreditaban un deploy real. La primera ejecución real posterior quedó comprobada en el registro del bloque enlazado arriba.
 
 Evidencia local: `operaciones/ssh-testing/mac-readiness-checks/`, `mac-source-checksums.json`, `mac-installation-review.json`. El plan de aceptación se guardó en una carpeta de revisión separada del almacén habitual del cliente; no es una selección de imágenes nuevas ni un plan listo para promover el bloque pendiente.
 
