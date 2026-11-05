@@ -1,24 +1,24 @@
 # SSH Windows → Mac para testing
 
-## Estado de preparación
+## Estado verificado
 
-El propietario autorizó preparar el canal SSH el 4 de noviembre de 2026. **No equivale a autorizar un despliegue ni a declarar operativo el canal.** La coordinación y las claves públicas se registran en la [página SSH de Notion](https://app.notion.com/p/40fb70136a488093be28d20334b0ac4a).
+El propietario autorizó preparar el canal SSH el 4 de noviembre de 2026. Ese día se completaron instalación inicial, verificación independiente del host y nueve comprobaciones remotas desde Windows. **El canal funciona exclusivamente para `probe`; todavía no permite desplegar.** La coordinación, las claves públicas y los resultados se registran en la [página SSH de Notion](https://app.notion.com/p/40fb70136a488093be28d20334b0ac4a).
 
-| Dato                                     | Estado                                                                     |
-| ---------------------------------------- | -------------------------------------------------------------------------- |
-| Host comunicado                          | `Mac-mini-de-Emmanuel.local`; no resuelve desde este Windows               |
-| IP actual comunicada                     | `192.168.31.35`; responde SSH en puerto 22                                 |
-| IP anterior                              | `192.168.31.76`; no respondió durante esta preparación                     |
-| Usuario comunicado                       | `emmanuelsalazar`                                                          |
-| Proyecto comunicado                      | `zandaka-testing`                                                          |
-| Compose comunicado                       | `/Users/emmanuelsalazar/Documents/MacOS/Testing/docker-compose.yml`        |
-| Clave cliente Windows                    | Ed25519 exclusiva, generada fuera de Git, DACL verificada solo propietario |
-| Identidad del servidor                   | Pendiente de contrastar con clave/huella obtenidas localmente en el Mac    |
-| Entrada restringida y endpoint de prueba | Propuestos en Notion, instalación y ejecución remota pendientes            |
-| Servicios Docker y volumen/DB            | No descubiertos todavía                                                    |
-| Despliegue o cambio de DB                | Ninguno por esta preparación                                               |
+| Dato                                     | Estado                                                                                                          |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Host comunicado                          | `Mac-mini-de-Emmanuel.local`; no resuelve desde este Windows                                                    |
+| IP actual comunicada                     | `192.168.31.35`; responde SSH en puerto 22                                                                      |
+| IP anterior                              | `192.168.31.76`; no respondió durante esta preparación                                                          |
+| Usuario verificado                       | `emmanuelsalazar`, confirmado por el endpoint autenticado                                                       |
+| Proyecto comunicado                      | `zandaka-testing`                                                                                               |
+| Compose comunicado                       | `/Users/emmanuelsalazar/Documents/MacOS/Testing/docker-compose.yml`; legible según probe, sin leer su contenido |
+| Clave cliente Windows                    | Ed25519 exclusiva, generada fuera de Git, DACL verificada solo propietario                                      |
+| Identidad del servidor                   | Clave/huella obtenidas localmente en el Mac, contrastadas y fijadas en Windows                                  |
+| Entrada restringida y endpoint de prueba | Instalación reportada por CodexMacOS; autenticación y restricciones verificadas desde Windows                   |
+| Servicios Docker y volumen/DB            | No descubiertos todavía                                                                                         |
+| Despliegue o cambio de DB                | Ninguno por esta preparación                                                                                    |
 
-La dirección responde con OpenSSH 10.2, pero eso por sí solo no demuestra que sea el Mac correcto. El cliente Windows negoció y se detuvo ante el host todavía no confiable, sin autenticación ni comandos remotos. Las rutas del Mac son datos comunicados; no se presentan como inspecciones de su filesystem.
+La dirección responde con OpenSSH 10.2. Primero el cliente Windows se detuvo ante el host todavía no confiable; posteriormente se contrastó su clave con la obtenida localmente en el Mac, se instaló el pin y se autenticó con la clave dedicada. La huella verificada del servidor es `SHA256:QO9vRriTJcmFjMht9ZT/NOepcyP7+q27SnccD46nzH0`. La huella del cliente Windows es `SHA256:PrGmxd/A7kQMwlQuGpkwu4rUoelPFI5KifPc/5la67I`. No se descubrió todavía la configuración de servicios, montajes o DB del Mac.
 
 ## Identidades y alcance
 
@@ -26,25 +26,25 @@ La privada está en el perfil local Windows, `.ssh/zandaka_testing_ed25519`; no 
 
 La clave pública y su huella de cliente se publican en Notion para la instalación inicial. Antes de confiar en el host hay que obtener su **clave pública de servidor y huella desde el Mac** y contrastarlas con lo recibido desde Windows. Nunca usar la huella obtenida por red como única prueba ni desactivar la verificación de hosts. No compartir las claves privadas del servidor.
 
-El perfil dedicado Windows está en `.ssh/zandaka-testing.conf`, se invoca con `ssh -F` y no sustituye una configuración global. Usa exclusivamente la identidad dedicada, sin agente/contraseñas, y `StrictHostKeyChecking yes`, con un archivo de hosts dedicado y alias `zandaka-testing-mac`. Ese archivo permanece vacío hasta completar la verificación independiente. No aceptar automáticamente claves desconocidas.
+El perfil dedicado Windows está en `.ssh/zandaka-testing.conf`, se invoca con `ssh -F` y no sustituye una configuración global. Usa exclusivamente la identidad dedicada, sin agente/contraseñas, y `StrictHostKeyChecking yes`, con un archivo de hosts dedicado y alias `zandaka-testing-mac`. Ese archivo contiene únicamente la identidad del servidor contrastada por el canal del Mac. Una rotación o cambio de IP requiere verificar la identidad de nuevo; no aceptar automáticamente claves desconocidas ni reemplazar el pin para silenciar un error.
 
 ## Primera instalación: solo probe
 
-La propuesta en Notion agrega esta pública con `restrict` y un comando obligatorio. Conserva otras claves del usuario y sus permisos; verificar que este par no exista también en otra línea sin restricciones. El archivo local propuesto `/Users/emmanuelsalazar/.ssh/zandaka-testing-probe.sh` pertenece al usuario y no es escribible por otros. Mantenerlo fuera de repositorios o artefactos actualizables por PR.
+CodexMacOS reportó instalada esta pública con `restrict` y un comando obligatorio, sin otra entrada duplicada de esta clave. Se conservaron otras claves del usuario. Reportó carpeta `.ssh` con modo 700, `authorized_keys` con 600 y archivo local `/Users/emmanuelsalazar/.ssh/zandaka-testing-probe.sh` con 700, propiedad de `emmanuelsalazar`. Windows verificó el comportamiento remoto; los permisos y la ubicación se documentan conforme a la inspección local del Mac. Mantener el endpoint fuera de repositorios o artefactos actualizables por PR.
 
-Ese script solo acepta el comando exacto `probe`, comprueba el usuario y si el Compose comunicado es legible y devuelve un marcador fijo. No imprime su contenido ni `.env`, invoca Docker o SQLite, descarga imágenes, respalda, migra o reinicia servicios. Cualquier comando distinto, incluidos un shell, SFTP, separadores o sustituciones de comando, se rechaza. Las restricciones de OpenSSH impiden además PTY/forwarding/rc; deben verificarse después de instalar.
+Ese script solo acepta el comando exacto `probe`, comprueba el usuario y si el Compose comunicado es legible y devuelve un marcador fijo. No imprime su contenido ni `.env`, invoca Docker o SQLite, descarga imágenes, respalda, migra o reinicia servicios. Cualquier comando distinto se rechaza. Las restricciones de OpenSSH configuradas incluyen PTY/forwarding/rc; se verificaron remotamente los rechazos de PTY, forwarding remoto y SFTP, además de comandos no permitidos.
 
-El bundle local Windows `operaciones/ssh-testing/` del workspace contiene pública, entrada restringida, script, runbook y comprobaciones locales. No contiene la privada. La sintaxis POSIX y siete rechazos de comandos se probaron localmente. La ejecución válida y las restricciones efectivas del servidor siguen pendientes hasta su instalación.
+El bundle local Windows `operaciones/ssh-testing/` del workspace contiene públicas, entrada restringida, script, runbook y comprobaciones. No contiene la privada. La sintaxis POSIX y siete rechazos se probaron localmente; `verificacion-ssh-remota.json` registra las nueve comprobaciones reales desde Windows y `identidad-verificada.json` el contraste de identidad.
 
 ## Verificación del canal
 
-Después de verificar/pinar la identidad del servidor e instalar el endpoint restringido:
+Comando probado desde Windows con la identidad del servidor ya verificada y fijada:
 
 ```powershell
 ssh -F "$env:USERPROFILE/.ssh/zandaka-testing.conf" zandaka-testing probe
 ```
 
-Esperado: marcador `ZANDAKA_TESTING_SSH_PROBE_V1`, `user=emmanuelsalazar`, `compose_readable=true`, retorno 0. Una petición de `id` debe rechazarse con retorno 64; no debe ejecutar el binario remoto. Verificar también que no se conceden PTY o túneles y documentar lo que efectivamente quedó instalado. No confundir sintaxis local correcta, puerto abierto o pública publicada con autenticación completada.
+Resultado real: marcador `ZANDAKA_TESTING_SSH_PROBE_V1`, `user=emmanuelsalazar`, `compose_readable=true`, retorno 0. Se rechazaron cinco cadenas de comando (`id`, argumento extra, separador, sustitución literal y salto de línea) con retorno 64. PTY y forwarding remoto se rechazaron con 255; el subsistema SFTP, con 64. La petición de forwarding fue denegada sin habilitar el reenvío. No se ejecutaron acciones Docker, SQLite o de despliegue. Estas pruebas no sustituyen la inspección y preparación del entorno necesaria para un futuro deploy.
 
 ## Habilitar despliegues posteriormente
 
