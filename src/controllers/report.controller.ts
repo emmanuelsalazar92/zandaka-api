@@ -77,7 +77,7 @@ export class ReportController {
         },
       });
     }
-    const expenses = service.getMonthlyExpenses(month as string);
+    const expenses = service.getMonthlyExpenses(month as string, req.query.type === 'EXPENSE');
     res.json(expenses);
   }
 

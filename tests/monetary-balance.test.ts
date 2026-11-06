@@ -369,3 +369,35 @@ test('valid income, expense and adjustment work on the existing schema without p
   }
   assert.equal(envelopes.getBalance(1), 0);
 });
+
+test('dashboard monthly expense filter excludes transfers, preserves legacy queries and separates currencies', async () => {
+  db.exec(`
+    INSERT INTO transactions(id,user_id,date,description,type) VALUES
+      (1,1,'2026-02-28','CRC expense','EXPENSE'),
+      (2,1,'2026-02-28','USD expense','EXPENSE'),
+      (3,1,'2026-02-28','Internal transfer','TRANSFER'),
+      (4,1,'2026-03-01','Next month','EXPENSE');
+    INSERT INTO transaction_line(transaction_id,account_id,envelope_id,amount) VALUES
+      (1,1,1,-0.3),(2,2,3,-5),(3,1,1,-10),(3,1,2,10),(4,1,1,-99);
+  `);
+  const before = db.prepare('SELECT * FROM transaction_line ORDER BY id').all();
+  const result = await request('GET', '/api/reports/monthly-expenses?month=2026-02&type=EXPENSE');
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.json.map((row: any) => [row.currency, row.total]).sort(), [
+    ['CRC', -0.3],
+    ['USD', -5],
+  ]);
+  const legacy = await request('GET', '/api/reports/monthly-expenses?month=2026-02');
+  assert.equal(legacy.json.find((row: any) => row.currency === 'CRC').total, -10.3);
+  assert.deepEqual(db.prepare('SELECT * FROM transaction_line ORDER BY id').all(), before);
+});
+
+test('monthly expenses reject unsupported type and invalid calendar month without broadening reads', async () => {
+  for (const query of [
+    'month=2026-13',
+    'month=2026-00',
+    'month=2026-02&type=TRANSFER',
+    'month=2026-02&type=EXPENSE&type=INCOME',
+  ])
+    assert.equal((await request('GET', '/api/reports/monthly-expenses?' + query)).status, 400);
+});

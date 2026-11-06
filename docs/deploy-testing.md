@@ -6,6 +6,10 @@ El [desplegador SSH del Mac está instalado y pasó la aceptación de lectura de
 
 **Última entrega real: [testing del 5 de noviembre de 2026](deployments/2026-11-05-testing.md), solicitud `076e4ba3-c867-4877-864f-9680605fb4fb`. ZA-97 ya preparada: `budget_plan` creada en el primer intento y verificada compatible en el release final, con `transfer_request` y toda la historia conservadas. Web `a64a2bb` / API `1ec71ac`; 16 GET reales y 27 pruebas funcionales sobre la web publicada aprobadas. El registro incluye la incidencia HTTP LAN, rollback de imágenes y corrección. Verificar siempre el estado vigente antes de otra entrega.**
 
+## Compatibilidad del Resumen — ZA-99 (implementación local posterior)
+
+La nueva web requiere una API que implemente `GET /api/reports/monthly-expenses?month=YYYY-MM&type=EXPENSE`, para excluir transferencias del gasto. Promover una pareja del bloque ZA-99; una API anterior puede ignorar el filtro y no es suficiente para este Resumen. Omitir type conserva la consulta anterior. Ver [contrato](dashboard.md). **No requiere DB, tablas o migraciones adicionales.** Su implementación local no se publicó ni desplegó; no modifica el registro real de testing anterior. Verificar en el futuro bloque gastos/actividad del mismo mes y atención independiente del período con datos aislados.
+
 ## Preparación de esquema: ZA-97 — requisito de cada bloque
 
 **Todo bloque que incluya Presupuestos Marea (ZA-97) requiere `budget_plan`, además de `transfer_request` de ZA-90.** Al implementar el instalador el 5 de noviembre de 2026 solo se probaron bases sintéticas; la preparación real se ejecutó después, durante el deploy solicitado y registrado arriba. Las siguientes entregas deben verificar compatibilidad y conservar filas/recibos, sin borrar o recrear la tabla. Las tablas `budget` anteriores no cambian ni se migran. Ver [contrato de presupuestos](budget-plans.md).

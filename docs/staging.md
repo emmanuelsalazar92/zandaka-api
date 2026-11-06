@@ -10,6 +10,8 @@ La API y la web son repositorios independientes. Trabajan sobre staging y se des
 
 ## Pipeline
 
+ZA-99 añade el filtro opcional type=EXPENSE a monthly-expenses para el [Resumen Marea](dashboard.md); al omitirlo conserva el comportamiento anterior. La web del bloque depende de esta extensión. Sin preparación de DB o recálculos. Implementación del 6 de noviembre solo en commits locales, sin push ni deploy; no sustituye la última entrega de testing registrada arriba.
+
 CI se ejecuta en main/staging, pull requests, etiquetas de versión y ejecución manual. quality ejecuta formato, lint, tipos, pruebas y build. Solo después el trabajo docker llama a docker-publish.yml. quality usa permisos de lectura; packages:write queda en el trabajo de publicación.
 
 La imagen ghcr.io/emmanuelsalazar92/zandaka-api:staging contiene plataformas linux/amd64 y linux/arm64. Las etiquetas SHA permiten identificar builds; latest solo se publica desde main. La etiqueta staging cambia con los pushes: registrar el digest para una promoción reproducible.

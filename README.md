@@ -169,7 +169,7 @@ The database file will be created automatically at `./data/presupuesto.db` when 
 - `GET /api/reports/account-balances` - Get all account balances
 - `GET /api/reports/envelope-balances?accountId=1` - Get envelope balances for account
 - `GET /api/reports/negative-envelopes` - Get all envelopes with negative balances
-- `GET /api/reports/monthly-expenses?month=YYYY-MM` - Get monthly expenses by category
+- `GET /api/reports/monthly-expenses?month=YYYY-MM[&type=EXPENSE]` - Category/currency outflows; optional EXPENSE excludes transfers, omitted preserves legacy behavior. See [ZA-99](docs/dashboard.md).
 - `GET /api/reports/category-totals` - Get total amounts by category
 - `GET /api/reports/inconsistencies?accountId=1` - Get reconciliation inconsistencies
 

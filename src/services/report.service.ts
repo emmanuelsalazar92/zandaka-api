@@ -53,12 +53,12 @@ export class ReportService {
     return this.repo.getNegativeEnvelopes();
   }
 
-  getMonthlyExpenses(month: string): MonthlyExpense[] {
-    if (!/^\d{4}-\d{2}$/.test(month)) {
+  getMonthlyExpenses(month: string, expensesOnly = false): MonthlyExpense[] {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
       throw { code: 'VALIDATION_ERROR', message: 'Month must be in YYYY-MM format' };
     }
 
-    return this.repo.getMonthlyExpenses(month);
+    return this.repo.getMonthlyExpenses(month, expensesOnly);
   }
 
   getCategoryTotals(): CategoryTotal[] {

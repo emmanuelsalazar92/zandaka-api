@@ -462,7 +462,7 @@ export class ReportRepository {
     return stmt.all() as NegativeEnvelope[];
   }
 
-  getMonthlyExpenses(month: string): MonthlyExpense[] {
+  getMonthlyExpenses(month: string, expensesOnly = false): MonthlyExpense[] {
     // month format: YYYY-MM
     const stmt = moneyStatement(`
       SELECT 
@@ -477,11 +477,12 @@ export class ReportRepository {
       JOIN category c ON ae.category_id = c.id
       WHERE t.date LIKE ? 
         AND t.type IN ('EXPENSE', 'TRANSFER')
+        AND (? = 'ALL' OR t.type = 'EXPENSE')
         AND decimal_cmp(tl.amount, 0) < 0
       GROUP BY c.id, c.name, a.currency
       ORDER BY CAST(total AS REAL) ASC
     `);
-    return stmt.all(`${month}%`) as MonthlyExpense[];
+    return stmt.all(`${month}%`, expensesOnly ? 'EXPENSE' : 'ALL') as MonthlyExpense[];
   }
 
   getCategoryTotals(): CategoryTotal[] {

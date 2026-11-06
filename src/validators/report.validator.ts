@@ -51,7 +51,8 @@ export const getAccountBalancesSchema = z.object({
 
 export const getMonthlyExpensesSchema = z.object({
   query: z.object({
-    month: z.string().regex(/^\d{4}-\d{2}$/), // YYYY-MM
+    month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/), // YYYY-MM
+    type: z.literal('EXPENSE').optional(),
   }),
 });
 

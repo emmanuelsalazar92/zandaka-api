@@ -286,9 +286,15 @@ router.get('/negative-envelopes', ReportController.getNegativeEnvelopes);
  *         required: true
  *         schema:
  *           type: string
- *           pattern: '^\d{4}-\d{2}$'
+ *           pattern: '^\d{4}-(0[1-9]|1[0-2])$'
  *         description: Month in YYYY-MM format
  *         example: "2024-01"
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [EXPENSE]
+ *         description: Restrict to expense lines; omitted preserves legacy expense and transfer outflows.
  *     responses:
  *       200:
  *         description: Monthly expenses by category
