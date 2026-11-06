@@ -173,8 +173,15 @@ export function buildReportPdfHtml(
     .notes p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
     .trace { border-top: 1px solid #dce4ef; padding-top: 14px; font-size: 10px; color: #56677e; }
     .trace p { margin: 3px 0; }
+    @media screen {
+      body { padding: 24px; background: #e9edf2; }
+      main { width: 100%; max-width: 816px; margin: 0 auto; padding: 48px; background: #fff; box-shadow: 0 2px 12px #172b4614; overflow-wrap: anywhere; }
+      .originals { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr); }
+      .amount, .account-total { white-space: normal; overflow-wrap: anywhere; }
+    }
     @media screen and (max-width: 600px) {
-      body { padding: 16px; }
+      body { padding: 12px; }
+      main { padding: 20px; }
       .masthead { flex-wrap: wrap; }
       .period { text-align: left; }
       .originals { grid-template-columns: 1fr; gap: 12px; }
