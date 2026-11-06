@@ -1,10 +1,10 @@
 # Rama staging y publicación para testing
 
-**Última entrega registrada: [testing del 4 de noviembre de 2026](deployments/2026-11-04-testing.md). Web `ae5161f` y API `c7af11c`; ZA-90 preparada efectivamente. Los pushes posteriores no despliegan testing.**
+**Última entrega registrada: [testing del 5 de noviembre de 2026](deployments/2026-11-05-testing.md). Web `a64a2bb` y API `1ec71ac`; ZA-97 y ZA-90 preparadas y verificadas, historia conservada. Incluye corrección para HTTP LAN y comprobación funcional sobre la web publicada. Los pushes posteriores no despliegan testing.**
 
 La actualización de marca Atlántico unifica el logo de los reportes con la web. El cambio en la API es únicamente el SVG local y documentación, sin cambios de endpoints o DB. Publicar/promover ambas imágenes del bloque para obtener la identidad uniforme; conservar overrides `ZANDAKA_LOGO_PATH` e imágenes personalizadas, cuya prioridad se documenta en `src/assets/logo/README.md`. No requiere migraciones; ZA-90 mantiene su preparación independiente.
 
-**Entrada operativa: [Desplegar un bloque en testing](deploy-testing.md). Incluye el cambio de DB pendiente de ZA-90, respaldo, orden de ejecución, comprobaciones y reversión.**
+**Entrada operativa: [Desplegar un bloque en testing](deploy-testing.md). Incluye verificación/preparación auxiliar de ZA-90 y ZA-97, respaldo, orden de ejecución, comprobaciones y reversión.**
 
 La API y la web son repositorios independientes. Trabajan sobre staging y se despliegan a testing en bloques de X tickets definidos por el propietario, utilizando imágenes publicadas por GitHub. Una publicación de imagen no es un despliegue.
 
@@ -34,4 +34,4 @@ Este bloque funcional añade POST /api/transfers. Antes de promover la pareja de
 
 ## Presupuestos Marea — ZA-97
 
-Consultar [contrato y preparación](budget-plans.md). Requiere preparar budget_plan explícitamente antes de habilitar la nueva planificación; transfer_request sigue siendo necesario para asignar. No modifica presupuestos históricos. La [ampliación del desplegador y cliente Windows](testing-deployer-za97.md) incorpora el perfil explícito za90-za97; su aceptación remota desde Windows ya pasó en 192.168.31.118. Crear un plan nuevo para el bloque solicitado, conforme a [deploy-testing](deploy-testing.md). Esta implementación no prepara ninguna base del usuario ni despliega testing.
+Consultar [contrato y preparación](budget-plans.md). Requiere budget_plan compatible antes de habilitar la nueva planificación; transfer_request sigue siendo necesario para asignar. No modifica presupuestos históricos. La [ampliación del desplegador y cliente Windows](testing-deployer-za97.md) incorpora el perfil explícito za90-za97; su aceptación remota desde Windows pasó en 192.168.31.118. Ambas tablas quedaron preparadas/verificadas en la entrega real del 5 de noviembre enlazada arriba. Al implementar o aceptar la herramienta no se había preparado una base del usuario: esa preparación ocurrió durante el deploy solicitado. Para otro bloque crear un plan nuevo y comprobar su estado, conforme a [deploy-testing](deploy-testing.md).

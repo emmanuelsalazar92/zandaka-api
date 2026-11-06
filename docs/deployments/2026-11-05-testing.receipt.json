@@ -1,0 +1,211 @@
+{
+  "date": "2026-11-05",
+  "timezone": "America/Costa_Rica",
+  "requestId": "076e4ba3-c867-4877-864f-9680605fb4fb",
+  "profile": "za90-za97",
+  "source": {
+    "api": "1ec71ac05897e78b17fbbb2475083ea2314cd340",
+    "web": "a64a2bbdb39682525699e1da24adf997a8a2b46d"
+  },
+  "publication": {
+    "api": {
+      "run": 42067279416,
+      "indexDigest": "sha256:188b9261b1f2d0e05de97a8dc83be2be39eb606c37d8a1f2a21fe5519ee1c197",
+      "manifestDigest": "sha256:ad2ec62be6cb234edfa58c4f9f6872645ea2b8dd8c172a6a999b8682d4846106",
+      "platform": "linux/amd64",
+      "configDigest": "sha256:545d65d2b56907d233b682b0646cb62a27d13ae4b3291a9c3ba6e447cf8596b3"
+    },
+    "web": {
+      "run": 42145411046,
+      "indexDigest": "sha256:621abda89b5ed4675ae8d2e32d68c476bcb3164f67518c7d86ad233d77413c7f",
+      "manifestDigest": "sha256:a4bf9dc64e87eda4b48de7ccee938b88db56b1b791a1def37419dac617bcc7e8",
+      "platform": "linux/arm64",
+      "configDigest": "sha256:81ea4ccdf9b7ce4e65c29ff850391fb39e4eed12582217ecf815b9f853e545c8"
+    }
+  },
+  "receipt": {
+    "protocol": "zandaka-testing-v1",
+    "action": "status",
+    "ok": true,
+    "requestId": "076e4ba3-c867-4877-864f-9680605fb4fb",
+    "phase": "succeeded",
+    "terminal": true,
+    "profile": "za90-za97",
+    "stage": "complete",
+    "result": {
+      "apiDigest": "sha256:ad2ec62be6cb234edfa58c4f9f6872645ea2b8dd8c172a6a999b8682d4846106",
+      "webDigest": "sha256:a4bf9dc64e87eda4b48de7ccee938b88db56b1b791a1def37419dac617bcc7e8",
+      "health": {
+        "api": true,
+        "web": true,
+        "proxy": true
+      },
+      "previous": {
+        "apiDigest": "sha256:75b42cee5af28bf8d4ad03a006f136e8538fb45d0b39e58a35b98efae3e3624f",
+        "webDigest": "sha256:464f600b527059e68961ba7422427f09173ee74e3927d2824a1cd67302fb5b38"
+      },
+      "imageIds": {
+        "api": "sha256:ad2ec62be6cb234edfa58c4f9f6872645ea2b8dd8c172a6a999b8682d4846106",
+        "web": "sha256:a4bf9dc64e87eda4b48de7ccee938b88db56b1b791a1def37419dac617bcc7e8"
+      },
+      "override": "/Users/emmanuelsalazar/.local/share/zandaka-testing-deployer/overrides/076e4ba3-c867-4877-864f-9680605fb4fb.json",
+      "journal": "/Users/emmanuelsalazar/.local/share/zandaka-testing-deployer/jobs/076e4ba3-c867-4877-864f-9680605fb4fb.json",
+      "profile": "za90-za97",
+      "backup": {
+        "sha256": "2d4e3ba2439f5d1ab7abf6e985c3c3a569f9ec1a89b5cb957d352f06658da2ea",
+        "path": "/Users/emmanuelsalazar/.local/share/zandaka-testing-deployer/backups/076e4ba3-c867-4877-864f-9680605fb4fb.db"
+      },
+      "database": {
+        "profile": "za90-za97",
+        "transferRequestReady": true,
+        "historicalUnchanged": true,
+        "historicalFingerprint": "4b7e9b5011f2f790790fc933fe515be17d56de71895a111f10040d9c354f7800",
+        "auxiliaryHistoryUnchanged": true,
+        "preexistingForeignKeyViolations": 0,
+        "created": false,
+        "budgetPlanReady": true,
+        "budgetPlanCreated": false,
+        "budgetPlanState": "compatible"
+      }
+    }
+  },
+  "verification": {
+    "effectiveImagesMatch": true,
+    "databaseMountUnchanged": true,
+    "liveReadOnlyHttp": [
+      {
+        "path": "/",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 38234
+      },
+      {
+        "path": "/budgets",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 35688
+      },
+      {
+        "path": "/budgets/plans/new",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 33938
+      },
+      {
+        "path": "/budgets/legacy",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 45183
+      },
+      {
+        "path": "/transactions",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 40432
+      },
+      {
+        "path": "/reconciliation",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 35217
+      },
+      {
+        "path": "/reports",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 33367
+      },
+      {
+        "path": "/api/health",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 54
+      },
+      {
+        "path": "/api/budget-plans?userId=1&page=1&pageSize=20",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 60
+      },
+      {
+        "path": "/api/budget-plans/options?userId=1",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 8699
+      },
+      {
+        "path": "/api/budgets?userId=1",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 167
+      },
+      {
+        "path": "/api/transactions?userId=1&page=1&pageSize=10",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 5277
+      },
+      {
+        "path": "/api/reports?userId=1",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 3412
+      },
+      {
+        "path": "/api/reports/:existingId",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 419
+      },
+      {
+        "path": "/api/reports/:existingId/html",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 15497
+      },
+      {
+        "path": "/api/reports/:existingId/pdf",
+        "status": 200,
+        "contentType": "application/pdf",
+        "bytes": 110009
+      }
+    ],
+    "browser": {
+      "passed": 27,
+      "failed": 0,
+      "scope": "Published frontend over actual LAN HTTP with synthetic intercepted API; mobile/desktop, light/dark, keyboard, axe, creation/save/assignment/recovery. No financial writes sent to testing."
+    },
+    "financialWritesSent": 0
+  },
+  "incident": {
+    "initialRequestId": "86931c0d-1fd9-455f-bccb-1e6d27fc68e9",
+    "initialWorkerPhase": "succeeded",
+    "initialBrowser": {
+      "passed": 18,
+      "failed": 8
+    },
+    "reason": "crypto.randomUUID unavailable on insecure LAN HTTP; corrected using shared cryptographic getRandomValues UUIDv4 helper.",
+    "rollbackRequestId": "ca36959d-00a9-43be-8634-c9b4ef243c09",
+    "rollbackPhase": "succeeded",
+    "databaseRestored": false,
+    "budgetPlanRetained": true,
+    "initialBudgetPlanCreation": {
+      "profile": "za90-za97",
+      "transferRequestReady": true,
+      "historicalUnchanged": true,
+      "historicalFingerprint": "4b7e9b5011f2f790790fc933fe515be17d56de71895a111f10040d9c354f7800",
+      "auxiliaryHistoryUnchanged": true,
+      "preexistingForeignKeyViolations": 0,
+      "created": false,
+      "budgetPlanReady": true,
+      "budgetPlanCreated": true,
+      "budgetPlanState": "created"
+    },
+    "initialBackup": {
+      "sha256": "ebb1ab5b80e6589042306877033ba1ac8d0f879e8b546b52cf1bcc62955c3038",
+      "path": "/Users/emmanuelsalazar/.local/share/zandaka-testing-deployer/backups/86931c0d-1fd9-455f-bccb-1e6d27fc68e9.db"
+    },
+    "correction": "a64a2bbdb39682525699e1da24adf997a8a2b46d"
+  },
+  "localAuditDirectory": "operaciones\\deploy-testing\\2026-11-05\\076e4ba3-c867-4877-864f-9680605fb4fb"
+}

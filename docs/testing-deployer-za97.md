@@ -2,7 +2,7 @@
 
 Registro del 5 de noviembre de 2026, hora de Costa Rica. CodexMacOS publicó en [SSH de Notion](https://app.notion.com/p/40fb70136a488093be28d20334b0ac4a) las fuentes, hashes y resultados de la ampliación instalada. Windows verificó fuentes/pins, actualizó el cliente y **completó la aceptación remota de solo lectura**. El propietario comunicó la nueva IP `192.168.31.118`; se comprobó la misma identidad de servidor fijada antes de actualizar únicamente HostName en el perfil dedicado. La dirección anterior `.35` produjo timeout y quedó obsoleta. Esta aceptación acredita la herramienta; no acredita preparación de la DB real.
 
-No se ejecutó deploy, rollback, backup o preparación contra la DB del usuario durante esta aceptación. El estado de `budget_plan` en testing sigue sin comprobarse. La instalación del desplegador y la preparación del esquema son pasos distintos.
+No se ejecutó deploy, rollback, backup o preparación contra la DB del usuario durante esta aceptación; en esa fase el estado de `budget_plan` seguía sin comprobarse. La instalación del desplegador y la preparación del esquema son pasos distintos. **Actualización posterior: el propietario solicitó el deploy y ambas tablas quedaron preparadas/verificadas en la [entrega real del 5 de noviembre](deployments/2026-11-05-testing.md), solicitud `076e4ba3-c867-4877-864f-9680605fb4fb`.** Ese registro contiene el estado aplicado y la corrección HTTP LAN; los resultados de aceptación de este documento se conservan como evidencia de la fase previa.
 
 ## Qué cambió
 

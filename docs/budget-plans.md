@@ -1,6 +1,6 @@
 # Presupuestos mensuales — ZA-97
 
-Implementación del 5 de noviembre de 2026. El nuevo plan mensual conserva el origen USD del ingreso, las asignaciones USD/CRC y el libre sin convertir. Usa `budget_plan`, un almacenamiento auxiliar independiente del presupuesto anterior. **No se ha preparado ninguna base del usuario durante la implementación.** Para entregar el bloque seguir [deploy-testing](deploy-testing.md); publicar imágenes no instala el esquema ni despliega testing.
+Implementación del 5 de noviembre de 2026. El nuevo plan mensual conserva el origen USD del ingreso, las asignaciones USD/CRC y el libre sin convertir. Usa `budget_plan`, un almacenamiento auxiliar independiente del presupuesto anterior. **No se preparó una base del usuario durante la implementación; sí se preparó después en la [entrega solicitada de testing del 5 de noviembre](deployments/2026-11-05-testing.md).** Para entregar otro bloque seguir [deploy-testing](deploy-testing.md); publicar imágenes no instala el esquema ni despliega testing.
 
 ## Modelo y compatibilidad
 
@@ -58,6 +58,6 @@ Validación estricta con Zod, consultas parametrizadas, UUID y fechas válidas, 
 
 ## Preparación y pruebas
 
-El instalador compilado `node dist/scripts/enable-budget-plans.js --db <archivo existente de testing>` es aditivo, explícito y repetible; exige archivo existente, conserva tablas históricas y rechaza una definición incompatible o triggers inesperados. No ejecutar sobre la copia productiva de auditoría. La instalación inicial del helper SSH solo conocía ZA-90; la [ampliación posterior](testing-deployer-za97.md) incorpora el perfil za90-za97 y requiere completar su aceptación remota desde Windows antes de usarlo. Ver la guía de despliegue y su estado vigente. La implementación de Presupuestos no prepara el esquema automáticamente.
+El instalador compilado `node dist/scripts/enable-budget-plans.js --db <archivo existente de testing>` es aditivo, explícito y repetible; exige archivo existente, conserva tablas históricas y rechaza una definición incompatible o triggers inesperados. No ejecutar sobre la copia productiva de auditoría. La instalación inicial del helper SSH solo conocía ZA-90; la [ampliación posterior](testing-deployer-za97.md) incorpora el perfil za90-za97 y ya completó la aceptación Windows. La entrega real enlazada arriba preparó/verificó ambas tablas; las futuras entregas deben volver a verificar compatibilidad sin borrar filas o recibos. Ver la guía de despliegue y su estado vigente. El arranque de Presupuestos no prepara el esquema automáticamente.
 
 `tests/budget-plan.test.ts` usa una DB temporal sintética y HTTP real. Comprueba cálculo, redondeo individual, entradas vacías, esquema repetible/incompatible, revisiones, pertenencia, cuerpos estrictos, preparación, aplicación USD/CRC balanceada, reintento, rollback completo, saldo insuficiente, fechas y copia/borrado. `npm test` también ejecuta las suites históricas. Las pruebas web cubren el contrato de recibos, recuperación y lectura accesible. Ninguna prueba usa bases del usuario.
