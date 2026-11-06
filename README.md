@@ -2,7 +2,7 @@
 
 ## Atlántico y staging
 
-**Para desplegar testing, empezar por la [guía operativa del bloque](docs/deploy-testing.md). ZA-97 añade `budget_plan`, pendiente de preparación explícita; ZA-90 requiere `transfer_request`. El worker SSH instalado solo prepara ZA-90 y necesita ampliación revisada para ZA-97. Actualizar imágenes no basta.**
+**Para desplegar testing, empezar por la [guía operativa del bloque](docs/deploy-testing.md). ZA-97 añade `budget_plan`, pendiente de preparación explícita; ZA-90 requiere `transfer_request`. La [ampliación del desplegador y cliente Windows](docs/testing-deployer-za97.md) incorpora el perfil `za90-za97`; su aceptación remota ya pasó desde Windows en 192.168.31.118. Actualizar imágenes no basta.**
 
 Consultar [Presupuestos mensuales Marea](docs/budget-plans.md): ingreso neto/comprobantes, planificación USD/CRC y asignación balanceada de fondos existentes. Sin cambios en presupuestos ni saldos históricos.
 

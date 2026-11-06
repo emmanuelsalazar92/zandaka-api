@@ -1,5 +1,7 @@
 # Instalación única del desplegador de testing
 
+**Ampliación ZA-97:** consultar [perfiles, hashes y aceptación actual](testing-deployer-za97.md). El cliente soporta `plan API_DIGEST WEB_DIGEST za90-za97` y deriva de ese plan el perfil de deploy. El contrato siguiente conserva la referencia inicial ZA-90; sus recibos anteriores continúan legibles. La aceptación remota del perfil nuevo ya pasó desde Windows; crear un plan nuevo para las candidatas del bloque solicitado.
+
 ## Estado y responsables
 
 Este documento conserva el contrato utilizado para preparar e instalar el endpoint. **La instalación del Mac y la aceptación remota de lectura ya se completaron; el estado operativo vigente está en [desplegador instalado](testing-deployer-installed.md). No se ha ejecutado un deploy real.** El propietario pidió automatizar las entregas posteriores al bootstrap SSH exclusivo de prueba.

@@ -1,5 +1,7 @@
 # Desplegador de testing instalado y verificado
 
+**Actualización ZA-97:** la [ampliación y aceptación remota Windows](testing-deployer-za97.md) ya se completaron. Destino vigente `192.168.31.118`, con la misma identidad SSH verificada; el cliente soporta el perfil explícito `za90-za97`. Los hashes y la IP `.35` del registro siguiente corresponden a la instalación inicial. Crear planes nuevos; la aceptación no preparó `budget_plan` ni desplegó testing.
+
 Registro del 4 de noviembre de 2026, hora de Costa Rica. **La instalación local del Mac terminó y Windows verificó su inspección/plan de solo lectura. Después, el propietario solicitó el primer deploy y se completó: [release aplicado y preparación real de DB](deployments/2026-11-04-testing.md).** Una nueva instalación local no forma parte de cada entrega normal; desde Windows se usa el cliente con la clave dedicada ya verificada. Un push o una imagen publicada no ejecuta el desplegador.
 
 ## Destino real descubierto

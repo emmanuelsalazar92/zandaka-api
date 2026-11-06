@@ -10,6 +10,7 @@ export const PROTOCOL = 'zandaka-testing-v1';
 const DIGEST = /^sha256:[a-f0-9]{64}$/;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const PHASES = new Set(['queued', 'running', 'succeeded', 'failed', 'rejected', 'interrupted']);
+const PROFILES = new Set(['za90', 'za90-za97']);
 const exec = promisify(execFile);
 
 export class ClientError extends Error {
@@ -74,17 +75,30 @@ function parseReply(raw, action) {
   requireValue(value.ok === true, 'REMOTE_REQUEST_REJECTED');
   return value;
 }
-function validatePlan(reply, target) {
+function profileOf(value) {
+  const profile = value.profile === undefined ? 'za90' : value.profile;
+  requireValue(PROFILES.has(profile));
+  return profile;
+}
+function validatePlan(reply, target, profile = 'za90') {
   requireValue(reply.readOnly === true && isDigest(reply.planId));
   requireValue(
     reply.target?.apiDigest === target.apiDigest && reply.target?.webDigest === target.webDigest,
   );
+  requireValue(profileOf(reply) === profile);
+  const preparations =
+    profile === 'za90-za97' ? ['transfer_request', 'budget_plan'] : ['transfer_request'];
+  if (profile === 'za90-za97' || reply.preparations !== undefined)
+    requireValue(JSON.stringify(reply.preparations) === JSON.stringify(preparations));
 }
 function validateJob(reply, request) {
   requireValue(
     reply && request && isDigest(request.target?.apiDigest) && isDigest(request.target?.webDigest),
   );
   requireValue(reply.requestId === request.requestId && PHASES.has(reply.phase));
+  const profile = request.operation === 'deploy' ? profileOf(request) : null;
+  if (profile && (profile === 'za90-za97' || reply.profile !== undefined))
+    requireValue(reply.profile === profile);
   requireValue(
     typeof reply.terminal === 'boolean' &&
       reply.terminal === !['queued', 'running'].includes(reply.phase),
@@ -110,6 +124,21 @@ function validateJob(reply, request) {
         /^[a-f0-9]{64}$/.test(result.backup.sha256),
     );
     requireValue(isDigest(result.previous?.apiDigest) && isDigest(result.previous?.webDigest));
+    if (profile === 'za90-za97') {
+      const database = result.database;
+      requireValue(
+        result.profile === profile &&
+          database.profile === profile &&
+          database.budgetPlanReady === true &&
+          database.auxiliaryHistoryUnchanged === true &&
+          typeof database.created === 'boolean' &&
+          typeof database.budgetPlanCreated === 'boolean' &&
+          database.budgetPlanState === (database.budgetPlanCreated ? 'created' : 'compatible'),
+      );
+    } else {
+      requireValue(result.profile === undefined || result.profile === profile);
+      requireValue(result.database.profile === undefined || result.database.profile === profile);
+    }
   } else {
     requireValue(result.rollbackOf === request.releaseId && result.databaseRestored === false);
   }
@@ -137,11 +166,17 @@ export async function runClient(argv, options = {}) {
     options.stateRoot ??
     fileURLToPath(new URL('../../operaciones/ssh-testing/client-state/', import.meta.url));
   const [action, ...args] = argv;
-  let command, target, request, record, requestFile;
+  let command, target, request, record, requestFile, profile;
   if (['probe', 'inspect'].includes(action) && args.length === 0) command = action;
-  else if (action === 'plan' && args.length === 2 && args.every(isDigest)) {
+  else if (
+    action === 'plan' &&
+    [2, 3].includes(args.length) &&
+    args.slice(0, 2).every(isDigest) &&
+    (args[2] === undefined || PROFILES.has(args[2]))
+  ) {
     target = { apiDigest: args[0], webDigest: args[1] };
-    command = `plan ${target.apiDigest} ${target.webDigest}`;
+    profile = args[2] ?? 'za90';
+    command = `plan ${target.apiDigest} ${target.webDigest}${args[2] === undefined ? '' : ` ${profile}`}`;
   } else if (
     action === 'deploy' &&
     [1, 2].includes(args.length) &&
@@ -160,14 +195,16 @@ export async function runClient(argv, options = {}) {
       isDigest(plan.target?.apiDigest) && isDigest(plan.target?.webDigest),
       'INVALID_LOCAL_PLAN',
     );
-    validatePlan(plan, plan.target);
+    profile = profileOf(plan);
+    validatePlan(plan, plan.target, profile);
     request = {
       operation: 'deploy',
       requestId: args[1] ?? randomUUID(),
       planId: plan.planId,
       target: { apiDigest: plan.target.apiDigest, webDigest: plan.target.webDigest },
+      ...(profile === 'za90-za97' ? { profile } : {}),
     };
-    command = `deploy ${request.requestId} ${request.target.apiDigest} ${request.target.webDigest} ${request.planId} za90`;
+    command = `deploy ${request.requestId} ${request.target.apiDigest} ${request.target.webDigest} ${request.planId} ${profile}`;
   } else if (
     action === 'rollback' &&
     [1, 2].includes(args.length) &&
@@ -176,7 +213,9 @@ export async function runClient(argv, options = {}) {
   ) {
     const original = readJson(path.join(root, 'requests', `${args[0]}.json`));
     requireValue(
-      original.request?.operation === 'deploy' && original.request.requestId === args[0],
+      original.request?.operation === 'deploy' &&
+        original.request.requestId === args[0] &&
+        original.requestHash === digestOf(original.request),
       'INVALID_ROLLBACK_SOURCE',
     );
     validateJob(original.reply, original.request);
@@ -197,6 +236,7 @@ export async function runClient(argv, options = {}) {
       request?.requestId === args[0] && ['deploy', 'rollback'].includes(request.operation),
       'INVALID_LOCAL_REQUEST',
     );
+    requireValue(record.requestHash === digestOf(request), 'INVALID_LOCAL_REQUEST');
     command = `status ${args[0]}`;
   } else throw new ClientError('INVALID_ARGUMENTS');
 
@@ -226,12 +266,14 @@ export async function runClient(argv, options = {}) {
     reply = parseReply(raw, action);
     if (action === 'inspect') requireValue(reply.readOnly === true);
     if (action === 'plan') {
-      validatePlan(reply, target);
+      validatePlan(reply, target, profile);
       const file = path.join(root, 'plans', `${reply.planId.slice(7)}.json`);
       if (fs.existsSync(file)) {
         const prior = readJson(file);
         requireValue(
-          prior.planId === reply.planId && digestOf(prior.target) === digestOf(target),
+          prior.planId === reply.planId &&
+            digestOf(prior.target) === digestOf(target) &&
+            profileOf(prior) === profile,
           'LOCAL_PLAN_CONFLICT',
         );
       } else writeJson(file, reply, true);

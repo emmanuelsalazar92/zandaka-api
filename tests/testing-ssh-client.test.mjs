@@ -93,6 +93,10 @@ test('invalid verbs, digests, UUIDs and shell tokens never reach SSH', async (t)
     ['plan', `${API}\n`, WEB],
     ['plan', API, `${WEB}\r\n`],
     ['plan', API.toUpperCase(), WEB],
+    ['plan', API, WEB, 'unknown'],
+    ['plan', API, WEB, 'za90-za97;id'],
+    ['plan', API, WEB, 'za90-za97\n'],
+    ['plan', API, WEB, 'za90-za97', 'extra'],
     ['deploy', '../../private'],
     ['deploy', PLAN, 'bad-id'],
     ['status', '$(id)'],
@@ -268,4 +272,192 @@ test('missing plans and rollback receipts never call the server', async (t) => {
   const context = fixture(t);
   await rejected(runClient(['deploy', PLAN, ID], context), 'LOCAL_STATE_NOT_FOUND');
   await rejected(runClient(['rollback', ID, ROLLBACK], context), 'LOCAL_STATE_NOT_FOUND');
+});
+
+const budgetPlan = () => ({
+  ...plan(),
+  profile: 'za90-za97',
+  preparations: ['transfer_request', 'budget_plan'],
+});
+const budgetComplete = () => {
+  const reply = complete();
+  reply.profile = 'za90-za97';
+  reply.result.profile = 'za90-za97';
+  Object.assign(reply.result.database, {
+    profile: 'za90-za97',
+    budgetPlanReady: true,
+    auxiliaryHistoryUnchanged: true,
+    created: false,
+    budgetPlanCreated: true,
+    budgetPlanState: 'created',
+  });
+  return reply;
+};
+async function prepareBudget(t) {
+  const context = fixture(t);
+  context.transport = async (command) => {
+    assert.equal(command, `plan ${API} ${WEB} za90-za97`);
+    return JSON.stringify(budgetPlan());
+  };
+  await runClient(['plan', API, WEB, 'za90-za97'], context);
+  return context;
+}
+test('ZA97 plan binds the explicit profile and persists it before deployment transport', async (t) => {
+  const context = await prepareBudget(t);
+  context.transport = async (command) => {
+    assert.equal(command, `deploy ${ID} ${API} ${WEB} ${PLAN} za90-za97`);
+    const stored = JSON.parse(
+      fs.readFileSync(path.join(context.stateRoot, 'requests', `${ID}.json`)),
+    );
+    assert.equal(stored.request.profile, 'za90-za97');
+    assert.equal(stored.lastAttempt, 'not_confirmed');
+    return JSON.stringify({ ...queued(), profile: 'za90-za97' });
+  };
+  assert.equal((await runClient(['deploy', PLAN, ID], context)).phase, 'queued');
+});
+test('ZA97 rejects downgrade, unknown profile and incomplete or reordered preparations before storing a plan', async (t) => {
+  const context = fixture(t);
+  for (const value of [
+    plan(),
+    { ...budgetPlan(), profile: 'za90' },
+    { ...budgetPlan(), profile: 'unknown' },
+    { ...budgetPlan(), preparations: ['transfer_request'] },
+    { ...budgetPlan(), preparations: ['budget_plan', 'transfer_request'] },
+    { ...budgetPlan(), profile: null },
+  ]) {
+    context.transport = async () => JSON.stringify(value);
+    await rejected(runClient(['plan', API, WEB, 'za90-za97'], context), 'UNVERIFIABLE_RESPONSE');
+    assert.equal(fs.existsSync(path.join(context.stateRoot, 'plans')), false);
+  }
+});
+test('ZA90 default cannot silently receive a ZA97 plan', async (t) => {
+  const context = fixture(t);
+  context.transport = async () => JSON.stringify(budgetPlan());
+  await rejected(runClient(['plan', API, WEB], context), 'UNVERIFIABLE_RESPONSE');
+});
+test('ZA97 queued acknowledgement must identify the same profile', async (t) => {
+  const context = await prepareBudget(t);
+  for (const value of [queued(), { ...queued(), profile: 'za90' }]) {
+    context.transport = async () => JSON.stringify(value);
+    await rejected(runClient(['deploy', PLAN, ID], context), 'UNVERIFIABLE_RESPONSE');
+  }
+});
+test('ZA97 success requires both schema confirmations, auxiliary preservation and consistent creation state', async (t) => {
+  const context = await prepareBudget(t);
+  context.transport = async () => JSON.stringify({ ...queued(), profile: 'za90-za97' });
+  await runClient(['deploy', PLAN, ID], context);
+  for (const change of [
+    (r) => delete r.profile,
+    (r) => (r.profile = 'za90'),
+    (r) => delete r.result.profile,
+    (r) => (r.result.database.profile = 'za90'),
+    (r) => delete r.result.database.budgetPlanReady,
+    (r) => (r.result.database.budgetPlanReady = false),
+    (r) => delete r.result.database.auxiliaryHistoryUnchanged,
+    (r) => (r.result.database.auxiliaryHistoryUnchanged = false),
+    (r) => delete r.result.database.created,
+    (r) => delete r.result.database.budgetPlanCreated,
+    (r) => (r.result.database.budgetPlanState = 'compatible'),
+  ]) {
+    const reply = budgetComplete();
+    change(reply);
+    context.transport = async () => JSON.stringify(reply);
+    await rejected(runClient(['status', ID], context), 'UNVERIFIABLE_RESPONSE');
+  }
+  for (const created of [true, false]) {
+    const reply = budgetComplete();
+    reply.result.database.budgetPlanCreated = created;
+    reply.result.database.budgetPlanState = created ? 'created' : 'compatible';
+    context.transport = async () => JSON.stringify(reply);
+    assert.equal((await runClient(['status', ID], context)).phase, 'succeeded');
+  }
+});
+test('ZA97 transport loss preserves exact intent across retry and status recovery', async (t) => {
+  const context = await prepareBudget(t),
+    commands = [];
+  context.transport = async (command) => {
+    commands.push(command);
+    throw Error('lost ACK');
+  };
+  await rejected(runClient(['deploy', PLAN, ID], context), 'CONNECTION_UNCERTAIN');
+  const file = path.join(context.stateRoot, 'requests', `${ID}.json`),
+    original = JSON.parse(fs.readFileSync(file));
+  context.transport = async (command) => {
+    commands.push(command);
+    return JSON.stringify({ ...queued(), profile: 'za90-za97' });
+  };
+  await runClient(['deploy', PLAN, ID], context);
+  assert.equal(commands[0], commands[1]);
+  context.transport = async (command) => {
+    assert.equal(command, `status ${ID}`);
+    return JSON.stringify(budgetComplete());
+  };
+  await runClient(['status', ID], context);
+  const recovered = JSON.parse(fs.readFileSync(file));
+  assert.deepEqual(recovered.request, original.request);
+  assert.equal(recovered.requestHash, original.requestHash);
+  assert.equal(recovered.lastAttempt, 'confirmed');
+});
+test('changing profile cannot reuse a prior request UUID even with the same target images', async (t) => {
+  const context = await prepareBudget(t);
+  context.transport = async () => JSON.stringify({ ...queued(), profile: 'za90-za97' });
+  await runClient(['deploy', PLAN, ID], context);
+  const other = `sha256:${'9'.repeat(64)}`;
+  context.transport = async () => JSON.stringify({ ...plan(), planId: other });
+  await runClient(['plan', API, WEB], context);
+  context.transport = async () => assert.fail('Profile conflict reached SSH');
+  await rejected(runClient(['deploy', other, ID], context), 'REQUEST_ID_CONFLICT');
+});
+test('tampered local profile fails before status transport', async (t) => {
+  const context = await prepareBudget(t);
+  context.transport = async () => JSON.stringify({ ...queued(), profile: 'za90-za97' });
+  await runClient(['deploy', PLAN, ID], context);
+  const file = path.join(context.stateRoot, 'requests', `${ID}.json`),
+    record = JSON.parse(fs.readFileSync(file));
+  record.request.profile = 'za90';
+  fs.writeFileSync(file, JSON.stringify(record));
+  context.transport = async () => assert.fail('Tampered intent reached SSH');
+  await rejected(runClient(['status', ID], context), 'INVALID_LOCAL_REQUEST');
+  await rejected(runClient(['rollback', ID, ROLLBACK], context), 'INVALID_ROLLBACK_SOURCE');
+});
+test('historical ZA90 request shape and hash survive a new-client status query', async (t) => {
+  const context = await prepare(t);
+  context.transport = async () => JSON.stringify(queued());
+  await runClient(['deploy', PLAN, ID], context);
+  const file = path.join(context.stateRoot, 'requests', `${ID}.json`),
+    before = JSON.parse(fs.readFileSync(file));
+  assert.equal(Object.hasOwn(before.request, 'profile'), false);
+  context.transport = async () => JSON.stringify(complete());
+  await runClient(['status', ID], context);
+  const after = JSON.parse(fs.readFileSync(file));
+  assert.deepEqual(after.request, before.request);
+  assert.equal(after.requestHash, before.requestHash);
+});
+test('rollback of a confirmed ZA97 deployment still preserves the database', async (t) => {
+  const context = await prepareBudget(t);
+  context.transport = async () => JSON.stringify({ ...queued(), profile: 'za90-za97' });
+  await runClient(['deploy', PLAN, ID], context);
+  context.transport = async () => JSON.stringify(budgetComplete());
+  await runClient(['status', ID], context);
+  context.transport = async (command) => {
+    assert.equal(command, `rollback ${ROLLBACK} ${ID}`);
+    return JSON.stringify({ ...queued('rollback'), requestId: ROLLBACK });
+  };
+  await runClient(['rollback', ID, ROLLBACK], context);
+  context.transport = async () =>
+    JSON.stringify({
+      protocol: PROTOCOL,
+      action: 'status',
+      ok: true,
+      requestId: ROLLBACK,
+      phase: 'succeeded',
+      terminal: true,
+      result: {
+        ...PREVIOUS,
+        health: { api: true, web: true, proxy: true },
+        rollbackOf: ID,
+        databaseRestored: false,
+      },
+    });
+  assert.equal((await runClient(['status', ROLLBACK], context)).phase, 'succeeded');
 });
