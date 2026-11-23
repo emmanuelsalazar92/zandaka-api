@@ -1,5 +1,7 @@
 # Rama staging y publicación para testing
 
+**Último estado operativo observado: [deploy del 22 de noviembre de 2026](deployments/2026-11-22-testing.md). Web 237d40f / API fc65024; solicitud 3474c9b8-8970-4b45-b10a-d55a38ca8b64. Respaldo e historia conservados; auxiliares compatibles. Salud operativa aprobada, sin repetir suites ni declarar aceptación humana. Los estados anteriores son historia.**
+
 Preparación local del 22 de noviembre: ZA-108/109 añade protocolo, evidencia de zoom nativo y comparación de rendimiento reconstruida, sin nuevo deploy ni cambios de DB. Ver [entrega reversible](redesign-release.md). Las notas de implementación anteriores se conservan como historia; el último estado remoto observado se identifica abajo.
 
 **Último estado operativo observado: [deploy del 6 de noviembre de 2026](deployments/2026-11-06-testing.md). Web c22cfc1 / API af90bae, host 192.168.31.76. Respaldo e historia conservados; auxiliares compatibles. Sin pruebas funcionales por instrucción del propietario. Los registros anteriores se conservan como historia.**

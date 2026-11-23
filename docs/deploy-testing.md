@@ -1,5 +1,7 @@
 # Desplegar un bloque en testing
 
+**Último deploy operativo: [22 de noviembre de 2026](deployments/2026-11-22-testing.md), solicitud 3474c9b8-8970-4b45-b10a-d55a38ca8b64. Web 237d40f / API fc65024 en 192.168.31.76, auxiliares ya compatibles e historia conservada. Sin repetición de suites ni aceptación humana. Reconfirmar estado vigente en cada entrega; los registros inferiores son historia previa.**
+
 **Último deploy operativo: [6 de noviembre de 2026](deployments/2026-11-06-testing.md), solicitud a41b3979-3590-4549-a825-e6b28bddfe8e. Web c22cfc1 / API af90bae en 192.168.31.76. Auxiliares existentes compatibles e historia conservada. Sin pruebas funcionales por petición explícita; aceptación funcional pendiente. Las referencias inferiores a .118 y al bloque anterior son históricas; inspeccionar siempre el destino vigente.**
 
 Esta es la guía de entrada para retomar un despliegue sin depender del chat. Leer también [staging](staging.md) y los requisitos de los tickets posteriores que se incluyan en el bloque. El propietario solicita cuándo desplegar; no se despliega por cada ticket. Los proyectos web y API se promueven juntos mediante imágenes publicadas por GitHub desde `staging`.

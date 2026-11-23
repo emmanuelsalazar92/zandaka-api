@@ -1,0 +1,409 @@
+{
+  "date": "2026-11-22",
+  "timezone": "America/Costa_Rica",
+  "requestId": "3474c9b8-8970-4b45-b10a-d55a38ca8b64",
+  "profile": "za90-za97",
+  "selection": {
+    "requestId": "3474c9b8-8970-4b45-b10a-d55a38ca8b64",
+    "profile": "za90-za97",
+    "date": "2026-11-22",
+    "tickets": ["ZA-107", "ZA-108", "ZA-109"],
+    "api": {
+      "repository": "emmanuelsalazar92/zandaka-api",
+      "commit": "fc650240de4e536ac7be2bc1a267f1d0b1126bd6",
+      "architecture": "amd64",
+      "indexDigest": "sha256:553a7edcf4cb3210c8d8dd575cf2c4bf596c308062d34e48ec2811e7c1f99b4e"
+    },
+    "web": {
+      "repository": "emmanuelsalazar92/zandaka-web",
+      "commit": "237d40fa5ac290c310d1ea8ad72048559435d608",
+      "architecture": "arm64",
+      "indexDigest": "sha256:2d87348f4e7bc7e77f6b580033f7a0cf73e61687e621330094b19004b42f240f"
+    },
+    "reason": "Owner requested testing deployment after reporting publication complete. Deploy operational scope; exact published images, backup, existing schema compatibility and health. No repeated test suites, CI review, human acceptance or financial test writes."
+  },
+  "publication": {
+    "api": {
+      "repository": "ghcr.io/emmanuelsalazar92/zandaka-api",
+      "indexDigest": "sha256:553a7edcf4cb3210c8d8dd575cf2c4bf596c308062d34e48ec2811e7c1f99b4e",
+      "manifestDigest": "sha256:7d9728fc7ba755e03fd45e7e9920e9deda1c33fbeac3488edc44537faed62524",
+      "platform": "linux/amd64",
+      "revision": "fc650240de4e536ac7be2bc1a267f1d0b1126bd6",
+      "configDigest": "sha256:6ed3850ff19706b93989429a05b4ffc5cbe81012e4429575a60e98d6236e52db",
+      "index": {
+        "schemaVersion": 2,
+        "mediaType": "application/vnd.oci.image.index.v1+json",
+        "manifests": [
+          {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:7d9728fc7ba755e03fd45e7e9920e9deda1c33fbeac3488edc44537faed62524",
+            "size": 2390,
+            "platform": {
+              "architecture": "amd64",
+              "os": "linux"
+            }
+          },
+          {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:964f6f7653481f489bad7926f769f15721c4982c2cf17fdf941461c8404be967",
+            "size": 2390,
+            "platform": {
+              "architecture": "arm64",
+              "os": "linux"
+            }
+          },
+          {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:f5e8605840921915f07ad03e1350e8092a6b5c75ded2cae5d5cf84d0a9fd759b",
+            "size": 838,
+            "annotations": {
+              "vnd.docker.reference.digest": "sha256:7d9728fc7ba755e03fd45e7e9920e9deda1c33fbeac3488edc44537faed62524",
+              "vnd.docker.reference.type": "attestation-manifest"
+            },
+            "platform": {
+              "architecture": "unknown",
+              "os": "unknown"
+            }
+          },
+          {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:52af3b4a56bb9ff49e48684fef3feea1c1dbd841897bd907c04463075ff529b7",
+            "size": 838,
+            "annotations": {
+              "vnd.docker.reference.digest": "sha256:964f6f7653481f489bad7926f769f15721c4982c2cf17fdf941461c8404be967",
+              "vnd.docker.reference.type": "attestation-manifest"
+            },
+            "platform": {
+              "architecture": "unknown",
+              "os": "unknown"
+            }
+          }
+        ]
+      },
+      "manifest": {
+        "schemaVersion": 2,
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "config": {
+          "mediaType": "application/vnd.oci.image.config.v1+json",
+          "digest": "sha256:6ed3850ff19706b93989429a05b4ffc5cbe81012e4429575a60e98d6236e52db",
+          "size": 9113
+        },
+        "layers": [
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:ff86ea2e5edce334d19a34fbc65d1a511aa1fc823dba1110422f991aa56b44d4",
+            "size": 28236252
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:e54aec64c365815cd7b91e718f00ac6e625562b1de09036b38614621b42c7582",
+            "size": 3308
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:804d4d68057cbb26cbcde9a735148ebc6589911bad32cf9dbddb5b0ba878bf1f",
+            "size": 41422030
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:64cfb949317c9824fd081d55c59a7225bfe1f650c6395ba42d7ed0ccf51993d2",
+            "size": 1712673
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:3c02fd806613748139b8b8a14a69ae3518a1b0e863c57c35aada3b92ed87fb31",
+            "size": 447
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:28dd287bee78ad29a5ca423a4d115258f2bf763a7fa73de4064c6ff3f8c9041b",
+            "size": 92
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:13678720ac57fae9e97853d14feb0cb56e3ee416da193b027bb39f5cc8b36ce6",
+            "size": 44517
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:16ae704a6a5afdaa67e176ab661c243c7d8ace7bed0e00ccbcd26bf70ee3e2a4",
+            "size": 347070323
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:3856760ae22900a7cc79428d42bdb1f3b1fb6e10632fd81a27a2b5b0744cd0f7",
+            "size": 75348616
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:1c78ff65606654a8fa945a47f13b5096344b3e2bcde0a23b02192920256a4d64",
+            "size": 195054
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:d02331f7516a041e9794c60b79a8ff674c1eaa8ba2d9686f9edee81d7ae9c435",
+            "size": 206588
+          }
+        ]
+      }
+    },
+    "web": {
+      "repository": "ghcr.io/emmanuelsalazar92/zandaka-web",
+      "indexDigest": "sha256:2d87348f4e7bc7e77f6b580033f7a0cf73e61687e621330094b19004b42f240f",
+      "manifestDigest": "sha256:e2d754dd414d15ead3d8dd61282496360767b3bfee0371250be2278b5419e6ed",
+      "platform": "linux/arm64",
+      "revision": "237d40fa5ac290c310d1ea8ad72048559435d608",
+      "configDigest": "sha256:f7c581106186d394f7d5fc30eb2842e597150502211d43f804e793b811d09a62",
+      "index": {
+        "schemaVersion": 2,
+        "mediaType": "application/vnd.oci.image.index.v1+json",
+        "manifests": [
+          {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:4ec60487c6ad5107707e04a4b8cfff8c7c4ac33561da783af1cc53c8cae55f44",
+            "size": 2198,
+            "platform": {
+              "architecture": "amd64",
+              "os": "linux"
+            }
+          },
+          {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:e2d754dd414d15ead3d8dd61282496360767b3bfee0371250be2278b5419e6ed",
+            "size": 2198,
+            "platform": {
+              "architecture": "arm64",
+              "os": "linux"
+            }
+          },
+          {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:33f8d3bc5f50bd919a408b82f8bd9f17be06a305505ad6bfc628a892539fa547",
+            "size": 838,
+            "annotations": {
+              "vnd.docker.reference.digest": "sha256:4ec60487c6ad5107707e04a4b8cfff8c7c4ac33561da783af1cc53c8cae55f44",
+              "vnd.docker.reference.type": "attestation-manifest"
+            },
+            "platform": {
+              "architecture": "unknown",
+              "os": "unknown"
+            }
+          },
+          {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:8d381394e20bf84d0262804a2d8e32d3158ef6b821d33ef976ab10e14b68759c",
+            "size": 838,
+            "annotations": {
+              "vnd.docker.reference.digest": "sha256:e2d754dd414d15ead3d8dd61282496360767b3bfee0371250be2278b5419e6ed",
+              "vnd.docker.reference.type": "attestation-manifest"
+            },
+            "platform": {
+              "architecture": "unknown",
+              "os": "unknown"
+            }
+          }
+        ]
+      },
+      "manifest": {
+        "schemaVersion": 2,
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "config": {
+          "mediaType": "application/vnd.oci.image.config.v1+json",
+          "digest": "sha256:f7c581106186d394f7d5fc30eb2842e597150502211d43f804e793b811d09a62",
+          "size": 9124
+        },
+        "layers": [
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:46ac7a0b9811e518f6b5a0d52940c913a1a560a8f78b82267804914e50244d2d",
+            "size": 28116114
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:93f1e44b7642d94207805933fd52fd7b5a5a684cf69b340ae3df415754a0a614",
+            "size": 3310
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:b007268d7e627275df714577a74837e42ee450306295c30b987d482c667fbedf",
+            "size": 41385895
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:791fd1b17847094616ace4f04066a269c36bb89561d5d7f1a0dba4f615e16716",
+            "size": 1712620
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:ed7f19ee07f992aa9ce9fa1ca75db4ae36641464e404f6b720b4afce41cab9e4",
+            "size": 447
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:e0c3e55ecefad400d521adbc5b08a4418b3d9572bab7f0da2821bfa084cba01d",
+            "size": 92
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:dac8bd5a58a13f966dff99260a45544a1489118c6b4a748c46016a05543164da",
+            "size": 88005
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:fdcd1acdfee754d88bf5e01222e70660a920cf907b947a90c4a8d387ce55678a",
+            "size": 398726136
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:19bb8c41e10beea2f220a014f0fe0366d2f118608b121ddb343a70aa57d842ad",
+            "size": 385098
+          },
+          {
+            "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+            "digest": "sha256:8a6e94bf5f0ce4291da0f4ee8c0487bd4b301ceeea2d2787de36b3912fe44896",
+            "size": 4108206
+          }
+        ]
+      }
+    }
+  },
+  "receipt": {
+    "protocol": "zandaka-testing-v1",
+    "action": "status",
+    "ok": true,
+    "requestId": "3474c9b8-8970-4b45-b10a-d55a38ca8b64",
+    "phase": "succeeded",
+    "terminal": true,
+    "profile": "za90-za97",
+    "stage": "complete",
+    "result": {
+      "apiDigest": "sha256:7d9728fc7ba755e03fd45e7e9920e9deda1c33fbeac3488edc44537faed62524",
+      "webDigest": "sha256:e2d754dd414d15ead3d8dd61282496360767b3bfee0371250be2278b5419e6ed",
+      "health": {
+        "api": true,
+        "web": true,
+        "proxy": true
+      },
+      "previous": {
+        "apiDigest": "sha256:f1664fc4c9c3d50a0758decb871dc062acceb0cd6c2067763c5058fcf11724a4",
+        "webDigest": "sha256:fd3e09526d8faec56fd2e9e1d765b8b8d29b29c5a5629756b3d601bdfb57f7fd"
+      },
+      "imageIds": {
+        "api": "sha256:7d9728fc7ba755e03fd45e7e9920e9deda1c33fbeac3488edc44537faed62524",
+        "web": "sha256:e2d754dd414d15ead3d8dd61282496360767b3bfee0371250be2278b5419e6ed"
+      },
+      "override": "/Users/emmanuelsalazar/.local/share/zandaka-testing-deployer/overrides/3474c9b8-8970-4b45-b10a-d55a38ca8b64.json",
+      "journal": "/Users/emmanuelsalazar/.local/share/zandaka-testing-deployer/jobs/3474c9b8-8970-4b45-b10a-d55a38ca8b64.json",
+      "profile": "za90-za97",
+      "backup": {
+        "sha256": "68abe8c787bc443e4949ce5170c58ff29357f42bc47e10e9428dc41300a71ec8",
+        "path": "/Users/emmanuelsalazar/.local/share/zandaka-testing-deployer/backups/3474c9b8-8970-4b45-b10a-d55a38ca8b64.db"
+      },
+      "database": {
+        "profile": "za90-za97",
+        "transferRequestReady": true,
+        "historicalUnchanged": true,
+        "historicalFingerprint": "d5dd9bd51e87a83b5b301ee45e4205c36a132412c65c75c56cd841ec3a025aeb",
+        "auxiliaryHistoryUnchanged": true,
+        "preexistingForeignKeyViolations": 0,
+        "created": false,
+        "budgetPlanReady": true,
+        "budgetPlanCreated": false,
+        "budgetPlanState": "compatible"
+      }
+    }
+  },
+  "inspection": {
+    "protocol": "zandaka-testing-v1",
+    "action": "inspect",
+    "ok": true,
+    "readOnly": true,
+    "capabilities": {
+      "inspect": true,
+      "plan": true,
+      "deploy": true,
+      "rollback": true,
+      "status": true,
+      "databasePreparation": "za90-and-za97-transactional",
+      "deploymentProfiles": ["za90", "za90-za97"],
+      "budgetPlanPreparation": true,
+      "databaseStateInspected": false,
+      "databaseRestore": false
+    },
+    "project": "zandaka-testing",
+    "context": "desktop-linux",
+    "daemonArchitecture": "aarch64",
+    "configurationHash": "sha256:3f7798f94f41ac3f3e7c7083e1ed5411b207a48c8eb2bd21c962465c41ce21aa",
+    "managed": {
+      "releaseId": "3474c9b8-8970-4b45-b10a-d55a38ca8b64",
+      "override": "/Users/emmanuelsalazar/.local/share/zandaka-testing-deployer/overrides/3474c9b8-8970-4b45-b10a-d55a38ca8b64.json",
+      "overrideHash": "sha256:6b845f2fa50ac1691c88f20c2f17fa93b4036253836231d39d0d74d97602fd15"
+    },
+    "services": {
+      "api": {
+        "service": "backend",
+        "container": "zandaka-testing-backend",
+        "containerId": "37421b4e76c33bab274601e5d23724d2853be3d67c8b8fbce1f9e91fb543c9d7",
+        "image": "ghcr.io/emmanuelsalazar92/zandaka-api@sha256:7d9728fc7ba755e03fd45e7e9920e9deda1c33fbeac3488edc44537faed62524",
+        "imageId": "sha256:7d9728fc7ba755e03fd45e7e9920e9deda1c33fbeac3488edc44537faed62524",
+        "digest": "sha256:7d9728fc7ba755e03fd45e7e9920e9deda1c33fbeac3488edc44537faed62524",
+        "architecture": "amd64",
+        "revision": "fc650240de4e536ac7be2bc1a267f1d0b1126bd6",
+        "mounts": [
+          {
+            "type": "bind",
+            "source": "/Users/emmanuelsalazar/Documents/MacOS/Testing/data",
+            "destination": "/app/data",
+            "rw": true
+          }
+        ]
+      },
+      "web": {
+        "service": "frontend",
+        "container": "zandaka-testing-frontend",
+        "containerId": "2325753f16a0d0ac72b75ca2c02e952b5c222f690c7b073df375c414805d1ab8",
+        "image": "ghcr.io/emmanuelsalazar92/zandaka-web@sha256:e2d754dd414d15ead3d8dd61282496360767b3bfee0371250be2278b5419e6ed",
+        "imageId": "sha256:e2d754dd414d15ead3d8dd61282496360767b3bfee0371250be2278b5419e6ed",
+        "digest": "sha256:e2d754dd414d15ead3d8dd61282496360767b3bfee0371250be2278b5419e6ed",
+        "architecture": "arm64",
+        "revision": "237d40fa5ac290c310d1ea8ad72048559435d608",
+        "mounts": []
+      }
+    },
+    "database": {
+      "containerPath": "/app/data/presupuesto.db",
+      "hostPath": "/Users/emmanuelsalazar/Documents/MacOS/Testing/data/presupuesto.db",
+      "mount": {
+        "type": "bind",
+        "source": "/Users/emmanuelsalazar/Documents/MacOS/Testing/data",
+        "destination": "/app/data"
+      },
+      "identity": {
+        "device": 16777232,
+        "inode": 194679734
+      }
+    },
+    "urls": {
+      "web": "http://127.0.0.1:3101/",
+      "proxy": "http://127.0.0.1:3101/api/health"
+    },
+    "locations": {
+      "backups": "/Users/emmanuelsalazar/.local/share/zandaka-testing-deployer/backups",
+      "journals": "/Users/emmanuelsalazar/.local/share/zandaka-testing-deployer/jobs",
+      "locks": "/Users/emmanuelsalazar/.local/share/zandaka-testing-deployer/locks"
+    }
+  },
+  "verification": {
+    "effectiveImagesMatch": true,
+    "databaseMountUnchanged": true,
+    "health": {
+      "api": true,
+      "web": true,
+      "proxy": true
+    },
+    "testsRun": false,
+    "ciReviewed": false,
+    "humanAcceptance": false,
+    "scope": "Operational deployment requested after owner reported publication complete; no repeated suites or financial test writes."
+  }
+}
