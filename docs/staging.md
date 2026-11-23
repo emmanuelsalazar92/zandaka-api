@@ -1,6 +1,10 @@
 # Rama staging y publicación para testing
 
-**Última entrega registrada: [testing del 5 de noviembre de 2026](deployments/2026-11-05-testing.md). Web `a64a2bb` y API `1ec71ac`; ZA-97 y ZA-90 preparadas y verificadas, historia conservada. Incluye corrección para HTTP LAN y comprobación funcional sobre la web publicada. Los pushes posteriores no despliegan testing.**
+Preparación local del 22 de noviembre: ZA-108/109 añade protocolo, evidencia de zoom nativo y comparación de rendimiento reconstruida, sin nuevo deploy ni cambios de DB. Ver [entrega reversible](redesign-release.md). Las notas de implementación anteriores se conservan como historia; el último estado remoto observado se identifica abajo.
+
+**Último estado operativo observado: [deploy del 6 de noviembre de 2026](deployments/2026-11-06-testing.md). Web c22cfc1 / API af90bae, host 192.168.31.76. Respaldo e historia conservados; auxiliares compatibles. Sin pruebas funcionales por instrucción del propietario. Los registros anteriores se conservan como historia.**
+
+**Entrega anterior registrada: [testing del 5 de noviembre de 2026](deployments/2026-11-05-testing.md). Web `a64a2bb` y API `1ec71ac`; ZA-97 y ZA-90 preparadas y verificadas, historia conservada. Incluye corrección para HTTP LAN y comprobación funcional sobre la web publicada. Los pushes posteriores no despliegan testing.**
 
 La actualización de marca Atlántico unifica el logo de los reportes con la web. El cambio en la API es únicamente el SVG local y documentación, sin cambios de endpoints o DB. Publicar/promover ambas imágenes del bloque para obtener la identidad uniforme; conservar overrides `ZANDAKA_LOGO_PATH` e imágenes personalizadas, cuya prioridad se documenta en `src/assets/logo/README.md`. No requiere migraciones; ZA-90 mantiene su preparación independiente.
 
