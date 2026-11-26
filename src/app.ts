@@ -26,6 +26,8 @@ import projectRoutes from './routes/project.routes';
 
 export function createApp(): Express {
   const app = express();
+  // Keep the Express 4 query shape so ambiguous identifiers still fail validation.
+  app.set('query parser', 'extended');
   const corsOrigins =
     process.env.CORS_ORIGINS ??
     process.env.CORS_ORIGIN ??
@@ -99,11 +101,19 @@ export function createApp(): Express {
   app.use('/api/reconciliations', measureRouter('/api/reconciliations'), reconciliationRoutes);
   app.use('/api/reports', measureRouter('/api/reports'), reportRoutes);
   app.use('/api/exchange-rate', measureRouter('/api/exchange-rate'), exchangeRateRoutes);
-  app.use('/api/auto-assignment-rules', measureRouter('/api/auto-assignment-rules'), autoAssignmentRuleRoutes);
+  app.use(
+    '/api/auto-assignment-rules',
+    measureRouter('/api/auto-assignment-rules'),
+    autoAssignmentRuleRoutes,
+  );
   app.use('/api/users', measureRouter('/api/users'), userRoutes);
   app.use('/api/budgets', measureRouter('/api/budgets'), budgetRoutes);
   app.use('/api/budget-plans', measureRouter('/api/budget-plans'), budgetPlanRoutes);
-  app.use('/api/settings/cash-denominations', measureRouter('/api/settings/cash-denominations'), cashDenominationRoutes);
+  app.use(
+    '/api/settings/cash-denominations',
+    measureRouter('/api/settings/cash-denominations'),
+    cashDenominationRoutes,
+  );
   app.use('/api/payroll-rules', measureRouter('/api/payroll-rules'), payrollRuleRoutes);
   app.use('/api/payroll', measureRouter('/api/payroll'), payrollRoutes);
 

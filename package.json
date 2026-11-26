@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "description": "Personal budgeting backend with envelope system",
   "main": "dist/server.js",
+  "engines": {
+    "node": ">=26.13.1 <27"
+  },
   "scripts": {
     "dev": "nodemon",
     "build": "tsc",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint . --ext .ts,.js,.mjs --max-warnings=0",
+    "lint": "eslint . --max-warnings=0",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
     "test:balances": "node --test --test-concurrency=2 -r ts-node/register tests/monetary-balance.test.ts tests/reconciliation.test.ts tests/budget.test.ts tests/settings.test.ts tests/report-snapshot.test.ts tests/payroll.test.ts tests/report-pdf.test.ts tests/transfers.test.ts tests/transaction-detail.test.ts tests/budget-plan.test.ts",
@@ -26,29 +29,34 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "better-sqlite3": "^11.7.0",
+    "better-sqlite3": "13.2.0",
     "cors": "^2.8.5",
     "decimal.js": "10.6.0",
-    "express": "^4.18.2",
-    "puppeteer": "^24.40.0",
-    "swagger-jsdoc": "^6.2.8",
+    "express": "^5.3.0",
+    "puppeteer": "25.19.0",
+    "swagger-jsdoc": "6.3.0",
     "swagger-ui-express": "^5.0.1",
-    "zod": "^3.22.4"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",
     "@types/cors": "^2.8.19",
-    "@types/express": "^4.17.21",
-    "@types/node": "^20.10.6",
+    "@types/express": "^5.0.6",
+    "@types/node": "26.6.11",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
-    "@typescript-eslint/eslint-plugin": "^8.53.0",
-    "@typescript-eslint/parser": "^8.53.0",
-    "eslint": "^9.36.0",
+    "@typescript-eslint/eslint-plugin": "^8.74.0",
+    "@typescript-eslint/parser": "^8.74.0",
+    "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
     "nodemon": "^3.0.2",
     "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
+  },
+  "overrides": {
+    "swagger-jsdoc": {
+      "glob": "14.0.6"
+    }
   }
 }

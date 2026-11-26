@@ -2,6 +2,13 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import type { OpenAPIV3 } from 'openapi-types';
 import path from 'path';
 
+const sourceExtension = path.extname(__filename);
+const sourceGlob = (file: string) =>
+  path
+    .join(__dirname, file + sourceExtension)
+    .split(path.sep)
+    .join('/');
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
@@ -931,7 +938,7 @@ const options: swaggerJsdoc.Options = {
       },
     ],
   },
-  apis: [path.join(__dirname, '../routes/*.js'), path.join(__dirname, '../app.js')],
+  apis: [sourceGlob('../routes/*'), sourceGlob('../app')],
 };
 
 function stripApiPrefixFromPaths(spec: OpenAPIV3.Document): OpenAPIV3.Document {

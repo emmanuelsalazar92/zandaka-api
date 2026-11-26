@@ -49,7 +49,7 @@ export const planDocumentSchema = z
       .array(
         z
           .object({
-            id: z.string().uuid(),
+            id: z.guid(),
             name: z.string().trim().min(1).max(80),
             group: z.union([z.literal(50), z.literal(30), z.literal(20)]),
             kind: z.enum(['fixed', 'percent', 'subscription']),
@@ -88,11 +88,11 @@ export const planDocumentSchema = z
     });
   });
 export const planIdentitySchema = z.object({
-  params: z.object({ id: z.string().uuid() }),
+  params: z.object({ id: z.guid() }),
   query: z.object({ userId: z.coerce.number().int().positive().safe() }),
 });
 export const savePlanSchema = z.object({
-  params: z.object({ id: z.string().uuid() }),
+  params: z.object({ id: z.guid() }),
   body: z
     .object({
       userId: id,
@@ -102,16 +102,16 @@ export const savePlanSchema = z.object({
     .strict(),
 });
 export const planActionSchema = z.object({
-  params: z.object({ id: z.string().uuid() }),
+  params: z.object({ id: z.guid() }),
   body: z.object({ userId: id, revision: z.number().int().positive().safe() }).strict(),
 });
 export const applyPlanSchema = z.object({
-  params: z.object({ id: z.string().uuid() }),
+  params: z.object({ id: z.guid() }),
   body: z
     .object({
       userId: id,
       revision: z.number().int().positive().safe(),
-      requestId: z.string().uuid(),
+      requestId: z.guid(),
       date,
     })
     .strict(),
