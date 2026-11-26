@@ -1,5 +1,7 @@
 # Rama staging y publicación para testing
 
+CI and Docker use Node.js 26 LTS. Select the version in `.node-version` before `npm ci`. The SQLite driver includes native binaries for Linux amd64 and arm64. The runtime update does not require a database migration.
+
 **Último estado operativo observado: [deploy del 22 de noviembre de 2026](deployments/2026-11-22-testing.md). Web 237d40f / API fc65024; solicitud 3474c9b8-8970-4b45-b10a-d55a38ca8b64. Respaldo e historia conservados; auxiliares compatibles. Salud operativa aprobada, sin repetir suites ni declarar aceptación humana. Los estados anteriores son historia.**
 
 Preparación local del 22 de noviembre: ZA-108/109 añade protocolo, evidencia de zoom nativo y comparación de rendimiento reconstruida, sin nuevo deploy ni cambios de DB. Ver [entrega reversible](redesign-release.md). Las notas de implementación anteriores se conservan como historia; el último estado remoto observado se identifica abajo.
@@ -43,7 +45,6 @@ Este bloque funcional añade POST /api/transfers. Antes de promover la pareja de
 ## Presupuestos Marea — ZA-97
 
 Consultar [contrato y preparación](budget-plans.md). Requiere budget_plan compatible antes de habilitar la nueva planificación; transfer_request sigue siendo necesario para asignar. No modifica presupuestos históricos. La [ampliación del desplegador y cliente Windows](testing-deployer-za97.md) incorpora el perfil explícito za90-za97; su aceptación remota desde Windows pasó en 192.168.31.118. Ambas tablas quedaron preparadas/verificadas en la entrega real del 5 de noviembre enlazada arriba. Al implementar o aceptar la herramienta no se había preparado una base del usuario: esa preparación ocurrió durante el deploy solicitado. Para otro bloque crear un plan nuevo y comprobar su estado, conforme a [deploy-testing](deploy-testing.md).
-
 
 ## Medición de uso — ZA-100
 
