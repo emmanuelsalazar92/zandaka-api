@@ -1,5 +1,6 @@
 import Database, { type Database as DatabaseType } from 'better-sqlite3';
 import fs from 'fs';
+import { instrumentDatabase } from '../performance';
 import { registerDecimalSql, migrateMoneyDatabase } from './precision';
 import { registerMonetaryBalanceSql } from './monetary-balance';
 
@@ -1735,3 +1736,4 @@ export function initializeDatabase(): void {
 
 db.pragma('foreign_keys = ON');
 initializeDatabase();
+instrumentDatabase(db);

@@ -103,3 +103,5 @@ Registrar el bloque en un documento fechado: tickets, commits/digests nuevos y a
 ## ZA-100 · Medición de uso (sin preparación de DB)
 
 ZA-100 no requiere migraciones, nuevas tablas, cambios de API, worker SSH o perfil de despliegue. La web exige plataforma Vercel y opt-in explícito ZANDAKA_ANALYTICS_ENABLED=true para cargar su SDK existente; dejarlo desactivado en testing Docker. No establecer VERCEL=1 ni añadir un colector implícitamente. La ausencia de métricas reales está documentada, no se interpreta como cero uso. Ver [catálogo y activación](https://github.com/emmanuelsalazar92/zandaka-web/blob/staging/docs/usage-analytics.md). Mantener las verificaciones de tablas auxiliares de los otros tickets incluidos. Revertir este cambio no necesita acciones en DB.
+
+ZA-101 no requiere preparar la DB. La captura SQL/API queda apagada por defecto. Ver [medición temporal](sql-performance.md) para una ventana de diagnóstico.

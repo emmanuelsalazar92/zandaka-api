@@ -2,6 +2,7 @@ import express, { Express } from 'express';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler } from './middlewares/errorHandler';
+import { measureRouter } from './performance';
 import { swaggerSpec } from './config/swagger';
 
 // Routes
@@ -88,22 +89,22 @@ export function createApp(): Express {
   });
 
   // API Routes
-  app.use('/api/institutions', institutionRoutes);
-  app.use('/api/accounts', accountRoutes);
-  app.use('/api/categories', categoryRoutes);
-  app.use('/api/envelopes', envelopeRoutes);
-  app.use('/api/transactions', transactionRoutes);
-  app.use('/api/transfers', transferRoutes);
-  app.use('/api/reconciliations', reconciliationRoutes);
-  app.use('/api/reports', reportRoutes);
-  app.use('/api/exchange-rate', exchangeRateRoutes);
-  app.use('/api/auto-assignment-rules', autoAssignmentRuleRoutes);
-  app.use('/api/users', userRoutes);
-  app.use('/api/budgets', budgetRoutes);
-  app.use('/api/budget-plans', budgetPlanRoutes);
-  app.use('/api/settings/cash-denominations', cashDenominationRoutes);
-  app.use('/api/payroll-rules', payrollRuleRoutes);
-  app.use('/api/payroll', payrollRoutes);
+  app.use('/api/institutions', measureRouter('/api/institutions'), institutionRoutes);
+  app.use('/api/accounts', measureRouter('/api/accounts'), accountRoutes);
+  app.use('/api/categories', measureRouter('/api/categories'), categoryRoutes);
+  app.use('/api/envelopes', measureRouter('/api/envelopes'), envelopeRoutes);
+  app.use('/api/transactions', measureRouter('/api/transactions'), transactionRoutes);
+  app.use('/api/transfers', measureRouter('/api/transfers'), transferRoutes);
+  app.use('/api/reconciliations', measureRouter('/api/reconciliations'), reconciliationRoutes);
+  app.use('/api/reports', measureRouter('/api/reports'), reportRoutes);
+  app.use('/api/exchange-rate', measureRouter('/api/exchange-rate'), exchangeRateRoutes);
+  app.use('/api/auto-assignment-rules', measureRouter('/api/auto-assignment-rules'), autoAssignmentRuleRoutes);
+  app.use('/api/users', measureRouter('/api/users'), userRoutes);
+  app.use('/api/budgets', measureRouter('/api/budgets'), budgetRoutes);
+  app.use('/api/budget-plans', measureRouter('/api/budget-plans'), budgetPlanRoutes);
+  app.use('/api/settings/cash-denominations', measureRouter('/api/settings/cash-denominations'), cashDenominationRoutes);
+  app.use('/api/payroll-rules', measureRouter('/api/payroll-rules'), payrollRuleRoutes);
+  app.use('/api/payroll', measureRouter('/api/payroll'), payrollRoutes);
 
   // Error handler (must be last)
   app.use(errorHandler);

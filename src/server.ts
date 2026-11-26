@@ -8,7 +8,9 @@ const { createApp } = require('./app') as typeof import('./app');
 
 const PORT = process.env.PORT || 3000;
 
+const { startPerformanceLogging } = require('./performance') as typeof import('./performance');
 const app = createApp();
+startPerformanceLogging();
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
