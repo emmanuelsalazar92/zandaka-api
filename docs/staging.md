@@ -24,6 +24,8 @@ CI se ejecuta en main/staging, pull requests, etiquetas de versión y ejecución
 
 La imagen ghcr.io/emmanuelsalazar92/zandaka-api:staging contiene plataformas linux/amd64 y linux/arm64. Las etiquetas SHA permiten identificar builds; latest solo se publica desde main. La etiqueta staging cambia con los pushes: registrar el digest para una promoción reproducible.
 
+GitHub Actions construye cada plataforma en un runner de su propia arquitectura. El Dockerfile instala `unzip` para extraer Chrome y comprueba que la ruta de PDF de la API produzca un PDF válido como parte de cada build. El workflow publica las etiquetas compartidas y verifica el manifiesto cuando pasan ambos builds. En un pull request se ejecutan los builds y la prueba de PDF sin publicar en GHCR.
+
 ## Compatibilidad del bloque Atlántico
 
 ZA-88 añade `GET /api/transactions/:id?userId=...` para la [ficha completa de movimientos](transaction-detail.md), con todas las líneas históricas incluso inactivas. Promover una pareja compatible web/API que incluya el ticket. **Sin cambios de DB por ZA-88**; no ejecutar migraciones monetarias ni recálculos. La preparación auxiliar de ZA-90 sigue siendo independiente.

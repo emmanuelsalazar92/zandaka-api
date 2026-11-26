@@ -3,27 +3,28 @@ name: Docker image
 on:
   workflow_call:
 
-env:
-  PLATFORMS: linux/amd64,linux/arm64
-
 jobs:
   build:
-    name: Build multi-platform image
-    runs-on: ubuntu-latest
+    name: Build linux/${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set lowercase image name
         id: image
         shell: bash
         run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
-        with:
-          platforms: amd64,arm64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -49,30 +50,100 @@ jobs:
             type=ref,event=branch
             type=sha,prefix=sha-
 
-      - name: Build and optionally publish
+      - name: Build and smoke-test image
         id: build
         uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
-          platforms: ${{ env.PLATFORMS }}
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          platforms: linux/${{ matrix.arch }}
+          outputs: type=image,name=${{ steps.image.outputs.name }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=api-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=api-${{ matrix.arch }}
 
-      - name: Verify published platforms
+      - name: Record built digest
         if: github.event_name != 'pull_request'
         shell: bash
         env:
-          IMAGE_NAME: ${{ steps.image.outputs.name }}
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          ARCH: ${{ matrix.arch }}
         run: |
-          manifest="$(docker buildx imagetools inspect --raw "${IMAGE_NAME}@${IMAGE_DIGEST}")"
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          printf '%s\n' "$IMAGE_DIGEST" > "$ARCH.digest"
+
+      - name: Upload built digest
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: image-digest-${{ matrix.arch }}
+          path: ${{ matrix.arch }}.digest
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+
+  publish:
+    name: Publish and verify multi-platform image
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download built digests
+        uses: actions/download-artifact@v8
+        with:
+          pattern: image-digest-*
+          merge-multiple: true
+          path: digests
+
+      - name: Set lowercase image name
+        id: image
+        shell: bash
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=ref,event=branch
+            type=sha,prefix=sha-
+
+      - name: Create and verify the combined manifest
+        shell: bash
+        env:
+          IMAGE_NAME: ${{ steps.image.outputs.name }}
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          amd64="$(<digests/amd64.digest)"
+          arm64="$(<digests/arm64.digest)"
+          [[ "$amd64" =~ ^sha256:[0-9a-f]{64}$ && "$arm64" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ -n "$IMAGE_TAGS" ]]
+          tag_args=()
+          while IFS= read -r tag; do
+            tag_args+=(--tag "$tag")
+          done <<< "$IMAGE_TAGS"
+          docker buildx imagetools create "${tag_args[@]}" --metadata-file manifest.json \
+            "${IMAGE_NAME}@${amd64}" "${IMAGE_NAME}@${arm64}"
+          image_digest="$(jq -er '."containerimage.descriptor".digest' manifest.json)"
+          manifest="$(docker buildx imagetools inspect --raw "${IMAGE_NAME}@${image_digest}")"
           echo "$manifest" | jq -e '
             [.manifests[].platform | select(.os == "linux") | "\(.os)/\(.architecture)"] as $platforms
             | ($platforms | index("linux/amd64")) != null
               and ($platforms | index("linux/arm64")) != null
           '
-          docker buildx imagetools inspect "${IMAGE_NAME}@${IMAGE_DIGEST}"
+          docker buildx imagetools inspect "${IMAGE_NAME}@${image_digest}"
