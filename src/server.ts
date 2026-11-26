@@ -12,7 +12,8 @@ const { startPerformanceLogging } = require('./performance') as typeof import('.
 const app = createApp();
 startPerformanceLogging();
 
-app.listen(PORT, () => {
+app.listen(PORT, (error) => {
+  if (error) throw error;
   console.log(`Server is running on http://localhost:${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
   console.log(`API base: http://localhost:${PORT}/api`);

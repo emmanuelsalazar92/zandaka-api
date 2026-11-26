@@ -89,6 +89,7 @@ test('invalid path/query identifiers fail validation rather than broadening the 
     '/1?userId=1.5',
     '/9007199254740992?userId=1',
     '/1?userId=1&userId=2',
+    '/1?userId=1&userId%5B%5D=1',
     '/1%20OR%201=1?userId=1',
   ])
     assert.equal((await get(query)).status, 400, query);

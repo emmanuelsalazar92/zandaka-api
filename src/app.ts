@@ -25,6 +25,8 @@ import payrollRoutes from './routes/payroll.routes';
 
 export function createApp(): Express {
   const app = express();
+  // Keep the Express 4 query shape so ambiguous identifiers still fail validation.
+  app.set('query parser', 'extended');
   const corsOrigins =
     process.env.CORS_ORIGINS ??
     process.env.CORS_ORIGIN ??
