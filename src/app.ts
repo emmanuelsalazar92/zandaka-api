@@ -22,6 +22,7 @@ import autoAssignmentRuleRoutes from './routes/auto-assignment-rule.routes';
 import cashDenominationRoutes from './routes/cash-denomination.routes';
 import payrollRuleRoutes from './routes/payroll-rule.routes';
 import payrollRoutes from './routes/payroll.routes';
+import projectRoutes from './routes/project.routes';
 
 export function createApp(): Express {
   const app = express();
@@ -105,6 +106,8 @@ export function createApp(): Express {
   app.use('/api/settings/cash-denominations', measureRouter('/api/settings/cash-denominations'), cashDenominationRoutes);
   app.use('/api/payroll-rules', measureRouter('/api/payroll-rules'), payrollRuleRoutes);
   app.use('/api/payroll', measureRouter('/api/payroll'), payrollRoutes);
+
+  app.use('/api/projects', measureRouter('/api/projects'), projectRoutes);
 
   // Error handler (must be last)
   app.use(errorHandler);
