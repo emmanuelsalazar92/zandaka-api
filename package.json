@@ -36,7 +36,7 @@
     "puppeteer": "^24.40.0",
     "swagger-jsdoc": "6.3.0",
     "swagger-ui-express": "^5.0.1",
-    "zod": "^3.22.4"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",
