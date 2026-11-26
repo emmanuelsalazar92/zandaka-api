@@ -27,6 +27,9 @@ RUN apt-get update \
     && npx puppeteer browsers install chrome --install-deps \
     && rm -rf /var/lib/apt/lists/*
 
+# Fail the build if Chromium cannot render through the production PDF path.
+RUN node -e "const { PdfRenderer } = require('./dist/utils/pdf.util'); new PdfRenderer().renderHtmlToPdf('<p>Prueba de informe: &#8353;125</p>', 'Zandaka').then(pdf => { if (pdf.subarray(0, 5).toString() !== '%PDF-') throw new Error('Invalid PDF'); }).catch(error => { console.error(error); process.exitCode = 1; });"
+
 EXPOSE 3000
 
 CMD ["npm", "start"]
