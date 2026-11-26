@@ -23,7 +23,7 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/src/assets ./src/assets
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends fonts-noto-core fonts-dejavu-core \
+    && apt-get install -y --no-install-recommends fonts-noto-core fonts-dejavu-core unzip \
     && npx puppeteer browsers install chrome --install-deps \
     && rm -rf /var/lib/apt/lists/*
 
