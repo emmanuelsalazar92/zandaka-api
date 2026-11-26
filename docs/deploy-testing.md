@@ -98,3 +98,8 @@ El contrato de transferencia, sus límites y la recuperación por pestaña está
 Si debe revertirse la aplicación, promover el par anterior de imágenes y verificar salud. **Conservar `transfer_request` y sus confirmaciones**: las imágenes anteriores ignoran la tabla y borrarla puede permitir duplicados al reactivar el nuevo flujo. Revertir imágenes no requiere restaurar el respaldo de DB. Una restauración de respaldo puede descartar movimientos posteriores; evaluar expresamente el estado real antes de hacerlo.
 
 Registrar el bloque en un documento fechado: tickets, commits/digests nuevos y anteriores, host/servicios sin secretos, base seleccionada, respaldo, si la tabla fue creada o ya existía y era compatible, verificaciones antes/después, resultado funcional y pendientes. Actualizar los tickets con lo efectivamente desplegado. El deploy solo se considera completo cuando la preparación de DB y las comprobaciones funcionales hayan terminado.
+
+
+## ZA-100 · Medición de uso (sin preparación de DB)
+
+ZA-100 no requiere migraciones, nuevas tablas, cambios de API, worker SSH o perfil de despliegue. La web exige plataforma Vercel y opt-in explícito ZANDAKA_ANALYTICS_ENABLED=true para cargar su SDK existente; dejarlo desactivado en testing Docker. No establecer VERCEL=1 ni añadir un colector implícitamente. La ausencia de métricas reales está documentada, no se interpreta como cero uso. Ver [catálogo y activación](https://github.com/emmanuelsalazar92/zandaka-web/blob/staging/docs/usage-analytics.md). Mantener las verificaciones de tablas auxiliares de los otros tickets incluidos. Revertir este cambio no necesita acciones en DB.

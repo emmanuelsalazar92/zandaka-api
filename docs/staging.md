@@ -43,3 +43,8 @@ Este bloque funcional añade POST /api/transfers. Antes de promover la pareja de
 ## Presupuestos Marea — ZA-97
 
 Consultar [contrato y preparación](budget-plans.md). Requiere budget_plan compatible antes de habilitar la nueva planificación; transfer_request sigue siendo necesario para asignar. No modifica presupuestos históricos. La [ampliación del desplegador y cliente Windows](testing-deployer-za97.md) incorpora el perfil explícito za90-za97; su aceptación remota desde Windows pasó en 192.168.31.118. Ambas tablas quedaron preparadas/verificadas en la entrega real del 5 de noviembre enlazada arriba. Al implementar o aceptar la herramienta no se había preparado una base del usuario: esa preparación ocurrió durante el deploy solicitado. Para otro bloque crear un plan nuevo y comprobar su estado, conforme a [deploy-testing](deploy-testing.md).
+
+
+## Medición de uso — ZA-100
+
+Este ticket solo instrumenta la web mediante el SDK ya existente de Vercel, con opt-in apagado por defecto. No añade endpoints, variables de API, tablas o migraciones. Testing en Docker no tiene colector de métricas; no activar VERCEL=1 para simularlo. Ver [contrato y límites web](https://github.com/emmanuelsalazar92/zandaka-web/blob/staging/docs/usage-analytics.md). Los requisitos de DB de los demás tickets del bloque siguen vigentes.
