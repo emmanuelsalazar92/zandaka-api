@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import type { Database } from 'better-sqlite3';
-import { projectsReady } from '../db/project';
+import { projectMovementsReady, projectsReady } from '../db/project';
+import {
+  ProjectMovementsRepository,
+  type ProjectMovementKind,
+  type ProjectMovementSearch,
+} from '../repositories/project-movements.repo';
 
 type Project = {
   id: string;
@@ -24,10 +29,14 @@ function conflict(): never {
 }
 
 export class ProjectService {
+  private readonly movements: ProjectMovementsRepository;
+
   constructor(
     private db: Database,
     private owner: number,
-  ) {}
+  ) {
+    this.movements = new ProjectMovementsRepository(db);
+  }
 
   private checkStorage() {
     if (!Number.isSafeInteger(this.owner) || this.owner < 1 || !projectsReady(this.db))
@@ -45,6 +54,58 @@ export class ProjectService {
   get(id: string) {
     this.checkStorage();
     return this.read(id);
+  }
+
+  private readForMovements(id: string) {
+    const project = this.get(id);
+    if (!projectMovementsReady(this.db))
+      throw { code: 'FEATURE_NOT_READY', message: 'Project movement storage is not configured' };
+    return project;
+  }
+
+  listMovements(id: string, page: number) {
+    return this.db.transaction(() => {
+      const project = this.readForMovements(id);
+      return { ...this.movements.list(id, this.owner, page), project };
+    })();
+  }
+
+  searchMovements(id: string, search: ProjectMovementSearch) {
+    return this.db.transaction(() => {
+      this.readForMovements(id);
+      return this.movements.search(id, this.owner, search);
+    })();
+  }
+
+  movementFilters(id: string) {
+    return this.db.transaction(() => {
+      this.readForMovements(id);
+      return this.movements.filters(this.owner);
+    })();
+  }
+
+  changeMovements(id: string, expectedRevision: number, ids: number[], kind?: ProjectMovementKind) {
+    return this.db
+      .transaction(() => {
+        const project = this.readForMovements(id);
+        if (project.archivedAt || project.finalizedAt) conflict();
+        const lineIds = [...new Set(ids)];
+        const changes = kind
+          ? this.movements.planAdd(id, this.owner, lineIds, kind)
+          : this.movements.planRemove(id, lineIds);
+        // A repeated request whose effect is already present can safely confirm the current state.
+        if (!changes.length) return project;
+        if (project.revision !== expectedRevision) conflict();
+        if (kind) this.movements.add(id, changes, kind);
+        else this.movements.remove(id, changes);
+        this.db
+          .prepare(
+            'UPDATE project SET updated_at = ?, revision = revision + 1 WHERE id = ? AND user_id = ?',
+          )
+          .run(new Date().toISOString(), id, this.owner);
+        return this.read(id);
+      })
+      .immediate();
   }
 
   list(view: 'visible' | 'archived', page: number) {

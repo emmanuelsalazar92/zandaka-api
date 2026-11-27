@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
-import { installProjects } from '../db/project';
+import { installProjectMovements } from '../db/project';
 
 const args = process.argv.slice(2);
 if (args.length !== 2 || args[0] !== '--db')
@@ -13,8 +13,8 @@ if (!fs.statSync(target).isFile() || /^production-audit-/i.test(path.basename(ta
 const db = new Database(target, { fileMustExist: true });
 try {
   db.pragma('foreign_keys = ON');
-  installProjects(db);
-  console.log('Project storage is ready.');
+  installProjectMovements(db);
+  console.log('Project and movement link storage is ready.');
 } finally {
   db.close();
 }
