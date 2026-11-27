@@ -65,6 +65,11 @@ router.put('/:id/month-start/link', validate(linkMonthStartSchema), (req, res) =
   const { params, body } = linkMonthStartSchema.parse({ params: req.params, body: req.body });
   res.json(monthStart.link(params.id, body.userId, body.revision, body.step, body.movementIds));
 });
+router.get('/:id/tracking', validate(planIdentitySchema), (req, res) => {
+  const { params, query } = planIdentitySchema.parse({ params: req.params, query: req.query });
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(service.tracking(params.id, query.userId));
+});
 router.post('/:id/month-start/transfer', validate(monthStartTransfer), (req, res) => {
   const { params, body } = monthStartTransfer.parse({ params: req.params, body: req.body });
   res.json(

@@ -564,6 +564,136 @@ test('month-start commits transfers and evidence together and replays the same r
   assert.equal(reopened.body.detachedCount, 1);
 });
 
+test('tracking keeps plan, receipt and Costa Rica expenses independent by envelope and currency', async () => {
+  const doc = document();
+  doc.lines = [{ ...doc.lines[0], amount: '100' }, doc.lines[2]];
+  // Ensure the late receipt can be posted while all funding destinations remain active.
+  const { id, revision } = await prepared(doc);
+  const url = `/api/budget-plans/${id}`;
+  const tracking = () => request('GET', `${url}/tracking?userId=${userId}`);
+  const draft = await tracking();
+  assert.equal(draft.status, 200, JSON.stringify(draft.body));
+  assert.equal(draft.body.fundingStatus, 'pending');
+  assert.equal(
+    draft.body.rows.find((r: { envelopeId: number }) => r.envelopeId === target1).assigned,
+    '0',
+  );
+  const fund = await request('POST', `${url}/fund`, {
+    userId,
+    revision,
+    requestId: randomUUID(),
+    date: '2026-02-02',
+  });
+  assert.equal(fund.status, 200, JSON.stringify(fund.body));
+  const tx = db.prepare(
+    'INSERT INTO transactions(user_id,date,description,type,created_at) VALUES(?,?,?,?,?)',
+  );
+  const line = db.prepare(
+    'INSERT INTO transaction_line(transaction_id,account_id,envelope_id,amount) VALUES(?,?,?,?)',
+  );
+  const last = tx.run(
+    userId,
+    '2026-01-31',
+    '23:59 Costa Rica',
+    'EXPENSE',
+    '2026-02-01T05:59:00Z',
+  ).lastInsertRowid;
+  line.run(last, account1, target1, -90);
+  line.run(last, account2, target2, -7);
+  const next = tx.run(
+    userId,
+    '2026-02-01',
+    '00:00 Costa Rica',
+    'EXPENSE',
+    '2026-02-01T06:00:00Z',
+  ).lastInsertRowid;
+  line.run(next, account1, target1, -99);
+  // No explicit refund relation exists in the budget ledger. Credits never reduce gross expense.
+  for (const type of ['INCOME', 'ADJUSTMENT', 'TRANSFER']) {
+    const credit = tx.run(
+      userId,
+      '2026-01-20',
+      'Synthetic credit or transfer',
+      type,
+      '2026-01-20T12:00:00Z',
+    ).lastInsertRowid;
+    line.run(credit, account1, target1, type === 'TRANSFER' ? -40 : 40);
+    if (type === 'TRANSFER') line.run(credit, account1, source1, 40);
+  }
+  db.prepare('UPDATE account_envelope SET is_active=0 WHERE id=?').run(target2);
+  const before = snapshot();
+  const result = await tracking();
+  assert.equal(result.status, 200);
+  assert.equal(result.body.fundingStatus, 'confirmed');
+  assert.equal(result.body.fundingDate, '2026-02-02');
+  assert.equal(result.body.from, '2026-01-01');
+  assert.equal(result.body.to, '2026-01-31');
+  const row = (id: number) =>
+    result.body.rows.find((r: { envelopeId: number }) => r.envelopeId === id);
+  assert.deepEqual(
+    [row(target1).planned, row(target1).assigned, row(target1).spent],
+    ['100', '100', '90'],
+  );
+  assert.deepEqual(
+    [row(usdTarget).currency, row(usdTarget).assigned, row(usdTarget).spent],
+    ['USD', '68', '0'],
+  );
+  assert.deepEqual(
+    [row(target2).active, row(target2).hasPlan, row(target2).planned, row(target2).spent],
+    [false, false, null, '7'],
+  );
+  for (const [accountId, envelopeId, amount] of [
+    [account1, target1, -90],
+    [account2, target2, -7],
+  ]) {
+    const link = await request(
+      'GET',
+      `/api/transactions?userId=${userId}&from=2026-01-01&to=2026-01-31&type=EXPENSE&accountId=${accountId}&accountEnvelopeId=${envelopeId}`,
+    );
+    assert.equal(link.status, 200, JSON.stringify(link.body));
+    assert.equal(link.body.meta.totalItems, 1);
+    assert.equal(link.body.data[0].amount, amount);
+    assert.equal(link.body.data[0].lines.length, 1);
+    assert.equal(link.body.data[0].lines[0].envelopeId, envelopeId);
+  }
+  assert.equal((await request('GET', `${url}/tracking?userId=${foreignUserId}`)).status, 404);
+  assert.equal(snapshot(), before);
+});
+
+test('tracking marks funded totals unknown when their receipt or ledger evidence is incomplete', async () => {
+  const { id, revision } = await prepared();
+  const url = `/api/budget-plans/${id}`;
+  const funded = await request('POST', `${url}/fund`, {
+    userId,
+    revision,
+    requestId: randomUUID(),
+    date: postDate,
+  });
+  assert.equal(funded.status, 200);
+  const receipt = funded.body.receipt;
+  const update = db.prepare('UPDATE budget_plan SET receipt_json=? WHERE id=?');
+  for (const broken of [
+    '{',
+    JSON.stringify({ ...receipt, transactions: receipt.transactions.slice(1) }),
+  ]) {
+    update.run(broken, id);
+    const result = await request('GET', `${url}/tracking?userId=${userId}`);
+    assert.equal(result.status, 200);
+    assert.equal(result.body.fundingStatus, 'unverified');
+    assert.equal(result.body.fundingDate, null);
+    assert.ok(result.body.rows.every((row: { assigned: unknown }) => row.assigned === null));
+  }
+  update.run(JSON.stringify(receipt), id);
+  const transferId = receipt.transactions[0].transactionId;
+  db.prepare('UPDATE transaction_line SET amount=? WHERE transaction_id=? AND envelope_id=?').run(
+    '0',
+    transferId,
+    target1,
+  );
+  const result = await request('GET', `${url}/tracking?userId=${userId}`);
+  assert.equal(result.body.fundingStatus, 'unverified');
+});
+
 test('copying returns only prior assignments with new IDs and preserves current income/rates', async () => {
   const previous = await save();
   assert.equal(previous.status, 200);

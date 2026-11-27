@@ -6,6 +6,7 @@ import { advanceMonthStartEvidence } from '../db/budget-month-start';
 import { BudgetPlanDocument, calculateBudgetPlan } from '../utils/budget-plan';
 import { assertMoney, decimal, decimalNumber } from '../utils/money';
 import { TransferService } from './transfer.service';
+import { budgetPlanTracking } from './budget-plan-tracking';
 
 type Row = {
   id: string;
@@ -33,6 +34,14 @@ const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(valu
 const conflict = (message: string) => {
   throw { code: 'CONFLICT', message };
 };
+function parseReceipt(raw: string | null): unknown {
+  if (raw === null) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
 const accountingDate = () => {
   const parts = new Intl.DateTimeFormat('en', {
     timeZone: 'America/Costa_Rica',
@@ -72,7 +81,7 @@ export class BudgetPlanService {
       status: row.status,
       document,
       calculation: calculateBudgetPlan(document),
-      receipt: row.receipt_json ? (JSON.parse(row.receipt_json) as unknown) : null,
+      receipt: parseReceipt(row.receipt_json),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -95,6 +104,9 @@ export class BudgetPlanService {
   }
   get(id: string, userId: number) {
     return this.view(this.owned(id, userId));
+  }
+  tracking(id: string, userId: number) {
+    return db.transaction(() => budgetPlanTracking(this.get(id, userId)))();
   }
   previousAssignments(id: string, userId: number) {
     const current = this.owned(id, userId),

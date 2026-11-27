@@ -10,6 +10,14 @@ Implementación del 5 de noviembre de 2026. El nuevo plan mensual conserva el or
 
 Los vínculos son explícitos por plan y paso. Un mismo movimiento no confirma pasos distintos del mismo plan. Guardar o reabrir el plan deja los vínculos **Por revisar**. Finalizar o fondear preserva los vínculos vigentes porque esas acciones conservan el documento. La tasa real usa los dos importes de los movimientos vinculados. Aplicar el fondeo sigue siendo una operación aparte con su recibo de ZA-97. La [guía de despliegue](deploy-testing.md#za-120--preparar-los-vínculos-de-inicio-de-mes) documenta la tabla auxiliar.
 
+## Seguimiento por sobre · ZA-121
+
+`GET /api/budget-plans/:id/tracking?userId=…` lee la revisión guardada, el intervalo inclusivo del mes contable de Costa Rica y las filas por sobre. Usa `transactions.date` para el mes y conserva `created_at` como fecha de registro. Los importes son cadenas decimales. Las cuentas y categorías quedan restringidas al propietario. El gasto bruto se obtiene con una consulta agregada sobre débitos `EXPENSE`, incluidos los sobres actualmente inactivos. No hay conversión de moneda, modificación de saldos ni recálculo de snapshots.
+
+`planned` es la suma de las líneas vigentes del sobre. El campo `hasPlan` distingue un sobre con gasto y sin plan de un importe pendiente de calcular. Las líneas sin destino verificable se cuentan en `unmappedCount`. `assigned` se verifica contra revisión, líneas, origen, destino e importes asentados del recibo de ZA-97. Un plan sin fondeo confirmado muestra cero. Un plan `funded` con comprobante incompleto o asientos no verificables muestra `null`. La fecha del recibo puede ser posterior al mes. Los ingresos, devoluciones sin relación explícita al gasto, ajustes y transferencias manuales no reducen el gasto ni se atribuyen como fondeo.
+
+`GET /api/transactions` admite el filtro opcional `accountEnvelopeId`. Con ese filtro devuelve solo las líneas del sobre exacto, incluso si está inactivo. Con `type=EXPENSE`, devuelve solamente débitos. La ficha `GET /api/transactions/:id` conserva el movimiento completo. El nuevo seguimiento reutiliza el esquema existente y no requiere preparación adicional.
+
 ## Modelo y compatibilidad
 
 Un documento `version: 1` identifica mes presupuestado, mes de cobro, cuentas USD de referencia, modo de ingreso, cotización bancaria, líneas y sobres de fondos por cuenta. Los importes de entrada y resultados de planificación son cadenas decimales. El ingreso base es USD; los pagos pueden ser USD o CRC. No se deduce de nuevo un salario ya neto.

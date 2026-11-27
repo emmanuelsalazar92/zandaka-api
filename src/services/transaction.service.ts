@@ -206,6 +206,7 @@ export class TransactionService {
     type?: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT';
     accountId?: number;
     categoryId?: number;
+    accountEnvelopeId?: number;
     q?: string;
     amountMin?: number;
     amountMax?: number;

@@ -58,6 +58,7 @@ export class TransactionController {
       type: query.type === 'ALL' ? undefined : query.type,
       accountId: query.accountId,
       categoryId: query.categoryId,
+      accountEnvelopeId: query.accountEnvelopeId,
       q: query.q,
       amountMin: applyAmountFilter ? query.amountMin : undefined,
       amountMax: amountMaxProvided ? query.amountMax : undefined,

@@ -44,6 +44,7 @@ export const getTransactionsSchema = z.object({
     type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER', 'ADJUSTMENT', 'ALL']).optional(),
     accountId: z.preprocess(numberFromQuery, z.number().int().positive()).optional(),
     categoryId: z.preprocess(numberFromQuery, z.number().int().positive()).optional(),
+    accountEnvelopeId: z.preprocess(numberFromQuery, z.number().int().positive().safe()).optional(),
     q: z.string().optional(),
     amountMin: z.preprocess(numberFromQuery, z.number()).default(0),
     amountMax: z.preprocess(numberFromQuery, z.number()).optional(),

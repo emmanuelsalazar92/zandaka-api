@@ -76,6 +76,7 @@ export class TransactionRepository {
     type?: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT';
     accountId?: number;
     categoryId?: number;
+    accountEnvelopeId?: number;
     q?: string;
     amountMin?: number;
     amountMax?: number;
@@ -107,16 +108,33 @@ export class TransactionRepository {
       hasPrevPage: boolean;
     };
   } {
+    const exactEnvelope = params.accountEnvelopeId !== undefined;
+    const scopeCte = exactEnvelope ? 'selected_envelope AS (SELECT CAST(? AS INTEGER) AS id),' : '';
+    const envelopeCondition = (alias: string) =>
+      exactEnvelope ? `${alias}.id = (SELECT id FROM selected_envelope)` : `${alias}.is_active = 1`;
+    const exactExpenseDebit = (alias: string) =>
+      exactEnvelope && params.type === 'EXPENSE' ? `AND decimal_cmp(${alias}.amount, '0') < 0` : '';
+    const exactAccount = exactEnvelope ? 'AND ae.account_id=tl.account_id' : '';
     const conditions: string[] = [
       't.user_id = ?',
       `EXISTS (
         SELECT 1
         FROM transaction_line tl_active
         JOIN account_envelope ae_active ON tl_active.envelope_id = ae_active.id
-        WHERE tl_active.transaction_id = t.id AND ae_active.is_active = 1
+        WHERE tl_active.transaction_id = t.id AND ${envelopeCondition('ae_active')}
+          ${exactExpenseDebit('tl_active')}
+          ${
+            exactEnvelope
+              ? `AND ae_active.account_id = tl_active.account_id
+            AND EXISTS (SELECT 1 FROM account a JOIN category c ON c.id=ae_active.category_id
+              WHERE a.id=tl_active.account_id AND a.user_id=t.user_id AND c.user_id=t.user_id)`
+              : ''
+          }
       )`,
     ];
-    const values: any[] = [params.userId];
+    const values: unknown[] = exactEnvelope
+      ? [params.accountEnvelopeId, params.userId]
+      : [params.userId];
 
     if (params.from) {
       conditions.push('t.date >= ?');
@@ -142,7 +160,7 @@ export class TransactionRepository {
           JOIN account_envelope ae_acc ON tl_acc.envelope_id = ae_acc.id
           WHERE tl_acc.transaction_id = t.id
             AND tl_acc.account_id = ?
-            AND ae_acc.is_active = 1
+            AND ${envelopeCondition('ae_acc')}
         )`,
       );
       values.push(params.accountId);
@@ -155,7 +173,7 @@ export class TransactionRepository {
           JOIN account_envelope ae ON tl_cat.envelope_id = ae.id
           WHERE tl_cat.transaction_id = t.id
             AND ae.category_id = ?
-            AND ae.is_active = 1
+            AND ${envelopeCondition('ae')}
         )`,
       );
       values.push(params.categoryId);
@@ -179,11 +197,11 @@ export class TransactionRepository {
 
     const baseWhere = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const countQuery = `
-      WITH totals AS (
+      WITH ${scopeCte} totals AS (
         SELECT tl.transaction_id, decimal_sum(tl.amount) AS total_amount
         FROM transaction_line tl
         JOIN account_envelope ae ON tl.envelope_id = ae.id
-        WHERE ae.is_active = 1
+        WHERE ${envelopeCondition('ae')} ${exactExpenseDebit('tl')} ${exactAccount}
         GROUP BY tl.transaction_id
       )
       SELECT COUNT(DISTINCT t.id) AS total
@@ -197,11 +215,11 @@ export class TransactionRepository {
     const offset = (params.page - 1) * params.pageSize;
 
     const dataQuery = `
-      WITH totals AS (
+      WITH ${scopeCte} totals AS (
         SELECT tl.transaction_id, decimal_sum(tl.amount) AS total_amount
         FROM transaction_line tl
         JOIN account_envelope ae ON tl.envelope_id = ae.id
-        WHERE ae.is_active = 1
+        WHERE ${envelopeCondition('ae')} ${exactExpenseDebit('tl')} ${exactAccount}
         GROUP BY tl.transaction_id
       ),
       filtered AS (
@@ -229,7 +247,8 @@ export class TransactionRepository {
       LEFT JOIN totals tt ON tt.transaction_id = t.id
       JOIN transaction_line tl ON t.id = tl.transaction_id
       LEFT JOIN account a ON tl.account_id = a.id
-      JOIN account_envelope ae ON tl.envelope_id = ae.id AND ae.is_active = 1
+      JOIN account_envelope ae ON tl.envelope_id = ae.id AND ${envelopeCondition('ae')}
+        ${exactExpenseDebit('tl')} ${exactAccount}
       LEFT JOIN category c ON ae.category_id = c.id
       ORDER BY ${sortColumn} ${sortDir}, t.id DESC, tl.id ASC
     `;
