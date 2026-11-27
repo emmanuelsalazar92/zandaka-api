@@ -1,10 +1,12 @@
 import { Router, type RequestHandler } from 'express';
 import { z } from 'zod';
 import db from '../db/db';
+import { TransactionDetailRepository } from '../repositories/transaction-detail.repo';
 import { ProjectService } from '../services/project.service';
 
 const router = Router();
 const service = new ProjectService(db, Number(process.env.ZANDAKA_PROJECT_OWNER_ID ?? '1'));
+const transactionDetails = new TransactionDetailRepository();
 const id = z.string().uuid();
 const title = z.string().trim().min(1).max(120);
 const revision = z.number().int().positive().safe();
@@ -21,7 +23,20 @@ const linkBatch = z
   })
   .strict();
 const addLinks = linkBatch.extend({ kind: movementKind });
-const movementPage = z.object({ page }).strict();
+const currencyCode = z.string().regex(/^[A-Z]{3}$/);
+const movementPage = z.union([
+  z.object({ page }).strict(),
+  z
+    .object({
+      page,
+      currency: currencyCode,
+      categoryId: z.union([
+        z.literal('none').transform(() => null),
+        z.coerce.number().int().positive().safe(),
+      ]),
+    })
+    .strict(),
+]);
 const search = z
   .object({
     q: z.string().trim().max(1000).optional(),
@@ -30,10 +45,7 @@ const search = z
     to: z.iso.date().optional(),
     accountId: z.coerce.number().int().positive().safe().optional(),
     categoryId: z.coerce.number().int().positive().safe().optional(),
-    currency: z
-      .string()
-      .regex(/^[A-Z]{3}$/)
-      .optional(),
+    currency: currencyCode.optional(),
     page,
   })
   .strict()
@@ -113,8 +125,29 @@ router.patch(
 router.get(
   '/:id/movements',
   handle((req, res) => {
-    const { page } = movementPage.parse(req.query);
-    res.json(service.listMovements(id.parse(req.params.id), page));
+    const query = movementPage.parse(req.query);
+    const filter =
+      'currency' in query ? { currency: query.currency, categoryId: query.categoryId } : undefined;
+    res.json(service.listMovements(id.parse(req.params.id), query.page, filter));
+  }),
+);
+router.get(
+  '/:id/analysis',
+  handle((req, res) => {
+    z.strictObject({}).parse(req.query);
+    res.json(service.analysis(id.parse(req.params.id)));
+  }),
+);
+router.get(
+  '/:id/movements/:transactionId',
+  handle((req, res) => {
+    z.strictObject({}).parse(req.query);
+    const transactionId = z.coerce.number().int().positive().safe().parse(req.params.transactionId);
+    res.json(
+      service.linkedTransaction(id.parse(req.params.id), transactionId, (owner) =>
+        transactionDetails.findForUser(transactionId, owner),
+      ),
+    );
   }),
 );
 router.get(

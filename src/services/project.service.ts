@@ -3,9 +3,11 @@ import type { Database } from 'better-sqlite3';
 import { projectMovementsReady, projectsReady } from '../db/project';
 import {
   ProjectMovementsRepository,
+  type ProjectBreakdownFilter,
   type ProjectMovementKind,
   type ProjectMovementSearch,
 } from '../repositories/project-movements.repo';
+import { summarizeProjectMovements } from './project-analysis';
 
 type Project = {
   id: string;
@@ -63,10 +65,32 @@ export class ProjectService {
     return project;
   }
 
-  listMovements(id: string, page: number) {
+  listMovements(id: string, page: number, filter?: ProjectBreakdownFilter) {
     return this.db.transaction(() => {
       const project = this.readForMovements(id);
-      return { ...this.movements.list(id, this.owner, page), project };
+      return { ...this.movements.list(id, this.owner, page, filter), project };
+    })();
+  }
+
+  analysis(id: string) {
+    return this.db.transaction(() => {
+      const project = this.readForMovements(id);
+      return {
+        project,
+        calculatedAt: new Date().toISOString(),
+        ...summarizeProjectMovements(this.movements.groups(id, this.owner)),
+      };
+    })();
+  }
+
+  linkedTransaction<T>(id: string, transactionId: number, read: (owner: number) => T | null) {
+    return this.db.transaction(() => {
+      this.readForMovements(id);
+      if (this.movements.includesTransaction(id, this.owner, transactionId)) {
+        const detail = read(this.owner);
+        if (detail) return detail;
+      }
+      throw { code: 'NOT_FOUND', message: 'Transaction is not linked to the project' };
     })();
   }
 

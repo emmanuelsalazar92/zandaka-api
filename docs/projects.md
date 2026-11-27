@@ -27,3 +27,13 @@ El lote admite hasta 100 entradas y descarta IDs repetidos. Se valida completo a
 `project_transaction_line` guarda el ID de la línea y el tipo de vínculo. Una misma línea puede participar en varios proyectos. Si cambia el importe en el libro, la lectura cambia con él. Si cambia la elegibilidad, la línea sigue visible con `eligible: false` para que ZA-117 la excluya de agregados. Si se elimina la línea del libro, la clave foránea elimina el vínculo en cascada. Reutilizar un ID de línea eliminado no recupera sus vínculos previos. Los sobres archivados siguen siendo consultables para gastos históricos.
 
 Validación con `tests/projects.test.ts` y `tests/project-movements.test.ts` sobre SQLite sintética. Para preparar testing, usar la sección de ZA-116 de la [guía de despliegue](deploy-testing.md).
+
+## Costo y desglose · ZA-117
+
+`GET /api/projects/:id/analysis` lee una sola versión del libro. Incluye la revisión del proyecto, `calculatedAt` en UTC, `latestLedgerUpdateAt` para las líneas vinculadas visibles y `excludedLineCount`. Por moneda devuelve gasto bruto, reembolsos, neto, serie acumulada y categorías. Todos los importes son cadenas decimales canónicas. El cálculo usa la fecha contable guardada en el movimiento y su importe vigente. Gastos y reembolsos se expresan como magnitudes positivas. Se conserva un neto negativo cuando los reembolsos superan los gastos.
+
+La serie tiene un punto por fecha con actividad de esa moneda. Las categorías se ordenan por gasto bruto y se identifican por ID, con `null` para referencias sin categoría. Seleccionar una categoría consulta `GET /api/projects/:id/movements?currency=CRC&categoryId=123&page=1`, usando `categoryId=none` para las líneas sin categoría. La lista filtrada incluye gastos y reembolsos elegibles que explican los tres importes.
+
+`GET /api/projects/:id/movements/:transactionId` abre la ficha histórica mediante el lector existente. Solo devuelve un movimiento con al menos una línea del perfil vinculada a ese proyecto. La ficha muestra el movimiento completo, mientras que la cifra del proyecto usa únicamente sus líneas vinculadas y elegibles.
+
+El contrato de agregados vive en `ProjectService.analysis` y `summarizeProjectMovements` para reutilizarlo en ZA-118. Los proyectos cerrados y archivados siguen consultando el libro vigente. La última actualización indica actividad registrada en movimientos aún vinculados. Una eliminación que retire el vínculo se refleja en el siguiente cálculo. ZA-117 utiliza las tablas de ZA-115 y ZA-116.

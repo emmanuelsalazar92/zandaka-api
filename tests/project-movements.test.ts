@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import { installProjectMovements, installProjects } from '../src/db/project';
+import type { summarizeProjectMovements } from '../src/services/project-analysis';
 import { ProjectService } from '../src/services/project.service';
 import { createSyntheticDb } from './helpers/synthetic-db';
 
@@ -74,8 +75,10 @@ test('project movement search and links preserve the ledger and enforce eligibil
             lines: { lineId: number }[];
           }[];
           accounts: { id: number }[];
+          id: number;
+          calculatedAt: string;
           error: { code: string };
-        },
+        } & ReturnType<typeof summarizeProjectMovements>,
       };
     }
     const link = (lineIds: number[], expectedRevision: number, kind = 'expense', id = project.id) =>
@@ -84,9 +87,12 @@ test('project movement search and links preserve the ledger and enforce eligibil
     const search = (query: string) => request(`/${project.id}/movement-search?${query}`);
 
     assert.equal((await list()).body.error.code, 'FEATURE_NOT_READY');
+    assert.equal((await request(`/${project.id}/analysis`)).body.error.code, 'FEATURE_NOT_READY');
     assert.equal((await request(`/${other.id}/movements`)).status, 404);
     installProjectMovements(db);
     installProjectMovements(db);
+    assert.deepEqual((await request(`/${project.id}/analysis`)).body.currencies, []);
+    assert.equal((await request(`/${other.id}/analysis`)).status, 404);
     assert.equal((await search('q=materiales')).body.total, 2);
     const filtered = await search(
       'q=%23100&from=2026-11-12&to=2026-11-12&currency=CRC&accountId=1&categoryId=1',
@@ -142,12 +148,80 @@ test('project movement search and links preserve the ledger and enforce eligibil
     const removal = { expectedRevision: 4, lineIds: [4] };
     assert.equal((await request(`/${project.id}/movements`, 'DELETE', removal)).body.revision, 5);
     assert.equal((await request(`/${project.id}/movements`, 'DELETE', removal)).body.revision, 5);
+    const analysisProject = new ProjectService(db, 1).create('Análisis del lote');
+    const scope = `/${analysisProject.id}`;
+    assert.equal((await link([1, 2, 3], 1, 'expense', analysisProject.id)).status, 200);
+    assert.equal((await link([4], 2, 'refund', analysisProject.id)).status, 200);
+    assert.equal((await link([5], 3, 'expense', analysisProject.id)).status, 400);
+    const { status: analysisStatus, body: analysis } = await request(scope + '/analysis');
+    assert.equal(analysisStatus, 200);
+    assert.ok(!Number.isNaN(Date.parse(analysis.calculatedAt)));
+    assert.deepEqual(analysis.currencies, [
+      {
+        currency: 'CRC',
+        expenses: '150',
+        refunds: '20',
+        net: '130',
+        series: [
+          { date: '2026-11-12', net: '150' },
+          { date: '2026-11-14', net: '130' },
+        ],
+        categories: [
+          { categoryId: 1, categoryName: 'Materiales', expenses: '100', refunds: '20', net: '80' },
+          { categoryId: 2, categoryName: 'Permisos', expenses: '50', refunds: '0', net: '50' },
+        ],
+      },
+      {
+        currency: 'USD',
+        expenses: '10',
+        refunds: '0',
+        net: '10',
+        series: [{ date: '2026-11-13', net: '10' }],
+        categories: [
+          { categoryId: 2, categoryName: 'Permisos', expenses: '10', refunds: '0', net: '10' },
+        ],
+      },
+    ]);
+    const materials = await request(scope + '/movements?currency=CRC&categoryId=1');
+    assert.deepEqual(
+      materials.body.items.map(({ lineId }) => lineId),
+      [4, 1],
+    );
+    assert.deepEqual(
+      (await request(scope + '/movements?currency=USD&categoryId=2')).body.items.map(
+        ({ lineId }) => lineId,
+      ),
+      [3],
+    );
+    assert.equal((await request(scope + '/movements?currency=CRC')).status, 400);
+    assert.equal((await request(scope + '/movements/100')).body.id, 100);
+    assert.equal((await request(scope + '/movements/103')).status, 404);
+    assert.equal((await request(`/${other.id}/movements/100`)).status, 404);
+    assert.equal((await request(scope + '/movements/100?userId=2')).status, 400);
+    assert.equal((await request(scope + '/finalize', 'POST', { expectedRevision: 3 })).status, 200);
     assert.deepEqual(ledger(), { headers, lines });
 
     db.exec('UPDATE transaction_line SET amount=-120 WHERE id=1');
     assert.equal((await list()).body.items[0].amount, '-120');
+    db.exec(
+      "UPDATE transaction_line SET amount=200.21, updated_at='2099-01-01 00:00:00' WHERE id=4",
+    );
+    const corrected = (await request(scope + '/analysis')).body;
+    assert.equal(corrected.latestLedgerUpdateAt, '2099-01-01T00:00:00.000Z');
+    assert.equal(corrected.currencies[0].net, '-30.21');
+    const correctedSeries = corrected.currencies[0].series;
+    assert.equal(correctedSeries[correctedSeries.length - 1].net, '-30.21');
     db.exec("UPDATE transactions SET type='ADJUSTMENT' WHERE id=100");
     assert.equal((await list()).body.items[0].eligible, false);
+    const reclassified = (await request(scope + '/analysis')).body;
+    assert.equal(reclassified.excludedLineCount, 2);
+    assert.equal(reclassified.currencies[0].net, '-200.21');
+    assert.deepEqual(
+      (await request(scope + '/movements?currency=CRC&categoryId=1')).body.items.map(
+        ({ lineId }) => lineId,
+      ),
+      [4],
+    );
     db.exec(`
       DELETE FROM transaction_line WHERE id=1;
       INSERT INTO transaction_line(id,transaction_id,account_id,envelope_id,amount) VALUES(1,101,2,3,-7);
@@ -175,6 +249,14 @@ test('project movement search and links preserve the ledger and enforce eligibil
       409,
     );
     assert.equal((await list()).status, 200);
+    db.exec('UPDATE transaction_line SET envelope_id=1 WHERE id=3');
+    const withoutCategory = (await request(scope + '/analysis')).body.currencies[1].categories[0];
+    assert.equal(withoutCategory.categoryId, null);
+    const uncategorized = await request(scope + '/movements?currency=USD&categoryId=none');
+    assert.deepEqual(
+      uncategorized.body.items.map(({ lineId }) => lineId),
+      [3],
+    );
   } finally {
     if (server?.listening) await new Promise<void>((resolve) => server!.close(() => resolve()));
     db.close();

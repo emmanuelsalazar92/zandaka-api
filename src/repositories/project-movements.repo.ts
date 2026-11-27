@@ -13,6 +13,20 @@ export type ProjectMovementSearch = {
   page: number;
 };
 
+export type ProjectBreakdownFilter = { currency: string; categoryId: number | null };
+
+export type ProjectMovementGroup = {
+  date: string;
+  currency: string;
+  categoryId: number | null;
+  categoryName: string | null;
+  expenseDebits: string;
+  refunds: string;
+  included: number;
+  excluded: number;
+  latestLedgerUpdate: string;
+};
+
 type MovementLine = {
   lineId: number;
   transactionId: number;
@@ -48,6 +62,10 @@ const fields = `tl.id AS lineId, t.id AS transactionId, t.date,
   decimal_text(tl.amount) AS amount`;
 const sort = 'ORDER BY t.date DESC, t.id DESC, tl.id ASC';
 type SearchLine = MovementLine & { linkedKind: ProjectMovementKind | null };
+const linked = `${joins}
+  JOIN project_transaction_line ptl
+    ON ptl.project_id = @projectId AND ptl.transaction_line_id = tl.id`;
+const eligible = `COALESCE((${eligibleKind}) = ptl.kind, 0)`;
 
 export class ProjectMovementsRepository {
   constructor(private db: Database) {}
@@ -125,20 +143,53 @@ export class ProjectMovementsRepository {
     return { items, total, page: search.page, pageSize };
   }
 
-  list(projectId: string, owner: number, page: number) {
-    const linked = `${joins}
-      JOIN project_transaction_line ptl
-        ON ptl.project_id = @projectId AND ptl.transaction_line_id = tl.id`;
-    const params = { projectId, owner, pageSize, offset: (page - 1) * pageSize };
-    const { total } = this.db.prepare(`SELECT count(*) AS total ${linked}`).get(params) as {
+  groups(projectId: string, owner: number) {
+    return this.db
+      .prepare(
+        `
+      WITH lines AS (
+        SELECT substr(t.date, 1, 10) AS day, UPPER(a.currency) AS currency,
+          c.id AS categoryId, c.name AS categoryName, tl.amount, ptl.kind,
+          ${eligible} AS included,
+          MAX(COALESCE(strftime('%Y-%m-%dT%H:%M:%fZ', t.updated_at), ''),
+              COALESCE(strftime('%Y-%m-%dT%H:%M:%fZ', tl.updated_at), '')) AS changed
+        ${linked}
+      )
+      SELECT day AS date, currency, categoryId, categoryName,
+        decimal_sum(CASE WHEN included = 1 AND kind = 'expense' THEN amount END) AS expenseDebits,
+        decimal_sum(CASE WHEN included = 1 AND kind = 'refund' THEN amount END) AS refunds,
+        sum(included) AS included, count(*) - sum(included) AS excluded,
+        max(changed) AS latestLedgerUpdate
+      FROM lines
+      GROUP BY day, currency, categoryId, categoryName
+      ORDER BY day, currency, categoryId
+    `,
+      )
+      .iterate({ projectId, owner }) as Iterable<ProjectMovementGroup>;
+  }
+
+  includesTransaction(projectId: string, owner: number, transactionId: number) {
+    return Boolean(
+      this.db
+        .prepare(`SELECT 1 ${linked} WHERE t.id = @transactionId LIMIT 1`)
+        .get({ projectId, owner, transactionId }),
+    );
+  }
+
+  list(projectId: string, owner: number, page: number, filter?: ProjectBreakdownFilter) {
+    const scope = filter
+      ? `${linked} WHERE ${eligible} = 1 AND UPPER(a.currency) = @currency AND c.id IS @categoryId`
+      : linked;
+    const params = { projectId, owner, pageSize, offset: (page - 1) * pageSize, ...filter };
+    const { total } = this.db.prepare(`SELECT count(*) AS total ${scope}`).get(params) as {
       total: number;
     };
     const items = (
       this.db
         .prepare(
           `
-      SELECT ${fields}, ptl.kind, COALESCE((${eligibleKind}) = ptl.kind, 0) AS eligible
-      ${linked} ${sort} LIMIT @pageSize OFFSET @offset
+      SELECT ${fields}, ptl.kind, ${eligible} AS eligible
+      ${scope} ${sort} LIMIT @pageSize OFFSET @offset
     `,
         )
         .all(params) as (MovementLine & { kind: ProjectMovementKind; eligible: number })[]
