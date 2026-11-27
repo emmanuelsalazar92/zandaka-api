@@ -1,0 +1,49 @@
+# Proyectos · ZA-115
+
+Proyectos agrupa trabajo por propósito. El ciclo de vida guarda metadatos de proyecto. La lista predeterminada incluye activos y finalizados. Archivar mueve el proyecto a otra vista y conserva la fecha de cierre. Restaurar conserva el estado anterior. Reabrir borra la fecha de cierre actual y permite editar.
+
+La API monta GET/POST /api/projects, GET/PATCH /api/projects/:id y POST /api/projects/:id/finalize, /reopen, /archive y /restore. GET de colección toma view=visible|archived y page (20 por página), con orden por última modificación e ID. El título admite 1 a 120 caracteres tras recortar espacios. Los IDs de proyecto se generan en la API y los timestamps son UTC. PATCH y las transiciones exigen expectedRevision. Una mutación correcta incrementa revision; 409 indica revisión obsoleta o transición inválida. POST de creación admite requestId UUID opcional para repetir el mismo intento; misma clave y título devuelve el proyecto ya creado, misma clave y otro título devuelve 409.
+
+En el entorno de perfil único, el propietario de Proyectos lo fija la API con ZANDAKA_PROJECT_OWNER_ID (1 por defecto), igual al perfil de la instalación. Las peticiones no admiten un userId del navegador y un ID ajeno devuelve 404. El aislamiento entre filas no autentica a los visitantes del entorno. Mantener la API detrás del acceso de red autorizado existente.
+
+La tabla project se instala de forma aditiva y explícita. Sin ella el endpoint devuelve FEATURE_NOT_READY (503), mientras el resto de la API sigue disponible. No ejecutar el instalador en una copia de auditoría ni contra producción como parte de testing. Ver [despliegue y reversión](deploy-testing.md).
+
+La prueba HTTP usa una SQLite sintética temporal. Cubre preparación idempotente, perfil ajeno, validación, paginación, reintento de creación, revisión concurrente y transiciones, y compara el libro antes/después. Reproducir con node --test -r ts-node/register tests/projects.test.ts.
+
+## Vínculos con movimientos · ZA-116
+
+Las rutas bajo `/api/projects/:id` usan el perfil resuelto por la API. Ninguna acepta `userId`.
+
+| Ruta                    | Contrato                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET `/movement-search`  | Busca `q` por descripción o `#ID` exacto. Acepta `kind=expense\|refund`, `from`, `to`, `accountId`, `categoryId`, `currency` y `page`. La página contiene hasta 20 transacciones ordenadas por fecha e ID descendentes. Una línea debe satisfacer todos los filtros para incluir la transacción. El resultado incluye todas sus líneas elegibles para elegir explícitamente la compra completa. |
+| GET `/movement-filters` | Devuelve cuentas, categorías y monedas del perfil.                                                                                                                                                                                                                                                                                                                                              |
+| GET `/movements`        | Pagina las líneas vinculadas y devuelve el estado y la revisión del proyecto leídos en la misma transacción. Cada línea lleva el importe actual como cadena decimal canónica, el tipo de vínculo y `eligible`.                                                                                                                                                                                  |
+| POST `/movements`       | Recibe `lineIds`, `kind` y `expectedRevision`. Los débitos de `EXPENSE` se incluyen como gasto y los créditos de `INCOME` solo se incluyen como reembolso explícito.                                                                                                                                                                                                                            |
+| DELETE `/movements`     | Recibe `lineIds` y `expectedRevision`. Quita únicamente los vínculos del proyecto.                                                                                                                                                                                                                                                                                                              |
+
+El lote admite hasta 100 entradas y descarta IDs repetidos. Se valida completo antes de escribir y aumenta la revisión una vez si aplica cambios. Con el proyecto activo, repetir un lote cuyo efecto ya está registrado confirma el estado actual. Una revisión obsoleta que todavía cambiaría vínculos se rechaza con 409. Finalizar o archivar impide mutaciones de vínculos, en la misma transacción que protege las revisiones.
+
+`project_transaction_line` guarda el ID de la línea y el tipo de vínculo. Una misma línea puede participar en varios proyectos. Si cambia el importe en el libro, la lectura cambia con él. Si cambia la elegibilidad, la línea sigue visible con `eligible: false` para que ZA-117 la excluya de agregados. Si se elimina la línea del libro, la clave foránea elimina el vínculo en cascada. Reutilizar un ID de línea eliminado no recupera sus vínculos previos. Los sobres archivados siguen siendo consultables para gastos históricos.
+
+Validación con `tests/projects.test.ts` y `tests/project-movements.test.ts` sobre SQLite sintética. Para preparar testing, usar la sección de ZA-116 de la [guía de despliegue](deploy-testing.md).
+
+## Costo y desglose · ZA-117
+
+`GET /api/projects/:id/analysis` lee una sola versión del libro. Incluye la revisión del proyecto, `calculatedAt` en UTC, `latestLedgerUpdateAt` para las líneas vinculadas visibles y `excludedLineCount`. Por moneda devuelve gasto bruto, reembolsos, neto, serie acumulada y categorías. Todos los importes son cadenas decimales canónicas. El cálculo usa la fecha contable guardada en el movimiento y su importe vigente. Gastos y reembolsos se expresan como magnitudes positivas. Se conserva un neto negativo cuando los reembolsos superan los gastos.
+
+La serie tiene un punto por fecha con actividad de esa moneda. Las categorías se ordenan por gasto bruto y se identifican por ID, con `null` para referencias sin categoría. Seleccionar una categoría consulta `GET /api/projects/:id/movements?currency=CRC&categoryId=123&page=1`, usando `categoryId=none` para las líneas sin categoría. La lista filtrada incluye gastos y reembolsos elegibles que explican los tres importes.
+
+`GET /api/projects/:id/movements/:transactionId` abre la ficha histórica mediante el lector existente. Solo devuelve un movimiento con al menos una línea del perfil vinculada a ese proyecto. La ficha muestra el movimiento completo, mientras que la cifra del proyecto usa únicamente sus líneas vinculadas y elegibles.
+
+El análisis y la descarga comparten el cálculo de `summarizeProjectMovements`. Los proyectos cerrados y archivados siguen consultando el libro vigente. La última actualización indica actividad registrada en movimientos aún vinculados. Una eliminación que retire el vínculo se refleja en el siguiente cálculo. ZA-117 utiliza las tablas de ZA-115 y ZA-116.
+
+## Informe PDF · ZA-118
+
+`GET /api/projects/:id/pdf` devuelve un PDF adjunto con nombre saneado y `Cache-Control: private, no-store`. Usa el perfil autorizado de Proyectos y responde 404 si el proyecto no está disponible para ese perfil. Sirve proyectos activos, finalizados y archivados.
+
+El anexo y los agregados de ZA-117 se leen dentro de la misma transacción SQLite, que termina antes de abrir Chromium. El anexo muestra solo las líneas elegibles, en orden de fecha contable, ID de movimiento e ID de línea. Cubre compras parciales y marca los reembolsos. Los encabezados se repiten cuando el anexo ocupa varias páginas. El informe usa la fecha de generación y de cierre en la hora de Costa Rica.
+
+El máximo es 2.000 líneas elegibles. Si lo supera, el endpoint devuelve `PROJECT_PDF_LIMIT` (422). La generación dura hasta 20 segundos antes de responder `PDF_TIMEOUT` (504) y cancelar Chromium. El renderizador comparte un solo trabajo por proceso entre Proyectos y Reportes. Una petición durante otro render devuelve `PDF_BUSY` (503). El recurso se libera al terminar la limpieza del navegador. El render solo usa datos locales y texto escapado. La descarga no escribe a las tablas del libro ni crea snapshots.
+
+La prueba `tests/project-pdf.test.ts` cubre el caso CRC 130 netos y USD 10, el alcance del perfil, los estados, el límite de líneas y un reintento tras timeout.

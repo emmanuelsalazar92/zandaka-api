@@ -104,3 +104,19 @@ Registrar el bloque en un documento fechado: tickets, commits/digests nuevos y a
 ZA-100 no requiere migraciones, nuevas tablas, cambios de API, worker SSH o perfil de despliegue. La web exige plataforma Vercel y opt-in explícito ZANDAKA_ANALYTICS_ENABLED=true para cargar su SDK existente; dejarlo desactivado en testing Docker. No establecer VERCEL=1 ni añadir un colector implícitamente. La ausencia de métricas reales está documentada, no se interpreta como cero uso. Ver [catálogo y activación](https://github.com/emmanuelsalazar92/zandaka-web/blob/staging/docs/usage-analytics.md). Mantener las verificaciones de tablas auxiliares de los otros tickets incluidos. Revertir este cambio no necesita acciones en DB.
 
 ZA-101 no requiere preparar la DB. La captura SQL/API queda apagada por defecto. Ver [medición temporal](sql-performance.md) para una ventana de diagnóstico.
+
+## ZA-115 · Preparar almacenamiento de Proyectos
+
+La pareja de imágenes que incluya ZA-115 requiere la tabla auxiliar project en la base real de testing, además de cualquier preparación del bloque anterior. La API no la crea al iniciar. El perfil actual del worker no verifica ni prepara esta tabla. Registrar explícitamente quién ejecutará la preparación y el resultado al planificar la entrega; un recibo previo de ZA-90/97 no la acredita.
+
+Identificar el volumen, respaldar la base conforme a esta guía y verificar la ruta real desde el contenedor o tarea temporal que ejecute la nueva imagen API. Ejecutar node dist/scripts/enable-projects.js --db <ruta-real-existente-dentro-del-contenedor> después de resolver la ruta y antes de promover las imágenes. El marcador no es un comando para copiar sin sustituirlo. El instalador crea solo project y su índice, valida la estructura y rechaza una tabla incompatible. Registrar salida y código. Con ZANDAKA_PROJECT_OWNER_ID sin definir se usa el perfil 1; confirmar que coincide con la instalación o fijar el ID de perfil apropiado en la API. Mantener las restricciones de acceso de testing.
+
+Tras la promoción, comprobar GET /api/projects con respuesta 200 y que el libro histórico conserva su contenido. Para mutaciones y accesibilidad usar una base desechable o las fixtures, no el libro real. Si falla la preparación, resolverla antes de declarar listo el bloque. En rollback, retornar al par anterior de imágenes y conservar project y sus datos; no restaurar el respaldo implícitamente. [Contrato de Proyectos](projects.md).
+
+### Vínculos con movimientos · ZA-116
+
+La imagen que incluye ZA-116 amplía el mismo comando `enable-projects.js --db` para preparar `project_transaction_line` y su índice junto a la tabla `project`. Ejecutar con la imagen API del bloque, sobre el volumen real de testing ya identificado y respaldado. La preparación es aditiva y transaccional. Al terminar, el instalador confirma las dos tablas y verifica las claves foráneas de los vínculos. El perfil existente de despliegue no prepara ni acredita estas tablas.
+
+Comprobar la lectura paginada de movimientos de un proyecto del perfil autorizado antes de usar la vinculación. Un proyecto sin vínculos devuelve una lista vacía. Un 503 `FEATURE_NOT_READY` indica que falta almacenamiento compatible. Registrar la preparación efectiva y conservar ambas tablas y sus datos al revertir imágenes. El instalador no reescribe transacciones, saldos ni importes, y no debe ejecutarse sobre la copia de auditoría.
+
+ZA-117 y ZA-118 usan esas mismas tablas auxiliares. Para verificar el PDF de Proyectos en el bloque de entrega, comprobar la generación en la imagen API con Chromium y fuentes del contenedor. Usar un proyecto sintético con varias páginas para comprobar totales, tildes, símbolo de colón y encabezados repetidos. La publicación de imágenes no ejecuta esta comprobación contra la base de testing.

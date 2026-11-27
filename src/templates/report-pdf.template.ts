@@ -1,5 +1,6 @@
 import type { ReportSnapshotDocument, ReportSnapshotLineRecord } from '../repositories/report.repo';
 import { formatMoney } from '../utils/currency.util';
+import { escapeHtml } from '../utils/html.util';
 
 type AccountGroup = {
   accountName: string;
@@ -9,15 +10,6 @@ type AccountGroup = {
 };
 
 const REPORT_TIMEZONE = process.env.REPORT_TIMEZONE ?? 'America/Costa_Rica';
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 function formatPeriod(value: string): string {
   const [year, month] = value.split('-').map(Number);

@@ -28,7 +28,7 @@ export class TransactionDetailRepository {
   findForUser(id: number, userId: number): TransactionDetail | null {
     return db.transaction((): TransactionDetail | null => {
       const transaction = moneyStatement(
-        'SELECT id, user_id, date, description, type, created_at FROM transactions WHERE id = ? AND user_id = ?',
+        "SELECT id, user_id, date, COALESCE(description, '') AS description, type, created_at FROM transactions WHERE id = ? AND user_id = ?",
       ).get(id, userId) as Transaction | undefined;
       if (!transaction) return null;
 
