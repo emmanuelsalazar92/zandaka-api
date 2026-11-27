@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import db from '../db/db';
 import { moneyStatement } from '../db/money-statement';
 import { budgetPlansReady } from '../db/budget-plan';
+import { advanceMonthStartEvidence } from '../db/budget-month-start';
 import { BudgetPlanDocument, calculateBudgetPlan } from '../utils/budget-plan';
 import { assertMoney, decimal, decimalNumber } from '../utils/money';
 import { TransferService } from './transfer.service';
@@ -226,6 +227,7 @@ export class BudgetPlanService {
         db.prepare(
           'UPDATE budget_plan SET status=?,revision=revision+1,last_write_hash=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?',
         ).run(status, id);
+        if (status === 'finalized') advanceMonthStartEvidence(db, id, revision);
         return this.get(id, userId);
       })
       .immediate();
@@ -354,6 +356,7 @@ export class BudgetPlanService {
         db.prepare(
           "UPDATE budget_plan SET status='funded',revision=revision+1,fund_hash=?,receipt_json=?,last_write_hash=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?",
         ).run(fundHash, JSON.stringify(receipt), id);
+        advanceMonthStartEvidence(db, id, revision);
         return this.get(id, userId);
       })
       .immediate();

@@ -8,6 +8,7 @@ import type { AddressInfo } from 'node:net';
 import type { Database } from 'better-sqlite3';
 import { createSyntheticDb } from './helpers/synthetic-db';
 import { installBudgetPlans } from '../src/db/budget-plan';
+import { installBudgetMonthStart } from '../src/db/budget-month-start';
 import { installTransferIdempotency } from '../src/db/transfer-idempotency';
 import { calculateBudgetPlan, type BudgetPlanDocument } from '../src/utils/budget-plan';
 
@@ -405,6 +406,164 @@ test('insufficient funds, changed endpoints and future dates cannot write any le
     400,
   );
 });
+test('month-start links actual FX and expenses without changing the ledger', async () => {
+  const doc = document();
+  doc.incomeAccountId = Number(
+    db
+      .prepare(
+        `INSERT INTO account(user_id,institution_id,name,currency,is_active,allow_overdraft)
+    SELECT user_id,institution_id,'Salary USD','USD',1,0 FROM account WHERE id=?`,
+      )
+      .run(usdAccount).lastInsertRowid,
+  );
+  doc.exchange.margin = '0';
+  doc.exchange.buy = '434';
+  doc.lines = [
+    { ...doc.lines[0], amount: '259966' },
+    { ...doc.lines[0], id: randomUUID(), name: 'Otro pago', amount: '434' },
+  ];
+  const saved = await save(doc);
+  assert.equal(saved.status, 200, JSON.stringify(saved.body));
+  const url = `/api/budget-plans/${saved.id}/month-start`;
+  assert.equal((await request('GET', `${url}?userId=${userId}`)).status, 503);
+  installBudgetMonthStart(db);
+  installBudgetMonthStart(db);
+  const movement = (type: string, account: number, envelope: number, amount: number) => {
+    const id = Number(
+      db
+        .prepare('INSERT INTO transactions(user_id,date,description,type) VALUES(?,?,?,?)')
+        .run(userId, postDate, 'Synthetic movement', type).lastInsertRowid,
+    );
+    db.prepare(
+      'INSERT INTO transaction_line(transaction_id,account_id,envelope_id,amount) VALUES(?,?,?,?)',
+    ).run(id, account, envelope, amount);
+    return id;
+  };
+  const debit = movement('EXPENSE', usdAccount, usdSource, -600);
+  const credit = movement('INCOME', account1, source1, 262000);
+  const expense = movement('EXPENSE', account1, target1, -250000);
+  const before = snapshot();
+  const link = (step: string, movementIds: number[], revision = 1) =>
+    request('PUT', `${url}/link`, { userId, step, revision, movementIds });
+  assert.equal((await request('GET', `${url}?userId=${foreignUserId}`)).status, 404);
+  assert.equal((await link('fx', [debit, debit])).status, 400);
+  assert.equal((await link('fx', [credit, debit])).status, 400);
+  assert.equal((await link('fx', [expense, credit])).status, 400);
+  const confirmed = await link('fx', [debit, credit]);
+  assert.equal(confirmed.status, 200, JSON.stringify(confirmed.body));
+  assert.equal(confirmed.body.steps[0].planned, '600');
+  assert.equal(confirmed.body.steps[0].alternateFromAccountId, usdAccount);
+  assert.deepEqual(
+    confirmed.body.steps[0].evidence.movements.map((m: { amount: string }) => m.amount),
+    ['600', '262000'],
+  );
+  assert.equal(confirmed.body.steps[0].evidence.rate, '436.666667');
+  assert.deepEqual((await link('fx', [debit, credit])).body, confirmed.body);
+  assert.equal((await link(`payment:${doc.lines[0].id}`, [credit])).status, 400);
+  assert.equal((await link(`payment:${doc.lines[0].id}`, [expense])).status, 200);
+  assert.equal((await link(`payment:${doc.lines[1].id}`, [expense])).status, 409);
+  assert.equal(snapshot(), before);
+  const edited = await save({ ...doc, exchange: { ...doc.exchange, buy: '435' } }, saved.id, 1);
+  assert.equal(edited.status, 200);
+  const reread = await request('GET', `${url}?userId=${userId}`);
+  assert.equal(reread.body.steps[0].evidence.current, false);
+  assert.equal((await link('fx', [debit, credit])).status, 409);
+  assert.equal((await link('fx', [debit, credit], 2)).status, 200);
+});
+
+test('month-start commits transfers and evidence together and replays the same receipt', async () => {
+  installBudgetMonthStart(db);
+  const doc = document();
+  const saved = await save(doc);
+  assert.equal(saved.status, 200);
+  const url = `/api/budget-plans/${saved.id}`;
+  const insTransaction = db.prepare(
+    'INSERT INTO transactions(user_id,date,description,type) VALUES(?,?,?,?)',
+  );
+  const insLine = db.prepare(
+    'INSERT INTO transaction_line(transaction_id,account_id,envelope_id,amount) VALUES(?,?,?,?)',
+  );
+  const debit = Number(
+    insTransaction.run(userId, postDate, 'Synthetic USD sold', 'EXPENSE').lastInsertRowid,
+  );
+  const credit = Number(
+    insTransaction.run(userId, postDate, 'Synthetic CRC received', 'INCOME').lastInsertRowid,
+  );
+  insLine.run(debit, usdAccount, usdSource, -600);
+  insLine.run(credit, account1, source1, 262000);
+  const conversion = await request('PUT', `${url}/month-start/link`, {
+    userId,
+    step: 'fx',
+    revision: 1,
+    movementIds: [debit, credit],
+  });
+  assert.equal(conversion.status, 200, JSON.stringify(conversion.body));
+  const step = `transfer:${account2}`;
+  const amount = Number(conversion.body.steps.find((s: { key: string }) => s.key === step).planned);
+  const transfer = {
+    requestId: randomUUID(),
+    date: postDate,
+    description: 'Synthetic month transfer',
+    from: { accountId: account1, envelopeId: source1 },
+    to: { accountId: account2, envelopeId: source2 },
+    amount,
+  };
+  const payload = { userId, revision: 1, step, transfer };
+  const before = counts();
+  assert.equal(
+    (
+      await request('POST', `${url}/month-start/transfer`, {
+        ...payload,
+        transfer: { ...transfer, amount: 9999999 },
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await request('POST', `${url}/month-start/transfer`, {
+        ...payload,
+        transfer: { ...transfer, to: { accountId: account2, envelopeId: target2 } },
+      })
+    ).status,
+    400,
+  );
+  assert.deepEqual(counts(), before);
+  const first = await request('POST', `${url}/month-start/transfer`, payload);
+  assert.equal(first.status, 200, JSON.stringify(first.body));
+  assert.deepEqual(
+    (await request('POST', `${url}/month-start/transfer`, payload)).body,
+    first.body,
+  );
+  assert.deepEqual(counts(), {
+    transactions: before.transactions + 1,
+    receipts: before.receipts + 1,
+  });
+  assert.equal(
+    (
+      await request('POST', `${url}/month-start/transfer`, {
+        ...payload,
+        transfer: { ...transfer, requestId: randomUUID() },
+      })
+    ).status,
+    409,
+  );
+  assert.equal((await request('POST', `${url}/finalize`, { userId, revision: 1 })).status, 200);
+  assert.deepEqual(
+    (await request('POST', `${url}/month-start/transfer`, payload)).body,
+    first.body,
+  );
+  const read = await request('GET', `${url}/month-start?userId=${userId}`);
+  assert.equal(read.body.steps.find((s: { key: string }) => s.key === step).evidence.current, true);
+  assert.equal((await request('POST', `${url}/reopen`, { userId, revision: 2 })).status, 200);
+  const reopened = await request('GET', `${url}/month-start?userId=${userId}`);
+  assert.equal(
+    reopened.body.steps.find((s: { key: string }) => s.key === 'fx').evidence.current,
+    false,
+  );
+  assert.equal(reopened.body.detachedCount, 1);
+});
+
 test('copying returns only prior assignments with new IDs and preserves current income/rates', async () => {
   const previous = await save();
   assert.equal(previous.status, 200);

@@ -120,3 +120,11 @@ La imagen que incluye ZA-116 amplía el mismo comando `enable-projects.js --db` 
 Comprobar la lectura paginada de movimientos de un proyecto del perfil autorizado antes de usar la vinculación. Un proyecto sin vínculos devuelve una lista vacía. Un 503 `FEATURE_NOT_READY` indica que falta almacenamiento compatible. Registrar la preparación efectiva y conservar ambas tablas y sus datos al revertir imágenes. El instalador no reescribe transacciones, saldos ni importes, y no debe ejecutarse sobre la copia de auditoría.
 
 ZA-117 y ZA-118 usan esas mismas tablas auxiliares. Para verificar el PDF de Proyectos en el bloque de entrega, comprobar la generación en la imagen API con Chromium y fuentes del contenedor. Usar un proyecto sintético con varias páginas para comprobar totales, tildes, símbolo de colón y encabezados repetidos. La publicación de imágenes no ejecuta esta comprobación contra la base de testing.
+
+## ZA-120 · Preparar los vínculos de inicio de mes
+
+**Preparación pendiente en testing al cerrar la implementación.** El bloque requiere imágenes compatibles de web y API, las tablas de ZA-90 y ZA-97 y la tabla auxiliar `budget_month_start`. El perfil SSH existente no verifica ni prepara esta última. Confirmar quién la prepara antes de promover el bloque.
+
+Verificar el montaje de testing, crear y comprobar un respaldo consistente de SQLite y ejecutar desde la nueva imagen de API `node dist/scripts/enable-budget-month-start.js --db <ruta-real-existente-dentro-del-contenedor>`. Sustituir el marcador por la ruta verificada. El instalador es transaccional, valida el esquema y crea solo la tabla auxiliar. Después, comprobar integridad y claves foráneas, y registrar el respaldo y la preparación efectiva. La copia de auditoría de producción queda fuera de este procedimiento.
+
+Comprobar `GET /api/budget-plans/:id/month-start` con un plan del entorno antes de dar por entregado el bloque. Una respuesta 503 `FEATURE_NOT_READY` indica que falta almacenamiento compatible. Para confirmar y reintentar movimientos, usar datos sintéticos. Al revertir imágenes, conservar la tabla y sus vínculos junto con los recibos previos.

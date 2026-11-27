@@ -2,6 +2,14 @@
 
 Implementación del 5 de noviembre de 2026. El nuevo plan mensual conserva el origen USD del ingreso, las asignaciones USD/CRC y el libre sin convertir. Usa `budget_plan`, un almacenamiento auxiliar independiente del presupuesto anterior. **No se preparó una base del usuario durante la implementación; sí se preparó después en la [entrega solicitada de testing del 5 de noviembre](deployments/2026-11-05-testing.md).** Para entregar otro bloque seguir [deploy-testing](deploy-testing.md); publicar imágenes no instala el esquema ni despliega testing.
 
+## Movimientos de inicio de mes · ZA-120
+
+- `GET /api/budget-plans/:id/month-start?userId=…` devuelve la revisión, pasos, evidencia y número de vínculos de pasos que ya no aparecen en el plan vigente.
+- `PUT /api/budget-plans/:id/month-start/link` recibe `userId`, `revision`, `step` y `movementIds`. Comprueba el tipo, dirección, moneda y pertenencia. FX usa un gasto en la cuenta USD de ingreso o de reserva del plan y un ingreso CRC en otra cuenta propia. Un pago usa un gasto del sobre de esa línea. Para ambos se requiere un asiento de una sola línea por movimiento seleccionado. La transferencia ya registrada tiene dos líneas opuestas y debe coincidir con ambos extremos del paso.
+- `POST /api/budget-plans/:id/month-start/transfer` recibe `userId`, `revision`, `step` y `transfer` con los campos de ZA-90 salvo `userId`. Usa los extremos calculados a partir del abono CRC y del sobre de fondos de la otra cuenta. Valida saldo suficiente y aplica recibo, traslado y vínculo en una misma transacción SQLite. Repetir el mismo `requestId` y cuerpo devuelve el resultado original.
+
+Los vínculos son explícitos por plan y paso. Un mismo movimiento no confirma pasos distintos del mismo plan. Guardar o reabrir el plan deja los vínculos **Por revisar**. Finalizar o fondear preserva los vínculos vigentes porque esas acciones conservan el documento. La tasa real usa los dos importes de los movimientos vinculados. Aplicar el fondeo sigue siendo una operación aparte con su recibo de ZA-97. La [guía de despliegue](deploy-testing.md#za-120--preparar-los-vínculos-de-inicio-de-mes) documenta la tabla auxiliar.
+
 ## Modelo y compatibilidad
 
 Un documento `version: 1` identifica mes presupuestado, mes de cobro, cuentas USD de referencia, modo de ingreso, cotización bancaria, líneas y sobres de fondos por cuenta. Los importes de entrada y resultados de planificación son cadenas decimales. El ingreso base es USD; los pagos pueden ser USD o CRC. No se deduce de nuevo un salario ya neto.

@@ -123,3 +123,14 @@ export const listPlansSchema = z.object({
     pageSize: z.coerce.number().int().min(1).max(100).default(20),
   }),
 });
+const stepKey = z.union([
+  z.literal('fx'),
+  z.templateLiteral(['payment:', z.guid()]),
+  z.string().regex(/^transfer:[1-9][0-9]{0,15}$/),
+]);
+export const linkMonthStartSchema = planActionSchema.extend({
+  body: planActionSchema.shape.body.extend({
+    step: stepKey,
+    movementIds: z.array(id).min(1).max(2),
+  }),
+});

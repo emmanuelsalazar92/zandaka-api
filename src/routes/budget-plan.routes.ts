@@ -1,16 +1,25 @@
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { validate } from '../middlewares/validator.middleware';
+import { BudgetMonthStartService } from '../services/budget-month-start.service';
 import { BudgetPlanService } from '../services/budget-plan.service';
 import {
   applyPlanSchema,
   listPlansSchema,
+  linkMonthStartSchema,
   planActionSchema,
   planIdentitySchema,
   savePlanSchema,
 } from '../validators/budget-plan.validator';
+import { createTransferSchema } from '../validators/transfer.validator';
 
 const router = Router(),
   service = new BudgetPlanService();
+const monthStart = new BudgetMonthStartService();
+const monthStartTransfer = linkMonthStartSchema.extend({
+  body: linkMonthStartSchema.shape.body.omit({ movementIds: true }).extend({
+    transfer: createTransferSchema.shape.body.omit({ userId: true }),
+  }),
+});
 router.get('/', validate(listPlansSchema), (req, res) => {
   const { query } = listPlansSchema.parse({ query: req.query });
   res.json(service.list(query.userId, query.page, query.pageSize));
@@ -46,6 +55,24 @@ router.get('/:id/funding-preview', validate(planIdentitySchema), (req, res) => {
 router.get('/:id/previous-assignments', validate(planIdentitySchema), (req, res) => {
   const { params, query } = planIdentitySchema.parse({ params: req.params, query: req.query });
   res.json(service.previousAssignments(params.id, query.userId));
+});
+router.get('/:id/month-start', validate(planIdentitySchema), (req, res) => {
+  const { params, query } = planIdentitySchema.parse({ params: req.params, query: req.query });
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(monthStart.get(params.id, query.userId));
+});
+router.put('/:id/month-start/link', validate(linkMonthStartSchema), (req, res) => {
+  const { params, body } = linkMonthStartSchema.parse({ params: req.params, body: req.body });
+  res.json(monthStart.link(params.id, body.userId, body.revision, body.step, body.movementIds));
+});
+router.post('/:id/month-start/transfer', validate(monthStartTransfer), (req, res) => {
+  const { params, body } = monthStartTransfer.parse({ params: req.params, body: req.body });
+  res.json(
+    monthStart.transfer(params.id, body.revision, body.step, {
+      ...body.transfer,
+      userId: body.userId,
+    }),
+  );
 });
 router.post('/:id/fund', validate(applyPlanSchema), (req, res) => {
   const { params, body } = applyPlanSchema.parse({ params: req.params, body: req.body });
