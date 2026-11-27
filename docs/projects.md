@@ -36,4 +36,14 @@ La serie tiene un punto por fecha con actividad de esa moneda. Las categorías s
 
 `GET /api/projects/:id/movements/:transactionId` abre la ficha histórica mediante el lector existente. Solo devuelve un movimiento con al menos una línea del perfil vinculada a ese proyecto. La ficha muestra el movimiento completo, mientras que la cifra del proyecto usa únicamente sus líneas vinculadas y elegibles.
 
-El contrato de agregados vive en `ProjectService.analysis` y `summarizeProjectMovements` para reutilizarlo en ZA-118. Los proyectos cerrados y archivados siguen consultando el libro vigente. La última actualización indica actividad registrada en movimientos aún vinculados. Una eliminación que retire el vínculo se refleja en el siguiente cálculo. ZA-117 utiliza las tablas de ZA-115 y ZA-116.
+El análisis y la descarga comparten el cálculo de `summarizeProjectMovements`. Los proyectos cerrados y archivados siguen consultando el libro vigente. La última actualización indica actividad registrada en movimientos aún vinculados. Una eliminación que retire el vínculo se refleja en el siguiente cálculo. ZA-117 utiliza las tablas de ZA-115 y ZA-116.
+
+## Informe PDF · ZA-118
+
+`GET /api/projects/:id/pdf` devuelve un PDF adjunto con nombre saneado y `Cache-Control: private, no-store`. Usa el perfil autorizado de Proyectos y responde 404 si el proyecto no está disponible para ese perfil. Sirve proyectos activos, finalizados y archivados.
+
+El anexo y los agregados de ZA-117 se leen dentro de la misma transacción SQLite, que termina antes de abrir Chromium. El anexo muestra solo las líneas elegibles, en orden de fecha contable, ID de movimiento e ID de línea. Cubre compras parciales y marca los reembolsos. Los encabezados se repiten cuando el anexo ocupa varias páginas. El informe usa la fecha de generación y de cierre en la hora de Costa Rica.
+
+El máximo es 2.000 líneas elegibles. Si lo supera, el endpoint devuelve `PROJECT_PDF_LIMIT` (422). La generación dura hasta 20 segundos antes de responder `PDF_TIMEOUT` (504) y cancelar Chromium. El renderizador comparte un solo trabajo por proceso entre Proyectos y Reportes. Una petición durante otro render devuelve `PDF_BUSY` (503). El recurso se libera al terminar la limpieza del navegador. El render solo usa datos locales y texto escapado. La descarga no escribe a las tablas del libro ni crea snapshots.
+
+La prueba `tests/project-pdf.test.ts` cubre el caso CRC 130 netos y USD 10, el alcance del perfil, los estados, el límite de líneas y un reintento tras timeout.

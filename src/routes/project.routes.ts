@@ -2,11 +2,13 @@ import { Router, type RequestHandler } from 'express';
 import { z } from 'zod';
 import db from '../db/db';
 import { TransactionDetailRepository } from '../repositories/transaction-detail.repo';
+import { ProjectPdfService } from '../services/project-pdf.service';
 import { ProjectService } from '../services/project.service';
 
 const router = Router();
 const service = new ProjectService(db, Number(process.env.ZANDAKA_PROJECT_OWNER_ID ?? '1'));
 const transactionDetails = new TransactionDetailRepository();
+const pdfReports = new ProjectPdfService();
 const id = z.string().uuid();
 const title = z.string().trim().min(1).max(120);
 const revision = z.number().int().positive().safe();
@@ -67,13 +69,17 @@ const known = [
   'IDEMPOTENCY_CONFLICT',
   'FEATURE_NOT_READY',
   'VALIDATION_ERROR',
+  'PROJECT_PDF_LIMIT',
+  'PDF_BUSY',
+  'PDF_TIMEOUT',
 ];
 function handle(handler: RequestHandler): RequestHandler {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     res.set('Cache-Control', 'private, no-store');
     try {
-      handler(req, res, next);
+      await handler(req, res, next);
     } catch (error) {
+      if (res.destroyed) return;
       if (error instanceof z.ZodError) {
         return next({ code: 'VALIDATION_ERROR', message: 'Invalid project request' });
       }
@@ -136,6 +142,28 @@ router.get(
   handle((req, res) => {
     z.strictObject({}).parse(req.query);
     res.json(service.analysis(id.parse(req.params.id)));
+  }),
+);
+router.get(
+  '/:id/pdf',
+  handle(async (req, res) => {
+    z.strictObject({}).parse(req.query);
+    const data = service.pdfSnapshot(id.parse(req.params.id));
+    const connection = new AbortController();
+    const onClose = () => connection.abort();
+    res.once('close', onClose);
+    try {
+      const { fileName, pdf } = await pdfReports.generate(data, connection.signal);
+      if (!res.destroyed) {
+        res
+          .attachment(fileName)
+          .type('application/pdf')
+          .set('X-Content-Type-Options', 'nosniff')
+          .send(pdf);
+      }
+    } finally {
+      res.off('close', onClose);
+    }
   }),
 );
 router.get(

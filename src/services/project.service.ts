@@ -25,6 +25,7 @@ type Change =
 
 const fields = `id, title, revision, created_at AS createdAt, updated_at AS updatedAt,
   finalized_at AS finalizedAt, archived_at AS archivedAt`;
+const pdfLineLimit = 2_000;
 
 function conflict(): never {
   throw { code: 'CONFLICT', message: 'Project state or revision has changed' };
@@ -73,13 +74,28 @@ export class ProjectService {
   }
 
   analysis(id: string) {
+    return this.db.transaction(() => this.analyze(this.readForMovements(id)))();
+  }
+
+  private analyze(project: Project) {
+    return {
+      project,
+      calculatedAt: new Date().toISOString(),
+      ...summarizeProjectMovements(this.movements.groups(project.id, this.owner)),
+    };
+  }
+
+  pdfSnapshot(id: string) {
     return this.db.transaction(() => {
       const project = this.readForMovements(id);
-      return {
-        project,
-        calculatedAt: new Date().toISOString(),
-        ...summarizeProjectMovements(this.movements.groups(id, this.owner)),
-      };
+      const lines = this.movements.linesForReport(id, this.owner, pdfLineLimit + 1);
+      if (lines.length > pdfLineLimit) {
+        throw {
+          code: 'PROJECT_PDF_LIMIT',
+          message: 'Project PDF supports up to 2000 eligible lines',
+        };
+      }
+      return { ...this.analyze(project), lines };
     })();
   }
 
@@ -226,3 +242,5 @@ export class ProjectService {
       .immediate();
   }
 }
+
+export type ProjectPdfSnapshot = ReturnType<ProjectService['pdfSnapshot']>;

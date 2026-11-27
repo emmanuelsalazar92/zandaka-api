@@ -23,6 +23,9 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
       CONFLICT: 409,
       IDEMPOTENCY_CONFLICT: 409,
       FEATURE_NOT_READY: 503,
+      PDF_BUSY: 503,
+      PDF_TIMEOUT: 504,
+      PROJECT_PDF_LIMIT: 422,
       INACTIVE_RESOURCE: 409,
       INTERNAL_ERROR: 500,
     };

@@ -176,6 +176,20 @@ export class ProjectMovementsRepository {
     );
   }
 
+  linesForReport(projectId: string, owner: number, limit: number) {
+    return this.db
+      .prepare(
+        `
+      SELECT ${fields}, ptl.kind
+      ${linked}
+      WHERE ${eligible} = 1
+      ORDER BY substr(t.date, 1, 10), t.id, tl.id
+      LIMIT @limit
+    `,
+      )
+      .all({ projectId, owner, limit }) as (MovementLine & { kind: ProjectMovementKind })[];
+  }
+
   list(projectId: string, owner: number, page: number, filter?: ProjectBreakdownFilter) {
     const scope = filter
       ? `${linked} WHERE ${eligible} = 1 AND UPPER(a.currency) = @currency AND c.id IS @categoryId`

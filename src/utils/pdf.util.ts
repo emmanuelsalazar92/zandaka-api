@@ -1,15 +1,29 @@
 import puppeteer from 'puppeteer';
-
-const escapeFooter = (value: string) =>
-  value.replace(
-    /[&<>"']/g,
-    (character) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] ??
-      character,
-  );
+import { escapeHtml } from './html.util';
 
 export class PdfRenderer {
-  async renderHtmlToPdf(html: string, footerLabel: string): Promise<Buffer> {
+  private static rendering = false;
+
+  async renderHtmlToPdf(
+    html: string,
+    footerLabel: string,
+    options?: { signal: AbortSignal; timeoutMs: number },
+  ): Promise<Buffer> {
+    options?.signal.throwIfAborted();
+    if (PdfRenderer.rendering) throw { code: 'PDF_BUSY', message: 'A PDF is already rendering' };
+    PdfRenderer.rendering = true;
+    try {
+      return await this.render(html, footerLabel, options);
+    } finally {
+      PdfRenderer.rendering = false;
+    }
+  }
+
+  private async render(
+    html: string,
+    footerLabel: string,
+    options?: { signal: AbortSignal; timeoutMs: number },
+  ): Promise<Buffer> {
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
 
     // These flags keep Chromium usable in common CI/Docker environments where the sandbox
@@ -17,6 +31,11 @@ export class PdfRenderer {
     const browser = await puppeteer.launch({
       headless: true,
       ...(executablePath ? { executablePath } : {}),
+      ...(options && {
+        signal: options.signal,
+        timeout: options.timeoutMs,
+        protocolTimeout: options.timeoutMs,
+      }),
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
 
@@ -26,11 +45,10 @@ export class PdfRenderer {
       await page.setRequestInterception(true);
       page.on('request', (request) => {
         // Reports are self-contained. Rendering must not fetch internal services or remote assets.
-        if (request.url().startsWith('data:') || request.url() === 'about:blank') {
-          void request.continue();
-        } else {
-          void request.abort('blockedbyclient');
-        }
+        const local = request.url().startsWith('data:') || request.url() === 'about:blank';
+        const resolved = local ? request.continue() : request.abort('blockedbyclient');
+        // Cancellation may close Chromium while the interception is being resolved.
+        void resolved.catch(() => undefined);
       });
       await page.setContent(html, { waitUntil: 'load', timeout: 15000 });
       await page.emulateMediaType('print');
@@ -45,7 +63,7 @@ export class PdfRenderer {
         headerTemplate: '<div></div>',
         footerTemplate: `
           <div style="width: 100%; padding: 0 24px; font-size: 9px; color: #6b7280; font-family: 'Noto Sans', Arial, sans-serif; display: flex; justify-content: space-between; align-items: center;">
-            <span>${escapeFooter(footerLabel)}</span>
+            <span>${escapeHtml(footerLabel)}</span>
             <span>Página <span class="pageNumber"></span> / <span class="totalPages"></span></span>
           </div>
         `,
