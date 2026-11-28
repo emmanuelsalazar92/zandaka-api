@@ -18,6 +18,14 @@ Los vínculos son explícitos por plan y paso. Un mismo movimiento no confirma p
 
 `GET /api/transactions` admite el filtro opcional `accountEnvelopeId`. Con ese filtro devuelve solo las líneas del sobre exacto, incluso si está inactivo. Con `type=EXPENSE`, devuelve solamente débitos. La ficha `GET /api/transactions/:id` conserva el movimiento completo. El nuevo seguimiento reutiliza el esquema existente y no requiere preparación adicional.
 
+## Suscripciones · ZA-122
+
+El catálogo por usuario se consulta en `GET /api/budget-plans/subscriptions`. `PUT /api/budget-plans/subscriptions/:id` guarda la definición con `userId`, `revision` y `definition`. Una incorporación copia precio, moneda, IVA, divisa y redondeo en una línea existente del modelo de plan. La línea guarda el ID y revisión del catálogo como referencia. Las tasas ajustadas, la fecha, la fuente de la cotización y la versión de cálculo corresponden al documento mensual guardado. Editar el catálogo no cambia los planes. Editar explícitamente la cotización de un borrador recalcula su previsión con el motor de ZA-97.
+
+`GET /api/budget-plans/:id/subscriptions` devuelve previsiones y comprobantes. `PUT /api/budget-plans/:id/subscriptions/:lineId` vincula con `userId`, `revision`, `transactionId` y `transactionLineId`. Exige una línea de débito de un gasto propio en la cuenta y moneda previstas. Guarda la previsión revisada y la diferencia real menos previsto. Una línea contable se vincula a una sola ocurrencia entre todos los planes. El mismo intento puede repetirse. Cambiar explícitamente la previsión deja el vínculo por revisar y permite volver a confirmar la misma línea. No se agrupan diferentes líneas de importación por importe o descripción. Los vínculos no cambian el libro.
+
+Antes de promover la API, preparar explícitamente el catálogo y los vínculos en testing. Ver [guía de despliegue](deploy-testing.md#za-122--preparar-el-catálogo-y-los-vínculos-de-suscripciones).
+
 ## Modelo y compatibilidad
 
 Un documento `version: 1` identifica mes presupuestado, mes de cobro, cuentas USD de referencia, modo de ingreso, cotización bancaria, líneas y sobres de fondos por cuenta. Los importes de entrada y resultados de planificación son cadenas decimales. El ingreso base es USD; los pagos pueden ser USD o CRC. No se deduce de nuevo un salario ya neto.

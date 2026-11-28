@@ -2,6 +2,7 @@ import { Router, type NextFunction, type Request, type Response } from 'express'
 import { validate } from '../middlewares/validator.middleware';
 import { BudgetMonthStartService } from '../services/budget-month-start.service';
 import { BudgetPlanService } from '../services/budget-plan.service';
+import { BudgetSubscriptionsService } from '../services/budget-subscriptions.service';
 import {
   applyPlanSchema,
   listPlansSchema,
@@ -11,10 +12,16 @@ import {
   savePlanSchema,
 } from '../validators/budget-plan.validator';
 import { createTransferSchema } from '../validators/transfer.validator';
+import {
+  linkSubscriptionChargeSchema,
+  saveSubscriptionDefinitionSchema,
+  subscriptionCatalogQuery,
+} from '../validators/budget-subscriptions.validator';
 
 const router = Router(),
   service = new BudgetPlanService();
 const monthStart = new BudgetMonthStartService();
+const subscriptions = new BudgetSubscriptionsService();
 const monthStartTransfer = linkMonthStartSchema.extend({
   body: linkMonthStartSchema.shape.body.omit({ movementIds: true }).extend({
     transfer: createTransferSchema.shape.body.omit({ userId: true }),
@@ -27,6 +34,39 @@ router.get('/', validate(listPlansSchema), (req, res) => {
 router.get('/options', validate(listPlansSchema), (req, res) => {
   const { query } = listPlansSchema.parse({ query: req.query });
   res.json(service.options(query.userId));
+});
+router.get('/subscriptions', validate(subscriptionCatalogQuery), (req, res) => {
+  const { query } = subscriptionCatalogQuery.parse({ query: req.query });
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(subscriptions.catalog(query.userId));
+});
+router.put('/subscriptions/:id', validate(saveSubscriptionDefinitionSchema), (req, res) => {
+  const { params, body } = saveSubscriptionDefinitionSchema.parse({
+    params: req.params,
+    body: req.body,
+  });
+  res.json(subscriptions.saveDefinition(params.id, body.userId, body.revision, body.definition));
+});
+router.get('/:id/subscriptions', validate(planIdentitySchema), (req, res) => {
+  const { params, query } = planIdentitySchema.parse({ params: req.params, query: req.query });
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(subscriptions.get(params.id, query.userId));
+});
+router.put('/:id/subscriptions/:lineId', validate(linkSubscriptionChargeSchema), (req, res) => {
+  const { params, body } = linkSubscriptionChargeSchema.parse({
+    params: req.params,
+    body: req.body,
+  });
+  res.json(
+    subscriptions.link(
+      params.id,
+      params.lineId,
+      body.userId,
+      body.revision,
+      body.transactionId,
+      body.transactionLineId,
+    ),
+  );
 });
 router.get('/:id', validate(planIdentitySchema), (req, res) => {
   const { params, query } = planIdentitySchema.parse({ params: req.params, query: req.query });

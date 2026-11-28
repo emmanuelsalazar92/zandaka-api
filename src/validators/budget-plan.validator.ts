@@ -59,6 +59,7 @@ export const planDocumentSchema = z
             iva: numberText,
             roundUsd: z.enum(['up', 'none']),
             targetEnvelopeId: id.nullable(),
+            subscriptionSource: z.object({ id: z.guid(), revision: id }).strict().optional(),
           })
           .strict(),
       )
@@ -79,6 +80,12 @@ export const planDocumentSchema = z
         message: 'One source envelope per account is required',
       });
     doc.lines.forEach((line, index) => {
+      if (line.subscriptionSource && line.kind !== 'subscription')
+        ctx.addIssue({
+          code: 'custom',
+          path: ['lines', index, 'subscriptionSource'],
+          message: 'Only subscription lines have a catalog source',
+        });
       if (line.kind !== 'percent' && line.amount && (line.amount.split('.')[1]?.length ?? 0) > 2)
         ctx.addIssue({
           code: 'custom',

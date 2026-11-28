@@ -128,3 +128,11 @@ ZA-117 y ZA-118 usan esas mismas tablas auxiliares. Para verificar el PDF de Pro
 Verificar el montaje de testing, crear y comprobar un respaldo consistente de SQLite y ejecutar desde la nueva imagen de API `node dist/scripts/enable-budget-month-start.js --db <ruta-real-existente-dentro-del-contenedor>`. Sustituir el marcador por la ruta verificada. El instalador es transaccional, valida el esquema y crea solo la tabla auxiliar. Después, comprobar integridad y claves foráneas, y registrar el respaldo y la preparación efectiva. La copia de auditoría de producción queda fuera de este procedimiento.
 
 Comprobar `GET /api/budget-plans/:id/month-start` con un plan del entorno antes de dar por entregado el bloque. Una respuesta 503 `FEATURE_NOT_READY` indica que falta almacenamiento compatible. Para confirmar y reintentar movimientos, usar datos sintéticos. Al revertir imágenes, conservar la tabla y sus vínculos junto con los recibos previos.
+
+## ZA-122 · Preparar el catálogo y los vínculos de suscripciones
+
+**Preparación pendiente en testing.** El bloque requiere las imágenes compatibles de Web y API, la tabla existente `budget_plan` y dos tablas auxiliares nuevas, `subscription_definition` y `subscription_charge`. El perfil de despliegue existente tampoco acredita estas tablas.
+
+Identificar el volumen de testing, verificar un respaldo consistente de SQLite y ejecutar con la nueva imagen API `node dist/scripts/enable-budget-subscriptions.js --db <ruta-real-existente-dentro-del-contenedor>`. Sustituir el marcador por la ruta verificada. El script instala y valida ambas tablas en una transacción y verifica sus referencias. La preparación agrega almacenamiento y conserva las líneas, saldos, snapshots y planes históricos. Usar la base real de testing identificada en la entrega. La copia de auditoría de producción queda fuera del procedimiento.
+
+Verificar integridad y los GET del catálogo y de un plan antes de dar por completo el bloque. Las escrituras de prueba usan datos sintéticos. Registrar quién ejecutó la preparación y su resultado. Al revertir imágenes, conservar las dos tablas auxiliares y sus datos.

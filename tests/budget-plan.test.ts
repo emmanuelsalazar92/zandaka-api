@@ -9,6 +9,7 @@ import type { Database } from 'better-sqlite3';
 import { createSyntheticDb } from './helpers/synthetic-db';
 import { installBudgetPlans } from '../src/db/budget-plan';
 import { installBudgetMonthStart } from '../src/db/budget-month-start';
+import { installBudgetSubscriptions } from '../src/db/budget-subscriptions';
 import { installTransferIdempotency } from '../src/db/transfer-idempotency';
 import { calculateBudgetPlan, type BudgetPlanDocument } from '../src/utils/budget-plan';
 
@@ -711,4 +712,132 @@ test('copying returns only prior assignments with new IDs and preserves current 
   assert.equal(copy.body.document.income.net, '123');
   assert.notEqual(copy.body.document.lines[0].id, previous.body.document.lines[0].id);
   assert.equal(copy.body.document.lines[0].amount, previous.body.document.lines[0].amount);
+});
+
+test('subscriptions copy current prices and reconcile only the selected, compatible expense line', async () => {
+  const catalog = '/api/budget-plans/subscriptions';
+  assert.equal((await request('GET', `${catalog}?userId=${userId}`)).status, 503);
+  installBudgetSubscriptions(db);
+  installBudgetSubscriptions(db);
+  const serviceId = randomUUID();
+  const definition = {
+    name: 'Synthetic streaming',
+    amount: '14.99',
+    currency: 'USD',
+    payCurrency: 'CRC',
+    iva: '13',
+    roundUsd: 'up',
+  } as const;
+  const first = await request('PUT', `${catalog}/${serviceId}`, {
+    userId,
+    revision: 0,
+    definition,
+  });
+  assert.equal(first.status, 200);
+  assert.equal(first.body.revision, 1);
+  assert.equal(
+    (
+      await request('PUT', `${catalog}/${serviceId}`, {
+        userId: foreignUserId,
+        revision: 1,
+        definition,
+      })
+    ).status,
+    404,
+  );
+  const doc = document();
+  doc.exchange = { ...doc.exchange, buy: '434', sell: '468', margin: '0' };
+  doc.lines = [
+    {
+      ...doc.lines[0],
+      ...definition,
+      kind: 'subscription',
+      subscriptionSource: { id: serviceId, revision: 1 },
+    },
+    { ...doc.lines[2], kind: 'subscription', amount: '20', iva: '0' },
+    { ...doc.lines[1], ...definition, name: 'Other service', kind: 'subscription' },
+  ];
+  const saved = await save(doc);
+  assert.equal(saved.status, 200, JSON.stringify(saved.body));
+  const url = `/api/budget-plans/${saved.id}/subscriptions`;
+  const read = () => request('GET', `${url}?userId=${userId}`);
+  const preview = await read();
+  assert.equal(preview.status, 200);
+  assert.equal(preview.body.occurrences[0].planned, '7950');
+  assert.equal(preview.body.occurrences[0].sell, '468');
+  assert.match(
+    preview.body.occurrences[0].explanation.join(' '),
+    /16\.9387.*468.*7927\.3116.*múltiplo de 50/,
+  );
+  assert.equal(preview.body.occurrences[1].currency, 'USD');
+  assert.equal(preview.body.occurrences[1].planned, '20');
+  const edited = await request('PUT', `${catalog}/${serviceId}`, {
+    userId,
+    revision: 1,
+    definition: { ...definition, amount: '20' },
+  });
+  assert.equal(edited.body.revision, 2);
+  assert.deepEqual((await read()).body, preview.body);
+  const later = await save({
+    ...doc,
+    month: '2026-02',
+    lines: [
+      {
+        ...doc.lines[0],
+        id: randomUUID(),
+        amount: '20',
+        subscriptionSource: { id: serviceId, revision: 2 },
+      },
+    ],
+  });
+  assert.equal(later.status, 200);
+  assert.equal(
+    (await request('GET', `/api/budget-plans/${later.id}/subscriptions?userId=${userId}`)).body
+      .occurrences[0].planned,
+    '10600',
+  );
+  const tx = Number(
+    db
+      .prepare(
+        "INSERT INTO transactions(user_id,date,description,type) VALUES(?,?,'Synthetic card charge','EXPENSE')",
+      )
+      .run(userId, postDate).lastInsertRowid,
+  );
+  const add = db.prepare(
+    'INSERT INTO transaction_line(transaction_id,account_id,envelope_id,amount) VALUES(?,?,?,?)',
+  );
+  const crc = Number(add.run(tx, account1, target1, -8100).lastInsertRowid);
+  const usd = Number(add.run(tx, usdAccount, usdTarget, -20).lastInsertRowid);
+  const wrongAccount = Number(add.run(tx, account2, target2, -8100).lastInsertRowid);
+  const ledger = snapshot();
+  const link = (lineId: string, transactionLineId: number, revision = 1) =>
+    request('PUT', `${url}/${lineId}`, { userId, revision, transactionId: tx, transactionLineId });
+  assert.equal((await link(doc.lines[0].id, usd)).body.error.details[0].field, 'currency');
+  assert.equal((await link(doc.lines[0].id, wrongAccount)).body.error.details[0].field, 'account');
+  assert.equal((await link(doc.lines[0].id, crc, 2)).status, 409);
+  const confirmed = await link(doc.lines[0].id, crc);
+  assert.equal(confirmed.status, 200, JSON.stringify(confirmed.body));
+  const receipt = confirmed.body.occurrences[0].receipt;
+  assert.equal(receipt.amount, '8100');
+  assert.equal(receipt.difference, '150');
+  assert.equal(receipt.forecast.planned, '7950');
+  assert.equal(receipt.forecast.source.revision, 1);
+  assert.deepEqual((await link(doc.lines[0].id, crc)).body, confirmed.body);
+  assert.equal((await link(doc.lines[1].id, usd)).body.occurrences[1].receipt.difference, '0');
+  const duplicate = await request(
+    'PUT',
+    `/api/budget-plans/${later.id}/subscriptions/${later.body.document.lines[0].id}`,
+    {
+      userId,
+      revision: 1,
+      transactionId: tx,
+      transactionLineId: crc,
+    },
+  );
+  assert.equal(duplicate.status, 409);
+  assert.equal(snapshot(), ledger);
+  doc.exchange.sell = '470';
+  assert.equal((await save(doc, saved.id, 1)).status, 200);
+  assert.equal((await read()).body.occurrences[0].receipt.current, false);
+  assert.equal((await link(doc.lines[0].id, crc, 2)).body.occurrences[0].receipt.current, true);
 });

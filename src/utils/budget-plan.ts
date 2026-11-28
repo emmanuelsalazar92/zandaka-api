@@ -13,6 +13,7 @@ export type PlanLine = {
   iva: string;
   roundUsd: 'up' | 'none';
   targetEnvelopeId: number | null;
+  subscriptionSource?: { id: string; revision: number };
 };
 export type BudgetPlanDocument = {
   version: 1;
@@ -165,11 +166,18 @@ export function calculateBudgetPlan(doc: BudgetPlanDocument): PlanCalculation {
         reserve = money(raw);
       } else {
         const beforeRound = line.currency === 'USD' ? withTax.mul(sell) : withTax;
+        if (line.currency === 'USD')
+          explanation.push(
+            `USD ${text(withTax)} × venta presupuestaria ${text(sell)} = CRC ${text(beforeRound)}.`,
+          );
         raw = beforeRound.div(50).toDecimalPlaces(0, Decimal.ROUND_HALF_UP).mul(50);
         reserve = raw.div(buy);
         if (line.roundUsd === 'up') reserve = reserve.ceil();
         explanation.push(
           `Pago CRC ${text(beforeRound)}, al múltiplo de 50 más cercano: ${text(raw)}.`,
+        );
+        explanation.push(
+          `CRC ${text(raw)} / compra presupuestaria ${text(buy)}; reserva USD ${text(reserve)}${line.roundUsd === 'up' ? ' al dólar superior' : ''}.`,
         );
       }
     } else if (line.currency === 'USD') {
